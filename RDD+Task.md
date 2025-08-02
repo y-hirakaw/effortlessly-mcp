@@ -286,71 +286,41 @@ workspace:
 ### Phase 2: 基本ツール実装（2-3週間）
 
 #### ファイル操作ツール
-- [ ] **secure_read_file**: 安全なファイル読み取り
-  - パラメータ: `file_path` (string), `encoding?` (string), `max_size?` (number)
-  - 機能: ホワイトリスト検証、機密情報マスキング、サイズ制限
-  - 返り値: ファイル内容（フィルタリング済み）
-  - ログ: `.claude/workspace/effortlessly/logs/audit/`に記録
+- [x] **read_file**: ファイル読み取り
+  - パラメータ: `file_path` (string), `encoding?` (string)
+  - 機能: 指定ファイルの内容を読み取り
+  - 返り値: ファイル内容
 
-- [ ] **secure_list_directory**: 制限付きディレクトリ一覧
+- [x] **list_directory**: ディレクトリ一覧
   - パラメータ: `directory_path` (string), `recursive?` (boolean), `pattern?` (string)
-  - 機能: ホワイトリスト検証、シンボリックリンク除外、隠しファイル制御
+  - 機能: ディレクトリ内のファイル・フォルダ一覧表示
   - 返り値: ファイル/ディレクトリ情報の配列
-  - キャッシュ: `.claude/workspace/effortlessly/index/files.db`
 
-- [ ] **secure_get_file_metadata**: ファイルメタデータ取得
+- [ ] **get_file_metadata**: ファイルメタデータ取得
   - パラメータ: `file_path` (string)
   - 機能: サイズ、更新日時、パーミッション情報の取得
   - 返り値: メタデータオブジェクト
-  - ログ: `.claude/workspace/effortlessly/logs/audit/`に記録
 
-- [ ] **secure_search_files**: パターンベースファイル検索
+- [ ] **search_files**: パターンベースファイル検索
   - パラメータ: `pattern` (string), `directory?` (string), `file_pattern?` (string)
-  - 機能: 正規表現検索、ファイル名フィルタ、結果の機密情報マスキング
+  - 機能: 正規表現検索、ファイル名フィルタ
   - 返り値: マッチ結果の配列（ファイルパス、行番号、マッチ内容）
-  - インデックス: `.claude/workspace/effortlessly/index/files.db`使用
 
 #### プロジェクト管理ツール
 - [ ] **workspace_activate**: ワークスペースの活性化
-  - パラメータ: `workspace_name` (string) | `workspace_path` (string)
-  - 機能: 指定ワークスペースを現在のコンテキストに設定
+  - パラメータ: `workspace_path` (string)
+  - 機能: 指定パスをワークスペースとして設定
   - 返り値: 活性化されたワークスペース情報
 
 - [ ] **workspace_get_info**: 現在のワークスペース情報取得
   - パラメータ: なし
-  - 機能: アクティブなワークスペースの詳細情報を返す
-  - 返り値: ワークスペース設定、統計情報
+  - 機能: アクティブなワークスペースの基本情報を返す
+  - 返り値: ワークスペース設定
 
 - [ ] **workspace_list_all**: 登録済みワークスペース一覧
   - パラメータ: なし
   - 機能: すべての登録ワークスペースをリスト表示
   - 返り値: ワークスペース情報の配列
-
-- [ ] **workspace_configure**: ワークスペース設定の更新
-  - パラメータ: `workspace_name` (string), `config` (object)
-  - 機能: セキュリティ設定、ホワイトリスト、除外パターンの更新
-  - 返り値: 更新後の設定
-
-#### 設定管理ツール
-- [ ] **config_get_security**: セキュリティ設定の取得
-  - パラメータ: なし
-  - 機能: 現在のセキュリティ設定を返す
-  - 返り値: セキュリティ設定オブジェクト
-
-- [ ] **config_update_whitelist**: ホワイトリストの更新
-  - パラメータ: `action` ("add" | "remove"), `paths` (string[])
-  - 機能: アクセス許可パスの追加/削除
-  - 返り値: 更新後のホワイトリスト
-
-- [ ] **audit_view_logs**: 監査ログの表示
-  - パラメータ: `filter?` (object), `limit?` (number)
-  - 機能: 操作履歴の検索・表示
-  - 返り値: ログエントリの配列
-
-- [ ] **config_export_settings**: 設定のエクスポート
-  - パラメータ: `format?` ("yaml" | "json")
-  - 機能: 現在の設定を指定形式でエクスポート
-  - 返り値: 設定データ（文字列）
 
 ### Phase 3: LSP統合（3-4週間）
 
@@ -464,7 +434,7 @@ workspace:
 - **設定ミス**: デフォルトセキュア設定
 - **内部脅威**: 最小権限とログ監視
 
-## 10. 次のステップ
+## 9. 次のステップ
 
 1. このRDDのレビューと承認
 2. 開発環境のセットアップ
@@ -472,6 +442,6 @@ workspace:
 4. 週次進捗レビューの設定
 5. セキュリティレビュープロセスの確立
 
-## 11. ライセンスと公開
+## 10. ライセンスと公開
 
 本プロジェクトはオープンソースとして公開予定。ライセンスはMIT Licenseを採用し、エンタープライズ環境での利用を促進する。

@@ -1,6 +1,8 @@
 import { ITool } from '../types/common.js';
 import { Logger } from '../services/logger.js';
 import { EchoTool } from './echo.js';
+import { ReadFileTool } from './file-operations/read-file-adapter.js';
+import { ListDirectoryTool } from './file-operations/list-directory-adapter.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -26,6 +28,8 @@ export class ToolRegistry {
    */
   private registerDefaultTools(): void {
     this.registerTool(new EchoTool());
+    this.registerTool(new ReadFileTool());
+    this.registerTool(new ListDirectoryTool());
   }
 
   /**

@@ -115,3 +115,7 @@ The project is currently in the planning and architecture phase. The next steps 
 2. Implement the core MCP server structure
 3. Build the security layer with workspace management
 4. Add basic file operation tools with security controls
+
+# ファイルの読み書きについて
+
+* MCPサーバー serenaを利用すること
