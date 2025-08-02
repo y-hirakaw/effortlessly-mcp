@@ -1,0 +1,2 @@
+# effortlessly-mcp
+Effortlessly MCP
