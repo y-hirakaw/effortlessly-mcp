@@ -1,0 +1,57 @@
+{
+  "name": "effortlessly-mcp",
+  "version": "1.0.0",
+  "description": "An enterprise-grade MCP Server for secure code analysis and semantic search",
+  "main": "./build/index.js",
+  "type": "module",
+  "bin": {
+    "effortlessly-mcp": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod 755 build/index.js",
+    "build:fast": "node scripts/build.js && chmod 755 build/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/y-hirakaw/effortlessly-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "code-analysis",
+    "semantic-search"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/y-hirakaw/effortlessly-mcp/issues"
+  },
+  "homepage": "https://github.com/y-hirakaw/effortlessly-mcp#readme",
+  "files": [
+    "build"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.32.0",
+    "@types/node": "^20.19.9",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "esbuild": "^0.25.8",
+    "eslint": "^9.32.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
