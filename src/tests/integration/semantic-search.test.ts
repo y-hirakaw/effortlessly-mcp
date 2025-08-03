@@ -40,7 +40,7 @@ export class App {
   public async start(): Promise<void> {
     this.logger.info('Starting application');
     const users = await this.userService.getAllUsers();
-    console.log(\`Found \${users.length} users\`);
+    logger.info(\`Found \${users.length} users\`);
   }
 
   private validateConfig(): boolean {
@@ -109,25 +109,25 @@ export class Logger {
 
   public debug(message: string): void {
     if (this.level <= LogLevel.DEBUG) {
-      console.log(\`[DEBUG] \${message}\`);
+      logger.debug(\`[DEBUG] \${message}\`);
     }
   }
 
   public info(message: string): void {
     if (this.level <= LogLevel.INFO) {
-      console.log(\`[INFO] \${message}\`);
+      logger.info(\`[INFO] \${message}\`);
     }
   }
 
   public warn(message: string): void {
     if (this.level <= LogLevel.WARN) {
-      console.warn(\`[WARN] \${message}\`);
+      logger.warn(\`[WARN] \${message}\`);
     }
   }
 
   public error(message: string, error?: any): void {
     if (this.level <= LogLevel.ERROR) {
-      console.error(\`[ERROR] \${message}\`, error);
+      logger.error(\`[ERROR] \${message}\`, error);
     }
   }
 

@@ -7,15 +7,17 @@ import { describe, it, expect } from 'vitest';
 import { SwiftLSP } from '../../services/lsp/swift-lsp.js';
 import { existsSync } from 'fs';
 import path from 'path';
+import { Logger } from '../../services/logger.js';
 
 describe('Swift CocoaPods Integration Tests', () => {
   const COCOAPODS_PROJECT_ROOT = path.join(process.cwd(), 'test-cocoapods-project');
+  const logger = Logger.getInstance();
 
   describe('CocoaPods Project Detection', () => {
     it('should detect Podfile and parse pod dependencies', async () => {
       // CocoaPodsテストプロジェクトが存在することを確認
       if (!existsSync(COCOAPODS_PROJECT_ROOT)) {
-        console.log('Skipping: CocoaPods test project not found');
+        logger.info('Skipping: CocoaPods test project not found');
         return;
       }
 
@@ -41,13 +43,13 @@ describe('Swift CocoaPods Integration Tests', () => {
         const foundPods = projectConfig.pods.filter(pod => expectedPods.includes(pod));
         expect(foundPods.length).toBeGreaterThan(0);
         
-        console.log(`🍃 Detected CocoaPods: ${projectConfig.pods.join(', ')}`);
+        logger.info(`🍃 Detected CocoaPods: ${projectConfig.pods.join(', ')}`);
       }
     });
 
     it('should handle projects with both Package.swift and Podfile', async () => {
       if (!existsSync(COCOAPODS_PROJECT_ROOT)) {
-        console.log('Skipping: CocoaPods test project not found');
+        logger.info('Skipping: CocoaPods test project not found');
         return;
       }
 
@@ -65,12 +67,12 @@ describe('Swift CocoaPods Integration Tests', () => {
       expect(projectConfig.hasPackageSwift).toBe(false);
       expect(projectConfig.packageSwiftPath).toBeUndefined();
       
-      console.log(`📊 Project Type: CocoaPods only (${projectConfig.pods?.length || 0} pods)`);
+      logger.info(`📊 Project Type: CocoaPods only (${projectConfig.pods?.length || 0} pods)`);
     });
 
     it('should find Swift files in CocoaPods project', async () => {
       if (!existsSync(COCOAPODS_PROJECT_ROOT)) {
-        console.log('Skipping: CocoaPods test project not found');
+        logger.info('Skipping: CocoaPods test project not found');
         return;
       }
 
@@ -91,12 +93,12 @@ describe('Swift CocoaPods Integration Tests', () => {
       const podsFiles = swiftFiles.filter(file => file.includes('/Pods/'));
       expect(podsFiles.length).toBe(0);
       
-      console.log(`📁 Found ${swiftFiles.length} Swift files in CocoaPods project`);
+      logger.info(`📁 Found ${swiftFiles.length} Swift files in CocoaPods project`);
     });
 
     it('should parse Podfile correctly with different syntax patterns', async () => {
       if (!existsSync(COCOAPODS_PROJECT_ROOT)) {
-        console.log('Skipping: CocoaPods test project not found');
+        logger.info('Skipping: CocoaPods test project not found');
         return;
       }
 
@@ -119,7 +121,7 @@ describe('Swift CocoaPods Integration Tests', () => {
         // 検出されたポッドと期待されるポッドの比較
         for (const expectedPod of expectedPods) {
           if (projectConfig.pods.includes(expectedPod)) {
-            console.log(`✅ Detected expected pod: ${expectedPod}`);
+            logger.info(`✅ Detected expected pod: ${expectedPod}`);
           }
         }
         
@@ -128,7 +130,7 @@ describe('Swift CocoaPods Integration Tests', () => {
           expectedPods.includes(pod)
         )).toBe(true);
         
-        console.log(`🔍 Parsed pods: ${projectConfig.pods.join(', ')}`);
+        logger.info(`🔍 Parsed pods: ${projectConfig.pods.join(', ')}`);
       }
     });
   });
@@ -139,7 +141,7 @@ describe('Swift CocoaPods Integration Tests', () => {
       const packageSwiftProject = path.join(process.cwd(), 'test-swift-project');
       
       if (!existsSync(packageSwiftProject)) {
-        console.log('Skipping: test-swift-project not found');
+        logger.info('Skipping: test-swift-project not found');
         return;
       }
 

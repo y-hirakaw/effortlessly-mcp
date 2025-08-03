@@ -8,6 +8,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { promisify } from 'util';
 import { existsSync } from 'fs';
 import { SwiftLSP } from '../../services/lsp/swift-lsp.js';
+import { Logger } from '../../services/logger.js';
 
 const sleep = promisify(setTimeout);
 
@@ -17,12 +18,13 @@ describe('Swift LSP Integration Tests', () => {
   const LSP_PORT = 3001;
   const LSP_BASE_URL = `http://localhost:${LSP_PORT}`;
   const WORKSPACE_ROOT = process.cwd();
+  const logger = Logger.getInstance();
 
   beforeAll(async () => {
     // SourceKit-LSPの利用可能性をチェック
     isSwiftLSPAvailable = await SwiftLSP.isAvailable();
     if (!isSwiftLSPAvailable) {
-      console.log('SourceKit-LSP not available, skipping Swift LSP tests');
+      logger.info('SourceKit-LSP not available, skipping Swift LSP tests');
       return;
     }
 
@@ -42,7 +44,7 @@ describe('Swift LSP Integration Tests', () => {
         throw new Error('LSP Proxy Server failed to start');
       }
     } catch (error) {
-      console.warn('LSP Proxy Server health check failed, some tests may be skipped');
+      logger.warn('LSP Proxy Server health check failed, some tests may be skipped');
     }
   }, 30000);
 
@@ -68,14 +70,14 @@ describe('Swift LSP Integration Tests', () => {
       if (isAvailable) {
         expect(isAvailable).toBe(true);
       } else {
-        console.log('SourceKit-LSP not available on this system');
+        logger.info('SourceKit-LSP not available on this system');
         expect(isAvailable).toBe(false);
       }
     });
 
     it('should check Swift LSP in available languages', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       try {
@@ -90,7 +92,7 @@ describe('Swift LSP Integration Tests', () => {
           expect(data.available).toContain('swift');
         }
       } catch (error) {
-        console.warn('LSP status check failed, server may not be running');
+        logger.warn('LSP status check failed, server may not be running');
       }
     });
   });
@@ -98,7 +100,7 @@ describe('Swift LSP Integration Tests', () => {
   describe('Swift Project Detection', () => {
     it('should initialize Swift LSP with workspace', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       const swiftLSP = new SwiftLSP(WORKSPACE_ROOT);
@@ -114,29 +116,29 @@ describe('Swift LSP Integration Tests', () => {
       if (projectConfig.hasPackageSwift) {
         expect(projectConfig.packageSwiftPath).toBeDefined();
         expect(existsSync(projectConfig.packageSwiftPath!)).toBe(true);
-        console.log(`📦 Package.swift found: ${projectConfig.packageSwiftPath}`);
+        logger.info(`📦 Package.swift found: ${projectConfig.packageSwiftPath}`);
       }
       
       if (projectConfig.hasPodfile) {
         expect(projectConfig.podfilePath).toBeDefined();
         expect(existsSync(projectConfig.podfilePath!)).toBe(true);
-        console.log(`🍃 Podfile found: ${projectConfig.podfilePath}`);
+        logger.info(`🍃 Podfile found: ${projectConfig.podfilePath}`);
       }
       
       if (projectConfig.dependencies && projectConfig.dependencies.length > 0) {
         expect(Array.isArray(projectConfig.dependencies)).toBe(true);
-        console.log(`📦 Swift Package Manager dependencies: ${projectConfig.dependencies.join(', ')}`);
+        logger.info(`📦 Swift Package Manager dependencies: ${projectConfig.dependencies.join(', ')}`);
       }
       
       if (projectConfig.pods && projectConfig.pods.length > 0) {
         expect(Array.isArray(projectConfig.pods)).toBe(true);
-        console.log(`🍃 CocoaPods dependencies: ${projectConfig.pods.join(', ')}`);
+        logger.info(`🍃 CocoaPods dependencies: ${projectConfig.pods.join(', ')}`);
       }
     });
 
     it('should find Swift files in workspace', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       const swiftLSP = new SwiftLSP(WORKSPACE_ROOT);
@@ -156,7 +158,7 @@ describe('Swift LSP Integration Tests', () => {
   describe('Swift Symbol Search', () => {
     it('should handle Swift symbol search through HTTP API', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       try {
@@ -186,7 +188,7 @@ describe('Swift LSP Integration Tests', () => {
 
     it('should search symbols directly with Swift LSP', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       const swiftLSP = new SwiftLSP(WORKSPACE_ROOT);
@@ -225,7 +227,7 @@ describe('Swift LSP Integration Tests', () => {
 
     it('should validate workspace root', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       // 無効なワークスペースパスでの初期化
@@ -244,7 +246,7 @@ describe('Swift LSP Integration Tests', () => {
   describe('Swift LSP Performance', () => {
     it('should respond to symbol searches within reasonable time', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       const swiftLSP = new SwiftLSP(WORKSPACE_ROOT);
@@ -269,7 +271,7 @@ describe('Swift LSP Integration Tests', () => {
 
     it('should handle cache operations efficiently', async () => {
       if (!isSwiftLSPAvailable) {
-        console.log('Skipping: SourceKit-LSP not available');
+        logger.info('Skipping: SourceKit-LSP not available');
         return;
       }
       const swiftLSP = new SwiftLSP(WORKSPACE_ROOT);

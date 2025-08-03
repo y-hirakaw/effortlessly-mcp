@@ -127,3 +127,118 @@ export interface SwiftLSPConfig extends LSPServerConfig {
   /** CocoaPods対応 */
   cocoapodsSupported?: boolean;
 }
+
+/**
+ * LSP JSON-RPC メッセージの基本型
+ */
+export interface LSPMessage {
+  jsonrpc: '2.0';
+  id?: number | string;
+  method?: string;
+  params?: unknown;
+  result?: unknown;
+  error?: LSPError;
+}
+
+/**
+ * LSP エラー型
+ */
+export interface LSPError {
+  code: number;
+  message: string;
+  data?: unknown;
+}
+
+/**
+ * LSP リクエスト型
+ */
+export interface LSPRequest extends LSPMessage {
+  id: number | string;
+  method: string;
+  params?: unknown;
+}
+
+/**
+ * LSP レスポンス型
+ */
+export interface LSPResponse extends LSPMessage {
+  id: number | string;
+  result?: unknown;
+  error?: LSPError;
+}
+
+/**
+ * LSP 通知型
+ */
+export interface LSPNotification extends LSPMessage {
+  method: string;
+  params?: unknown;
+}
+
+/**
+ * シンボル検索レスポンス型
+ */
+export interface SymbolSearchResponse {
+  symbols: SymbolInformation[];
+}
+
+/**
+ * 参照検索レスポンス型
+ */
+export interface ReferencesResponse {
+  references: Location[];
+}
+
+/**
+ * ドキュメントシンボルレスポンス型
+ */
+export interface DocumentSymbolResponse {
+  symbols: DocumentSymbol[] | SymbolInformation[];
+}
+
+/**
+ * ワークスペースシンボルパラメータ型
+ */
+export interface WorkspaceSymbolParams {
+  query: string;
+}
+
+/**
+ * 参照検索パラメータ型
+ */
+export interface ReferenceParams {
+  textDocument: { uri: string };
+  position: Position;
+  context: {
+    includeDeclaration: boolean;
+  };
+}
+
+/**
+ * ドキュメントシンボルパラメータ型
+ */
+export interface DocumentSymbolParams {
+  textDocument: { uri: string };
+}
+
+/**
+ * LSPプロセス状態型
+ */
+export interface LSPProcessStatus {
+  pid?: number;
+  running: boolean;
+  initialized: boolean;
+  lastActivity?: Date;
+  errorCount: number;
+  requestCount: number;
+}
+
+/**
+ * HTTP LSP クライアントレスポンス型
+ */
+export interface HttpLSPResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  timestamp: string;
+}

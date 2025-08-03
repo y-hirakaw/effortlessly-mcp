@@ -9,6 +9,7 @@ import fs from 'fs/promises';
 import type { SymbolKind } from 'vscode-languageserver-protocol';
 import type { SymbolSearchResult } from './types.js';
 import { Logger } from '../logger.js';
+import type { SymbolIndexEntry } from './types.js';
 
 /**
  * シンボルインデックス管理クラス
@@ -119,7 +120,7 @@ export class SymbolIndexer {
       FROM symbols 
       WHERE workspace_id = ?
     `;
-    const params: any[] = [this.workspaceId];
+    const params: (string | number)[] = [this.workspaceId];
 
     // 名前検索条件
     if (exactMatch) {
@@ -147,7 +148,7 @@ export class SymbolIndexer {
 
     try {
       const stmt = this.db.prepare(sql);
-      const rows = stmt.all(...params) as any[];
+      const rows = stmt.all(...params) as SymbolIndexEntry[];
 
       return rows.map(row => ({
         name: row.name,
@@ -186,7 +187,7 @@ export class SymbolIndexer {
         ORDER BY line ASC, column ASC
       `);
 
-      const rows = stmt.all(this.workspaceId, filePath) as any[];
+      const rows = stmt.all(this.workspaceId, filePath) as SymbolIndexEntry[];
 
       return rows.map(row => ({
         name: row.name,
@@ -249,7 +250,7 @@ export class SymbolIndexer {
       const totalStmt = this.db.prepare(`
         SELECT COUNT(*) as count FROM symbols WHERE workspace_id = ?
       `);
-      const totalResult = totalStmt.get(this.workspaceId) as any;
+      const totalResult = totalStmt.get(this.workspaceId) as { count: number };
       const totalSymbols = totalResult.count;
 
       // 種類別統計
@@ -259,7 +260,7 @@ export class SymbolIndexer {
         WHERE workspace_id = ? 
         GROUP BY kind
       `);
-      const kindResults = kindStmt.all(this.workspaceId) as any[];
+      const kindResults = kindStmt.all(this.workspaceId) as { kind: number; count: number }[];
       const symbolsByKind: Record<string, number> = {};
       for (const row of kindResults) {
         symbolsByKind[row.kind] = row.count;
@@ -271,7 +272,7 @@ export class SymbolIndexer {
         FROM symbols 
         WHERE workspace_id = ?
       `);
-      const fileResult = fileStmt.get(this.workspaceId) as any;
+      const fileResult = fileStmt.get(this.workspaceId) as { count: number };
       const fileCount = fileResult.count;
 
       // 最終更新日時
@@ -280,7 +281,7 @@ export class SymbolIndexer {
         FROM symbols 
         WHERE workspace_id = ?
       `);
-      const lastUpdatedResult = lastUpdatedStmt.get(this.workspaceId) as any;
+      const lastUpdatedResult = lastUpdatedStmt.get(this.workspaceId) as { last_updated: string };
       const lastUpdated = lastUpdatedResult.last_updated || '';
 
       return {

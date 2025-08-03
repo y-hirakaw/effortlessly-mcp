@@ -71,7 +71,7 @@ export class HttpLSPClient {
       clearTimeout(timeoutId);
       
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' })) as any;
+        const error = await response.json().catch(() => ({ error: 'Unknown error' })) as { error?: string; message?: string };
         throw new Error(`HTTP ${response.status}: ${error.error || error.message || 'Request failed'}`);
       }
       

@@ -18,6 +18,11 @@ import {
   LSPAvailabilityChecker, 
   LanguageDetector 
 } from './lsp-config.js';
+import type { 
+  LSPResponse, 
+  LSPMessage,
+  LSPProcessStatus 
+} from '../lsp/types.js';
 
 /**
  * 個別LSPプロセス管理
@@ -26,11 +31,10 @@ class LSPProcess extends EventEmitter {
   private process?: ChildProcess;
   private requestId = 0;
   private pendingRequests = new Map<number, {
-    resolve: (value: any) => void;
+    resolve: (value: LSPResponse) => void;
     reject: (error: Error) => void;
   }>();
   private initialized = false;
-  private connected = false;
 
   constructor(
     private config: LSPServerConfig,
@@ -58,7 +62,6 @@ class LSPProcess extends EventEmitter {
 
       this.setupProcessHandlers();
       this.setupOutputParser();
-      this.connected = true;
 
       // 初期化実行
       await this.initialize();
@@ -88,7 +91,6 @@ class LSPProcess extends EventEmitter {
       this.process = undefined;
     }
     
-    this.connected = false;
     this.initialized = false;
     this.pendingRequests.clear();
     this.emit('stopped');
@@ -109,7 +111,7 @@ class LSPProcess extends EventEmitter {
       if (this.config.language === 'typescript') {
         try {
           // 最初の試行
-          let symbols = await this.sendRequest('workspace/symbol', { query });
+          let symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
           if (symbols && symbols.length > 0) {
             this.logger.info(`Found ${symbols.length} symbols for query: "${query}"`);
             return symbols;
@@ -128,7 +130,7 @@ class LSPProcess extends EventEmitter {
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // 再試行
-          symbols = await this.sendRequest('workspace/symbol', { query });
+          symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
           this.logger.info(`Found ${symbols?.length || 0} symbols for query: "${query}" after project reload`);
           return symbols || [];
           
@@ -136,12 +138,12 @@ class LSPProcess extends EventEmitter {
           this.logger.warn('Project reload failed, using fallback approach', { error: (reloadError as Error).message });
           
           // フォールバック: 通常の検索を実行
-          const symbols = await this.sendRequest('workspace/symbol', { query });
+          const symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
           return symbols || [];
         }
       } else {
         // 他の言語の場合は通常通り
-        const symbols = await this.sendRequest('workspace/symbol', { query });
+        const symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
         this.logger.info(`Found ${symbols?.length || 0} symbols for query: "${query}"`);
         return symbols || [];
       }
@@ -165,7 +167,7 @@ class LSPProcess extends EventEmitter {
       context: { includeDeclaration }
     };
 
-    const references = await this.sendRequest('textDocument/references', params);
+    const references = await this.sendRequest('textDocument/references', params) as Location[];
     return references || [];
   }
 
@@ -327,17 +329,18 @@ class LSPProcess extends EventEmitter {
     
     this.initialized = true;
     
+    const initResult = result as { capabilities: unknown };
     this.logger.info(`LSP initialized: ${this.config.displayName}`, {
-      capabilities: !!result.capabilities,
+      capabilities: !!initResult.capabilities,
       workspaceRoot: this.workspaceRoot,
-      serverCapabilities: result.capabilities
+      serverCapabilities: initResult.capabilities
     });
   }
 
   /**
    * LSPリクエストを送信
    */
-  private async sendRequest(method: string, params: any): Promise<any> {
+  private async sendRequest(method: string, params: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (!this.process?.stdin) {
         reject(new Error(`LSP process not available: ${this.config.language}`));
@@ -371,7 +374,7 @@ class LSPProcess extends EventEmitter {
   /**
    * LSP通知を送信
    */
-  private sendNotification(method: string, params: any): void {
+  private sendNotification(method: string, params: unknown): void {
     if (!this.process?.stdin) return;
 
     const notification = {
@@ -398,7 +401,6 @@ class LSPProcess extends EventEmitter {
 
     this.process.on('exit', (code, signal) => {
       this.logger.info(`LSP process exited (${this.config.language})`, { code, signal });
-      this.connected = false;
       this.initialized = false;
       this.emit('exit', code);
     });
@@ -454,15 +456,15 @@ class LSPProcess extends EventEmitter {
   /**
    * LSPメッセージを処理
    */
-  private handleMessage(message: any): void {
-    if (message.id !== undefined && this.pendingRequests.has(message.id)) {
-      const pending = this.pendingRequests.get(message.id)!;
-      this.pendingRequests.delete(message.id);
+  private handleMessage(message: LSPMessage): void {
+    if (message.id !== undefined && this.pendingRequests.has(Number(message.id))) {
+      const pending = this.pendingRequests.get(Number(message.id))!;
+      this.pendingRequests.delete(Number(message.id));
 
       if (message.error) {
         pending.reject(new Error(`LSP Error (${this.config.language}): ${message.error.message}`));
       } else {
-        pending.resolve(message.result);
+        pending.resolve(message as LSPResponse);
       }
     }
     // 通知は無視（必要に応じて後で実装）
@@ -471,11 +473,13 @@ class LSPProcess extends EventEmitter {
   /**
    * プロセス状態を取得
    */
-  getState() {
+  getState(): LSPProcessStatus {
     return {
-      language: this.config.language,
-      connected: this.connected,
+      running: this.process !== undefined,
       initialized: this.initialized,
+      lastActivity: new Date(),
+      errorCount: 0,
+      requestCount: 0,
       pid: this.process?.pid
     };
   }
@@ -632,8 +636,8 @@ export class LSPManager extends EventEmitter {
   /**
    * LSPプロセス状態を取得
    */
-  getStatus(): Record<string, any> {
-    const status: Record<string, any> = {};
+  getStatus(): Record<string, unknown> {
+    const status: Record<string, LSPProcessStatus> = {};
 
     for (const [language, process] of this.processes) {
       status[language] = process.getState();

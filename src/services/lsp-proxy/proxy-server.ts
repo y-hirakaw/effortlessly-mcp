@@ -5,6 +5,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import type { Server } from 'http';
 // import type { SymbolInformation } from 'vscode-languageserver-protocol'; // 未使用のため削除
 import { Logger } from '../logger.js';
 import { LSPManager } from './lsp-manager.js';
@@ -14,7 +15,7 @@ import { LSPManager } from './lsp-manager.js';
  */
 export class LSPProxyServer {
   private app: express.Express;
-  private server?: any;
+  private server?: Server;
   private lspManager: LSPManager;
   private logger: Logger;
 
@@ -198,7 +199,7 @@ export class LSPProxyServer {
     
     if (this.server) {
       await new Promise<void>((resolve) => {
-        this.server.close(() => {
+        this.server!.close(() => {
           this.logger.info('HTTP server stopped');
           resolve();
         });
