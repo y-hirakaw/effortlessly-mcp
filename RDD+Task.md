@@ -55,7 +55,7 @@
 - ✅ モジュラーなアーキテクチャ設計完成
 - ✅ **11個の完全なMCPツール実装**（ファイル操作4個 + プロジェクト管理3個 + LSP統合2個 + ユーティリティ2個）
 - ✅ **LSP Proxy Server完全実装**（stdio競合問題の革新的解決）
-- ✅ **包括的テストフレームワーク**: 298テスト実装（**100%成功率**）
+- ✅ **包括的テストフレームワーク**: 307テスト実装（**100%成功率**）
 - ✅ **完全な文書化スイート**: API、セキュリティ、セットアップ、トラブルシューティング
 - ✅ **エンタープライズグレードセキュリティ**: 包括的なセキュリティフレームワーク
 - ✅ **本番デプロイメント対応**: Docker、Kubernetes、systemd設定完成
@@ -416,29 +416,86 @@ workspace:
 - [x] シンボルキャッシュ実装
 
 #### セマンティック検索ツール
-- [ ] **code_find_symbol**: シンボル検索
-  - パラメータ: `symbol_name` (string), `search_type?` ("exact" | "fuzzy"), `file_pattern?` (string)
-  - 機能: 関数、クラス、変数などのシンボル定義を検索
-  - 返り値: シンボル情報の配列（位置、型、シグネチャ）
-  - インデックス: `.claude/workspace/effortlessly/index/symbols.db`
+- [x] **code_find_symbol**: シンボル検索 ✅ **実装完了**
+  - パラメータ: `symbol_name` (string), `search_type?` ("exact" | "fuzzy"), `file_pattern?` (string), `max_results?` (number)
+  - 機能: LSP Proxy Server経由でセマンティックシンボル検索、TypeScript/Go/Swift対応
+  - 返り値: シンボル情報の配列（位置、型、シグネチャ、ファイルパス）
+  - 統合: HTTP REST API (`http://localhost:3001/symbols/search`)
 
-- [ ] **code_find_references**: 参照検索
-  - パラメータ: `symbol_path` (string), `include_declarations?` (boolean)
-  - 機能: 指定シンボルへのすべての参照を検索
+- [x] **code_find_references**: 参照検索 ✅ **実装完了**
+  - パラメータ: `file_path` (string), `line` (number), `column` (number), `include_declarations?` (boolean)
+  - 機能: LSP Proxy Server経由で指定位置のシンボル参照を検索
   - 返り値: 参照位置の配列（ファイル、行、列、コンテキスト）
-  - キャッシュ: `.claude/workspace/effortlessly/index/cache/`
+  - 統合: HTTP REST API (`http://localhost:3001/references/find`)
 
-- [ ] **code_get_symbol_hierarchy**: シンボル階層取得
-  - パラメータ: `file_path?` (string), `directory_path?` (string)
-  - 機能: ファイルまたはディレクトリのシンボル階層を取得
-  - 返り値: 階層構造のツリーオブジェクト
-  - インデックス: `.claude/workspace/effortlessly/index/symbols.db`
+- [x] **code_get_symbol_hierarchy**: シンボル階層取得 ✅ **実装完了**
+  - パラメータ: `file_path?` (string), `directory_path?` (string), `max_depth?` (number), `include_private?` (boolean), `symbol_kinds?` (number[])
+  - 機能: ファイル・ディレクトリのシンボル階層を生成、LSP Document Symbol統合
+  - 返り値: 階層構造の詳細情報（名前パス、種類、位置、統計）
+  - テスト: 9個のテストケース実装済み
 
-- [ ] **code_analyze_dependencies**: 依存関係分析
-  - パラメータ: `file_path` (string), `depth?` (number)
-  - 機能: インポート/エクスポートの依存関係を分析
-  - 返り値: 依存関係グラフ
-  - キャッシュ: `.claude/workspace/effortlessly/index/cache/dependencies.json`
+- [x] **code_analyze_dependencies**: 依存関係分析 ✅ **実装完了**
+  - パラメータ: `file_path` (string), `depth?` (number), `include_external?` (boolean), `resolve_imports?` (boolean)
+  - 機能: インポート/エクスポート依存関係の包括的分析、循環依存検出
+  - 返り値: 依存関係グラフ（ファイル情報、エッジ、循環依存、外部依存）
+  - 対応言語: TypeScript, JavaScript, Swift
+
+#### 高度なコード解析・編集ツール
+- [ ] **code_search_pattern**: 柔軟なパターン検索
+  - パラメータ: `pattern` (string), `file_types?` (string[]), `exclude_patterns?` (string[]), `max_results?` (number)
+  - 機能: 正規表現・グロブパターンによる横断的コード検索
+  - 返り値: マッチした行・ファイル・コンテキストの詳細配列
+  - インデックス: `.claude/workspace/effortlessly/index/search_cache.db`
+
+- [ ] **code_find_referencing_symbols**: 参照元シンボル検索
+  - パラメータ: `target_symbol` (string), `symbol_kinds?` (number[]), `include_body?` (boolean)
+  - 機能: 指定シンボルを参照しているすべてのシンボルを検索
+  - 返り値: 参照元シンボル情報の配列（位置、種類、コードスニペット）
+  - インデックス: `.claude/workspace/effortlessly/index/references.db`
+
+- [ ] **code_get_symbols_overview**: シンボル概要取得
+  - パラメータ: `path` (string), `max_depth?` (number), `include_kinds?` (number[])
+  - 機能: ファイル・ディレクトリの包括的シンボル構造概要
+  - 返り値: 階層化されたシンボル概要（名前パス、種類、統計情報）
+  - インデックス: `.claude/workspace/effortlessly/index/overview_cache.db`
+
+#### プロジェクト知識管理ツール
+- [ ] **project_memory_write**: プロジェクト知識保存
+  - パラメータ: `memory_name` (string), `content` (string), `tags?` (string[])
+  - 機能: プロジェクト固有の知識・設計情報を永続化
+  - 返り値: 保存結果とメタデータ
+  - ストレージ: `.claude/workspace/effortlessly/memory/`
+
+- [ ] **project_memory_read**: プロジェクト知識読み取り
+  - パラメータ: `memory_name` (string)
+  - 機能: 保存されたプロジェクト知識の検索・読み取り
+  - 返り値: メモリ内容とメタデータ
+  - インデックス: `.claude/workspace/effortlessly/memory/index.json`
+
+- [ ] **project_memory_list**: プロジェクト知識一覧
+  - パラメータ: `filter_tags?` (string[])
+  - 機能: 利用可能なメモリファイルの一覧表示
+  - 返り値: メモリファイル情報の配列
+  - 機能: タグベースフィルタリング対応
+
+#### 精密コード編集ツール
+- [ ] **code_replace_symbol_body**: シンボル本体置換
+  - パラメータ: `symbol_path` (string), `new_body` (string), `preserve_signature?` (boolean)
+  - 機能: 関数・クラスの実装部分のみを精密に置換
+  - 返り値: 変更結果とdiff情報
+  - バックアップ: `.claude/workspace/effortlessly/backups/`
+
+- [ ] **code_insert_at_symbol**: シンボル位置への挿入
+  - パラメータ: `target_symbol` (string), `position` ("before" | "after"), `content` (string)
+  - 機能: 指定シンボルの前後への精密なコード挿入
+  - 返り値: 挿入結果と位置情報
+  - 機能: 適切なインデント自動調整
+
+- [ ] **code_replace_with_regex**: 正規表現による置換
+  - パラメータ: `file_path` (string), `pattern` (string), `replacement` (string), `flags?` (string)
+  - 機能: 正規表現による柔軟なコード置換
+  - 返り値: 置換結果とマッチ情報
+  - セキュリティ: ワイルドカード・バックリファレンス対応
 
 ### Phase 4: テストと文書化（2週間）
 

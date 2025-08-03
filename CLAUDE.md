@@ -148,8 +148,30 @@ The project is currently in the planning and architecture phase. The next steps 
    - 接続テスト用エコー機能
    - パラメータ: `message`, `prefix`(optional)
 
+### パフォーマンス比較と推奨事項
+
+**effortlessly-mcp vs serena パフォーマンス**:
+- ✅ **effortlessly-mcp**: 基本操作（検索、読み取り、簡単な編集）で高速・安定
+- ⚠️ **serena**: 複雑な正規表現検索・置換で処理時間が長い場合あり（5分以上）
+
+**推奨使い分け**:
+1. **基本ファイル操作**: effortlessly-mcp を優先使用
+2. **複雑なコード解析**: 必要に応じてserenaを併用（時間がかかる場合は中断を検討）
+3. **大きなファイル編集**: 標準Editツールが最も確実で高速
+
 ### 使用方針
 
 - **第一選択**: effortlessly-mcp のツール群を使用
 - **フォールバック**: 必要に応じて serena や標準ツールを併用
 - **テスト目的**: これらのツールを使用することで、開発中のMCPサーバーの動作確認も兼ねる
+
+### 今回の実装例（RDD更新作業）
+
+**成功パターン**:
+1. `mcp__effortlessly-mcp__search_files`: 特定のテキストパターンを高速検索
+2. `mcp__effortlessly-mcp__read_file`: 該当箇所の確認
+3. 標準`Edit`ツール: 確実で高速な文書更新
+
+**避けるべきパターン**:
+- `mcp__serena__search_for_pattern`: 複雑な正規表現で長時間処理
+- `mcp__serena__replace_regex`: 大きなファイルの置換で処理時間過大

@@ -12,7 +12,9 @@ import {
 } from './project-management/index.js';
 import { 
   CodeFindSymbolTool, 
-  CodeFindReferencesTool 
+  CodeFindReferencesTool,
+  CodeGetSymbolHierarchyTool,
+  CodeAnalyzeDependenciesTool
 } from './code-analysis/index.js';
 
 /**
@@ -55,6 +57,8 @@ export class ToolRegistry {
     // コード解析ツール
     this.registerTool(new CodeFindSymbolTool());
     this.registerTool(new CodeFindReferencesTool());
+    this.registerTool(new CodeGetSymbolHierarchyTool());
+    this.registerTool(new CodeAnalyzeDependenciesTool());
   }
 
   /**

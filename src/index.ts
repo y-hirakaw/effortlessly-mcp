@@ -164,6 +164,36 @@ function registerTools(): void {
         );
         break;
         
+      case 'code_get_symbol_hierarchy':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().optional().describe('特定のファイルのシンボル階層を取得（省略時はディレクトリ全体）'),
+            directory_path: z.string().optional().describe('特定のディレクトリのシンボル階層を取得（省略時は全体）'),
+            max_depth: z.number().min(1).max(10).optional().default(3).describe('最大階層深度'),
+            include_private: z.boolean().optional().default(false).describe('プライベートシンボルも含めるか'),
+            symbol_kinds: z.array(z.number()).optional().describe('含めるシンボル種類の配列（SymbolKind）')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_analyze_dependencies':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().min(1).describe('分析対象のファイルパス'),
+            depth: z.number().min(1).max(10).optional().default(3).describe('依存関係の追跡深度'),
+            include_external: z.boolean().optional().default(true).describe('外部ライブラリの依存関係も含めるか'),
+            include_dev_dependencies: z.boolean().optional().default(false).describe('開発依存関係も含めるか'),
+            resolve_imports: z.boolean().optional().default(true).describe('インポートパスを解決するか')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);
         continue;
