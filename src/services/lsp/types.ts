@@ -111,3 +111,15 @@ export interface TypeScriptLSPConfig extends LSPServerConfig {
   /** インクリメンタルコンパイル有効 */
   incremental?: boolean;
 }
+
+/**
+ * Swift固有の設定（SourceKit-LSP）
+ */
+export interface SwiftLSPConfig extends LSPServerConfig {
+  /** Swiftバージョン */
+  swiftVersion?: string;
+  /** Package.swiftのパス */
+  packageSwiftPath?: string;
+  /** Swift Package Manager対応 */
+  packageSwiftSupported?: boolean;
+}

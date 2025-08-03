@@ -93,6 +93,16 @@ export const LSP_CONFIGS: LSPServerConfig[] = [
     required: false
   },
   {
+    language: 'swift',
+    displayName: 'Swift',
+    command: 'sourcekit-lsp',
+    args: [],
+    fileExtensions: ['.swift'],
+    checkCommand: 'xcrun --find sourcekit-lsp',
+    installCommand: 'Install Xcode or Swift toolchain',
+    required: false
+  },
+  {
     language: 'csharp',
     displayName: 'C#',
     command: 'omnisharp',

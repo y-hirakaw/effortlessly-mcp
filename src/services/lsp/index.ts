@@ -5,6 +5,7 @@
 
 export { LSPClientBase } from './lsp-client.js';
 export { TypeScriptLSP } from './typescript-lsp.js';
+export { SwiftLSP } from './swift-lsp.js';
 export { SymbolIndexer } from './symbol-indexer.js';
 export type * from './types.js';
 
