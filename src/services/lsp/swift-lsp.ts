@@ -30,7 +30,8 @@ export class SwiftLSP extends LSPClientBase {
       fileExtensions: ['.swift'],
       workspaceRoot,
       swiftVersion: undefined, // 自動検出
-      packageSwiftSupported: true
+      packageSwiftSupported: true,
+      cocoapodsSupported: true
     };
 
     super(config, logger);
@@ -176,7 +177,7 @@ export class SwiftLSP extends LSPClientBase {
           
           // 無視するディレクトリ
           if (entry.isDirectory()) {
-            if (!['node_modules', '.git', '.build', 'dist', 'build', '.swiftpm'].includes(entry.name)) {
+            if (!['node_modules', '.git', '.build', 'dist', 'build', '.swiftpm', 'Pods'].includes(entry.name)) {
               await scanDirectory(fullPath);
             }
           } else if (entry.isFile()) {
@@ -406,14 +407,20 @@ export class SwiftLSP extends LSPClientBase {
   async detectProjectConfig(): Promise<{
     hasPackageSwift: boolean;
     packageSwiftPath?: string;
+    hasPodfile: boolean;
+    podfilePath?: string;
     swiftVersion?: string;
     dependencies?: string[];
+    pods?: string[];
   }> {
     const result = {
       hasPackageSwift: false,
       packageSwiftPath: undefined as string | undefined,
+      hasPodfile: false,
+      podfilePath: undefined as string | undefined,
       swiftVersion: undefined as string | undefined,
-      dependencies: undefined as string[] | undefined
+      dependencies: undefined as string[] | undefined,
+      pods: undefined as string[] | undefined
     };
 
     try {
@@ -432,6 +439,23 @@ export class SwiftLSP extends LSPClientBase {
         }
       } catch {
         // Package.swiftが見つからない
+      }
+
+      // Podfile検索
+      const podfilePath = path.join(this.config.workspaceRoot, 'Podfile');
+      try {
+        await fs.access(podfilePath);
+        result.hasPodfile = true;
+        result.podfilePath = podfilePath;
+
+        // Podfileからポッド依存関係を解析
+        const podfileContent = await fs.readFile(podfilePath, 'utf8');
+        const pods = this.parsePodfilePods(podfileContent);
+        if (pods.length > 0) {
+          result.pods = pods;
+        }
+      } catch {
+        // Podfileが見つからない
       }
 
       // Swift Toolchainバージョンを取得
@@ -498,5 +522,54 @@ export class SwiftLSP extends LSPClientBase {
     }
     
     return dependencies;
+  }
+
+  /**
+   * Podfileからポッド依存関係を解析（簡易パーサー）
+   */
+  private parsePodfilePods(podfileContent: string): string[] {
+    const pods: string[] = [];
+    
+    try {
+      // ポッド定義の正規表現（複数のパターンに対応）
+      const podRegexes = [
+        /pod\s+['"]([^'"]+)['"]/g,  // pod 'PodName'
+        /pod\s+([A-Za-z0-9_-]+)/g   // pod PodName
+      ];
+      
+      for (const regex of podRegexes) {
+        let match;
+        regex.lastIndex = 0; // グローバル正規表現のリセット
+        
+        while ((match = regex.exec(podfileContent)) !== null) {
+          const podName = match[1];
+          // 重複を避ける
+          if (!pods.includes(podName)) {
+            pods.push(podName);
+          }
+        }
+      }
+      
+      // コメント行を除外する更なるフィルタリング
+      const filteredPods = pods.filter(pod => {
+        const lines = podfileContent.split('\n');
+        for (const line of lines) {
+          if (line.includes(`'${pod}'`) || line.includes(`"${pod}"`)) {
+            const trimmed = line.trim();
+            // '#'で始まる行（コメント）は除外
+            if (!trimmed.startsWith('#')) {
+              return true;
+            }
+          }
+        }
+        return false;
+      });
+      
+      return filteredPods;
+    } catch (error) {
+      this.logger.warn('Swift LSP: Failed to parse Podfile pods', { error: (error as Error).message });
+    }
+    
+    return pods;
   }
 }

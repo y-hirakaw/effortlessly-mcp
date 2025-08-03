@@ -122,4 +122,8 @@ export interface SwiftLSPConfig extends LSPServerConfig {
   packageSwiftPath?: string;
   /** Swift Package Manager対応 */
   packageSwiftSupported?: boolean;
+  /** CocoaPods Podfileのパス */
+  podfilePath?: string;
+  /** CocoaPods対応 */
+  cocoapodsSupported?: boolean;
 }

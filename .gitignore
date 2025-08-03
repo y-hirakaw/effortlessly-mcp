@@ -143,3 +143,7 @@ build/
 .claude/workspace/
 sample.md
 .serena/
+
+# Swift build directories
+test-swift-project/.build/
+test-cocoapods-project/Pods/
