@@ -6,6 +6,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { basename } from 'path';
+import { existsSync, readFileSync } from 'fs';
 import type { 
   SymbolInformation, 
   Location, 
@@ -104,9 +105,46 @@ class LSPProcess extends EventEmitter {
     this.logger.info(`Searching workspace symbols for query: "${query}" in ${this.config.language}`);
     
     try {
-      const symbols = await this.sendRequest('workspace/symbol', { query });
-      this.logger.info(`Found ${symbols?.length || 0} symbols for query: "${query}"`);
-      return symbols || [];
+      // TypeScript LSPの場合、プロジェクト認識を確認して再試行
+      if (this.config.language === 'typescript') {
+        try {
+          // 最初の試行
+          let symbols = await this.sendRequest('workspace/symbol', { query });
+          if (symbols && symbols.length > 0) {
+            this.logger.info(`Found ${symbols.length} symbols for query: "${query}"`);
+            return symbols;
+          }
+          
+          // プロジェクト認識の問題の可能性があるため、再初期化を試行
+          this.logger.info('No symbols found, attempting project recognition enhancement...');
+          
+          // プロジェクト再読み込みコマンドを送信
+          await this.sendRequest('workspace/executeCommand', {
+            command: '_typescript.reloadProjects',
+            arguments: []
+          });
+          
+          // 少し待機
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // 再試行
+          symbols = await this.sendRequest('workspace/symbol', { query });
+          this.logger.info(`Found ${symbols?.length || 0} symbols for query: "${query}" after project reload`);
+          return symbols || [];
+          
+        } catch (reloadError) {
+          this.logger.warn('Project reload failed, using fallback approach', { error: (reloadError as Error).message });
+          
+          // フォールバック: 通常の検索を実行
+          const symbols = await this.sendRequest('workspace/symbol', { query });
+          return symbols || [];
+        }
+      } else {
+        // 他の言語の場合は通常通り
+        const symbols = await this.sendRequest('workspace/symbol', { query });
+        this.logger.info(`Found ${symbols?.length || 0} symbols for query: "${query}"`);
+        return symbols || [];
+      }
     } catch (error) {
       this.logger.error(`Workspace symbol search failed for "${query}"`, error as Error);
       return [];
@@ -143,12 +181,17 @@ class LSPProcess extends EventEmitter {
         textDocument: {
           documentSymbol: { dynamicRegistration: false },
           references: { dynamicRegistration: false },
-          definition: { dynamicRegistration: false }
+          definition: { dynamicRegistration: false },
+          completion: { dynamicRegistration: false },
+          hover: { dynamicRegistration: false }
         },
         workspace: {
           symbol: { dynamicRegistration: false },
           didChangeConfiguration: { dynamicRegistration: false },
-          didChangeWatchedFiles: { dynamicRegistration: false }
+          didChangeWatchedFiles: { dynamicRegistration: false },
+          executeCommand: { dynamicRegistration: false },
+          workspaceFolders: true,
+          configuration: true
         }
       },
       workspaceFolders: [
@@ -156,7 +199,21 @@ class LSPProcess extends EventEmitter {
           uri: `file://${this.workspaceRoot}`,
           name: basename(this.workspaceRoot)
         }
-      ]
+      ],
+      initializationOptions: {
+        preferences: {
+          includeCompletionsForModuleExports: true,
+          includeCompletionsWithInsertText: true,
+          allowIncompleteCompletions: true,
+          importModuleSpecifier: 'shortest',
+          includePackageJsonAutoImports: 'auto'
+        },
+        tsserver: {
+          logLevel: 'info',
+          logVerbosity: 'verbose',
+          trace: 'verbose'
+        }
+      }
     };
 
     const result = await this.sendRequest('initialize', initParams);
@@ -184,10 +241,23 @@ class LSPProcess extends EventEmitter {
           typescript: {
             preferences: {
               includePackageJsonAutoImports: 'auto',
-              includeCompletionsForModuleExports: true
+              includeCompletionsForModuleExports: true,
+              importModuleSpecifier: 'shortest',
+              includeCompletionsWithInsertText: true,
+              allowIncompleteCompletions: true
             },
             suggest: {
-              includeCompletionsForModuleExports: true
+              includeCompletionsForModuleExports: true,
+              includeAutomaticOptionalChainCompletions: true
+            },
+            format: {
+              enable: true
+            },
+            validate: {
+              enable: true
+            },
+            workspaceSymbols: {
+              scope: 'allOpenProjects'
             }
           },
           javascript: {
@@ -200,6 +270,59 @@ class LSPProcess extends EventEmitter {
       
       // プロジェクト強制再読み込み要求
       this.logger.info('Forcing TypeScript project reload...');
+      
+      // 待機時間を追加してLSPの安定化を待つ
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 主要TypeScriptファイルを明示的に開く（プロジェクト認識を促進）
+      const mainFiles = [
+        `${this.workspaceRoot}/src/index.ts`,
+        `${this.workspaceRoot}/tsconfig.json`,
+        `${this.workspaceRoot}/package.json`
+      ];
+      
+      for (const filePath of mainFiles) {
+        try {
+          if (existsSync(filePath)) {
+            const content = readFileSync(filePath, 'utf8');
+            this.sendNotification('textDocument/didOpen', {
+              textDocument: {
+                uri: `file://${filePath}`,
+                languageId: filePath.endsWith('.ts') ? 'typescript' : filePath.endsWith('.json') ? 'json' : 'plaintext',
+                version: 1,
+                text: content
+              }
+            });
+            this.logger.info(`Opened file for project recognition: ${filePath}`);
+          } else {
+            this.logger.warn(`Project file not found: ${filePath}`);
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to open file ${filePath}`, { error: (error as Error).message });
+        }
+      }
+      
+      // TypeScript特有のプロジェクト検証
+      const tsConfigPath = `${this.workspaceRoot}/tsconfig.json`;
+      const packageJsonPath = `${this.workspaceRoot}/package.json`;
+      
+      if (!existsSync(tsConfigPath)) {
+        this.logger.warn('tsconfig.json not found - this may cause "No Project" errors');
+      } else {
+        try {
+          const tsConfig = JSON.parse(readFileSync(tsConfigPath, 'utf8'));
+          this.logger.info('TypeScript configuration loaded', {
+            include: tsConfig.include,
+            compilerOptions: tsConfig.compilerOptions ? Object.keys(tsConfig.compilerOptions) : []
+          });
+        } catch (error) {
+          this.logger.warn('Failed to parse tsconfig.json', { error: (error as Error).message });
+        }
+      }
+      
+      if (!existsSync(packageJsonPath)) {
+        this.logger.warn('package.json not found - this may affect project recognition');
+      }
     }
     
     this.initialized = true;
