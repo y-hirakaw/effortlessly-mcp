@@ -14,7 +14,10 @@ import {
   CodeFindSymbolTool, 
   CodeFindReferencesTool,
   CodeGetSymbolHierarchyTool,
-  CodeAnalyzeDependenciesTool
+  CodeAnalyzeDependenciesTool,
+  CodeSearchPatternTool,
+  CodeFindReferencingSymbolsTool,
+  CodeGetSymbolsOverviewTool
 } from './code-analysis/index.js';
 
 /**
@@ -59,6 +62,9 @@ export class ToolRegistry {
     this.registerTool(new CodeFindReferencesTool());
     this.registerTool(new CodeGetSymbolHierarchyTool());
     this.registerTool(new CodeAnalyzeDependenciesTool());
+    this.registerTool(new CodeSearchPatternTool());
+    this.registerTool(new CodeFindReferencingSymbolsTool());
+    this.registerTool(new CodeGetSymbolsOverviewTool());
   }
 
   /**
