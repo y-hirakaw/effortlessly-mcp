@@ -101,6 +101,40 @@ function registerTools(): void {
         );
         break;
         
+      case 'workspace_activate':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            workspace_path: z.string().describe('ワークスペースのルートディレクトリパス'),
+            name: z.string().optional().describe('ワークスペース名（オプション、未指定時はディレクトリ名から自動生成）'),
+            index_enabled: z.boolean().optional().describe('インデックス機能を有効にするか（デフォルト: true）'),
+            lsp_servers: z.array(z.string()).optional().describe('使用するLSPサーバーのリスト（デフォルト: ["typescript", "python"]）'),
+            auto_save_logs: z.boolean().optional().describe('ログの自動保存を有効にするか（デフォルト: true）'),
+            log_retention_days: z.number().optional().describe('ログの保持日数（デフォルト: 30）'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'workspace_get_info':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {},
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'workspace_list_all':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {},
+          createToolHandler(name, tool)
+        );
+        break;
+        
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);
         continue;
