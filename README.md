@@ -65,7 +65,7 @@ npm link  # グローバルアクセス用
 
 ## Claude Code統合
 
-### 🎯 方法1: 自動起動設定（推奨・**検証中**）
+### 🎯 方法1: 自動起動設定
 
 Claude Codeの設定ファイルに以下を追加することで、MCPサーバーとLSP Proxy Serverの両方を自動起動できます：
 
@@ -74,20 +74,16 @@ Claude Codeの設定ファイルに以下を追加することで、MCPサーバ
 - **Linux**: `~/.config/claude/config.json`
 - **Windows**: `%APPDATA%\Claude\config.json`
 
-**設定内容**:
+#### **開発版設定（現在推奨）**:
 ```json
 {
   "mcpServers": {
     "effortlessly-mcp": {
-      "command": "effortlessly-mcp",
-      "args": [],
-      "env": {
-        "NODE_ENV": "production"
-      }
-    },
-    "effortlessly-lsp-proxy": {
-      "command": "effortlessly-lsp-proxy",
-      "args": [],
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/path/to/your/effortlessly-mcp/build/index.js"
+      ],
       "env": {
         "NODE_ENV": "production"
       }
@@ -96,13 +92,44 @@ Claude Codeの設定ファイルに以下を追加することで、MCPサーバ
 }
 ```
 
-**利用方法**:
-```bash
-# 設定後は、Claude Codeを起動するだけでOK
-claude-code /path/to/your/project
+> **📝 注意**: `/path/to/your/effortlessly-mcp/build/index.js` は実際のクローンしたディレクトリのパスに置き換えてください。
+
+#### **将来版設定（npxインストール後）**:
+```json
+{
+  "mcpServers": {
+    "effortlessly-mcp": {
+      "command": "npx",
+      "args": ["effortlessly-mcp"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "effortlessly-lsp-proxy": {
+      "command": "npx",
+      "args": ["effortlessly-lsp-proxy"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
 ```
 
-> **⚠️ 注意**: この自動起動方法は現在検証中です。動作しない場合は方法2をご利用ください。
+> **⚠️ 注意**: 将来版設定は現在開発中です。`npm install -g effortlessly-mcp` が利用可能になってから使用してください。
+
+**利用方法**:
+```bash
+# 1. effortlessly-mcpをクローン・ビルド
+git clone https://github.com/y-hirakaw/effortlessly-mcp.git
+cd effortlessly-mcp
+npm install && npm run build
+
+# 2. Claude Codeの設定ファイルに上記設定を追加
+
+# 3. Claude Codeを起動
+claude-code /path/to/your/project
+```
 
 ### 🔧 方法2: 手動起動
 
