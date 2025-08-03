@@ -116,6 +116,40 @@ The project is currently in the planning and architecture phase. The next steps 
 3. Build the security layer with workspace management
 4. Add basic file operation tools with security controls
 
-# ファイルの読み書きについて
+# ファイル操作について
 
-* MCPサーバー serenaを利用すること
+## MCP Server effortlessly-mcpの使用
+
+**重要**: このプロジェクトでは、ファイル操作に effortlessly-mcp の基本ツール群を優先的に使用してください。
+
+### 利用可能なツール
+
+1. **`mcp__effortlessly-mcp__read_file`**
+   - ファイル内容の読み取り
+   - UTF-8エンコーディング対応
+   - パラメータ: `file_path`, `encoding`(optional)
+
+2. **`mcp__effortlessly-mcp__list_directory`**
+   - ディレクトリ一覧の取得
+   - 再帰検索対応
+   - パラメータ: `directory_path`, `recursive`(optional), `pattern`(optional)
+
+3. **`mcp__effortlessly-mcp__get_file_metadata`**
+   - ファイル/ディレクトリのメタデータ取得
+   - 権限、サイズ、更新日時等の詳細情報
+   - パラメータ: `file_path`
+
+4. **`mcp__effortlessly-mcp__search_files`**
+   - ファイル検索とパターンマッチング
+   - ファイル名/内容での検索対応
+   - パラメータ: `directory`, `file_pattern`(optional), `content_pattern`(optional), `recursive`(optional), `case_sensitive`(optional), `max_depth`(optional), `max_results`(optional), `include_content`(optional)
+
+5. **`mcp__effortlessly-mcp__echo`**
+   - 接続テスト用エコー機能
+   - パラメータ: `message`, `prefix`(optional)
+
+### 使用方針
+
+- **第一選択**: effortlessly-mcp のツール群を使用
+- **フォールバック**: 必要に応じて serena や標準ツールを併用
+- **テスト目的**: これらのツールを使用することで、開発中のMCPサーバーの動作確認も兼ねる

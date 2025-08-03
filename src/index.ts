@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Logger } from './services/logger.js';
 import { ToolRegistry } from './tools/registry.js';
 import { McpError } from './types/errors.js';
+import { ITool } from './types/common.js';
 
 // Server information
 const SERVER_NAME = 'effortlessly-mcp';
@@ -32,51 +33,117 @@ function registerTools(): void {
   const tools = toolRegistry.getAllTools();
   
   for (const [name, tool] of tools) {
-    // For now, we'll use a simplified approach for the echo tool
-    // In future iterations, we'll implement dynamic schema generation
-    if (name === 'echo') {
-      server.tool(
-        name,
-        tool.metadata.description,
-        {
-          message: z.string().describe('The message to echo back'),
-          prefix: z.string().optional().describe('Optional prefix for the message'),
-        },
-        async (parameters) => {
-          try {
-            const result = await tool.execute(parameters);
-            return result;
-          } catch (error) {
-            logger.error(`Tool execution failed: ${name}`, error instanceof Error ? error : new Error(String(error)));
-            
-            if (error instanceof McpError) {
-              return {
-                content: [
-                  {
-                    type: 'text' as const,
-                    text: `Error (${error.code}): ${error.message}`,
-                  },
-                ],
-                isError: true,
-              };
-            }
-            
-            return {
-              content: [
-                {
-                  type: 'text' as const,
-                  text: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-                },
-              ],
-              isError: true,
-            };
-          }
-        },
-      );
+    // Register tool based on its name with appropriate schema
+    switch (name) {
+      case 'echo':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            message: z.string().describe('The message to echo back'),
+            prefix: z.string().optional().describe('Optional prefix for the message'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'read_file':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('読み取るファイルのパス'),
+            encoding: z.string().optional().default('utf-8').describe('ファイルのエンコーディング（デフォルト: utf-8）'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'list_directory':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            directory_path: z.string().describe('一覧表示するディレクトリのパス'),
+            recursive: z.boolean().optional().default(false).describe('再帰的に一覧表示するかどうか'),
+            pattern: z.string().optional().describe('ファイル名のフィルタパターン（正規表現）'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'get_file_metadata':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('メタデータを取得するファイル/ディレクトリのパス'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'search_files':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            directory: z.string().describe('検索対象のディレクトリパス'),
+            file_pattern: z.string().optional().describe('ファイル名のパターン（glob形式）'),
+            content_pattern: z.string().optional().describe('ファイル内容の検索パターン（正規表現）'),
+            recursive: z.boolean().optional().default(false).describe('再帰的に検索するかどうか'),
+            case_sensitive: z.boolean().optional().default(false).describe('大文字小文字を区別するかどうか'),
+            max_depth: z.number().optional().describe('最大検索深度'),
+            max_results: z.number().optional().default(100).describe('最大結果数'),
+            include_content: z.boolean().optional().default(false).describe('マッチした内容を含めるかどうか'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      default:
+        logger.warn(`Unknown tool: ${name}, skipping registration`);
+        continue;
     }
     
     logger.info(`Registered MCP tool: ${name}`);
   }
+}
+
+/**
+ * Create a generic tool handler for MCP server
+ */
+function createToolHandler(name: string, tool: ITool) {
+  return async (parameters: Record<string, unknown>) => {
+    try {
+      const result = await tool.execute(parameters);
+      return result;
+    } catch (error) {
+      logger.error(`Tool execution failed: ${name}`, error instanceof Error ? error : new Error(String(error)));
+      
+      if (error instanceof McpError) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error (${error.code}): ${error.message}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  };
 }
 
 /**
