@@ -5,6 +5,11 @@ import { ReadFileTool } from './file-operations/read-file-adapter.js';
 import { ListDirectoryTool } from './file-operations/list-directory-adapter.js';
 import { GetFileMetadataTool } from './file-operations/get-file-metadata-adapter.js';
 import { SearchFilesTool } from './file-operations/search-files-adapter.js';
+import { 
+  WorkspaceActivateTool, 
+  WorkspaceGetInfoTool, 
+  WorkspaceListAllTool 
+} from './project-management/index.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -29,11 +34,19 @@ export class ToolRegistry {
    * Register default tools
    */
   private registerDefaultTools(): void {
+    // 基本ツール
     this.registerTool(new EchoTool());
+    
+    // ファイル操作ツール
     this.registerTool(new ReadFileTool());
     this.registerTool(new ListDirectoryTool());
     this.registerTool(new GetFileMetadataTool());
     this.registerTool(new SearchFilesTool());
+    
+    // プロジェクト管理ツール
+    this.registerTool(new WorkspaceActivateTool());
+    this.registerTool(new WorkspaceGetInfoTool());
+    this.registerTool(new WorkspaceListAllTool());
   }
 
   /**
