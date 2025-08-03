@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { promises as fs } from 'fs';
+import type { Stats } from 'node:fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
@@ -67,7 +68,7 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
       try {
         await fs.access(filePath);
       } catch (error) {
-        logger.error('File not found', { filePath, error });
+        logger.error(`File not found: ${filePath}`);
         throw new Error(`ファイルが見つかりません: ${params.file_path}`);
       }
 
@@ -127,7 +128,7 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
       }
 
       // その他のエラー
-      logger.error('Unexpected error in get_file_metadata', { error });
+      logger.error(`Unexpected error in get_file_metadata: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(`ファイルメタデータの取得中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
@@ -136,7 +137,7 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
 /**
  * ファイルタイプを判定
  */
-function getFileType(stats: fs.Stats): FileType {
+function getFileType(stats: Stats): FileType {
   if (stats.isFile()) return FileType.FILE;
   if (stats.isDirectory()) return FileType.DIRECTORY;
   if (stats.isSymbolicLink()) return FileType.SYMLINK;

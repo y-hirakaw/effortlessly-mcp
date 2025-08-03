@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { promises as fs } from 'fs';
+import type { Stats } from 'node:fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
@@ -56,7 +57,7 @@ type ListDirectoryResultType = z.infer<typeof ListDirectoryResult>;
 export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, ListDirectoryResultType> = {
   name: 'list_directory',
   description: '指定されたディレクトリ内のファイル・フォルダ一覧を表示します',
-  inputSchema: ListDirectoryParams,
+  inputSchema: ListDirectoryParams as z.ZodSchema<ListDirectoryParamsType>,
 
   async execute(params: ListDirectoryParamsType): Promise<ListDirectoryResultType> {
     logger.info('list_directory tool called', { params });
@@ -70,14 +71,14 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
       try {
         await fs.access(dirPath);
       } catch (error) {
-        logger.error('Directory not found', { dirPath, error });
+        logger.error(`Directory not found: ${dirPath}`);
         throw new Error(`ディレクトリが見つかりません: ${params.directory_path}`);
       }
 
       // ディレクトリかどうかの確認
       const stats = await fs.stat(dirPath);
       if (!stats.isDirectory()) {
-        logger.error('Path is not a directory', { dirPath });
+        logger.error(`Path is not a directory: ${dirPath}`);
         throw new Error(`指定されたパスはディレクトリではありません: ${params.directory_path}`);
       }
 
@@ -115,7 +116,7 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
       }
 
       // その他のエラー
-      logger.error('Unexpected error in list_directory', { error });
+      logger.error(`Unexpected error in list_directory: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(`ディレクトリの一覧取得中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
@@ -188,7 +189,7 @@ async function listDirectoryRecursive(
 /**
  * ファイルタイプを判定
  */
-function getFileType(stats: fs.Stats): FileType {
+function getFileType(stats: Stats): FileType {
   if (stats.isFile()) return FileType.FILE;
   if (stats.isDirectory()) return FileType.DIRECTORY;
   if (stats.isSymbolicLink()) return FileType.SYMLINK;

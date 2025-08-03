@@ -31,6 +31,7 @@ describe('read_file tool', () => {
     // ツールを実行
     const result = await readFileTool.execute({
       file_path: testFilePath,
+      encoding: "utf-8",
     });
 
     // 結果を検証
@@ -60,6 +61,7 @@ describe('read_file tool', () => {
     await expect(
       readFileTool.execute({
         file_path: nonExistentPath,
+        encoding: "utf-8",
       })
     ).rejects.toThrow('ファイルが見つかりません');
   });
@@ -68,6 +70,7 @@ describe('read_file tool', () => {
     await expect(
       readFileTool.execute({
         file_path: tempDir,
+        encoding: "utf-8",
       })
     ).rejects.toThrow('指定されたパスはディレクトリです');
   });
@@ -84,6 +87,7 @@ describe('read_file tool', () => {
 
     const result = await readFileTool.execute({
       file_path: largeFilePath,
+      encoding: "utf-8",
     });
 
     // この場合は正常に読み取れる（1MBは制限内）
@@ -104,6 +108,7 @@ describe('read_file tool', () => {
       // 相対パスでツールを実行
       const result = await readFileTool.execute({
         file_path: './relative.txt',
+        encoding: "utf-8",
       });
 
       expect(result.content).toBe(testContent);
@@ -119,6 +124,7 @@ describe('read_file tool', () => {
 
     const result = await readFileTool.execute({
       file_path: testFilePath,
+      encoding: "utf-8",
     });
 
     expect(result.content).toBe('');

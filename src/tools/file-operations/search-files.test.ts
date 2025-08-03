@@ -32,6 +32,10 @@ describe('search_files tool', () => {
       directory: tempDir,
       file_pattern: '*.ts',
       recursive: false,
+      case_sensitive: false,
+      max_results: 100,
+      include_content: false,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(1);
@@ -53,6 +57,9 @@ describe('search_files tool', () => {
       content_pattern: 'World',
       include_content: true,
       recursive: false,
+      case_sensitive: false,
+      max_results: 100,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(1);
@@ -78,6 +85,9 @@ describe('search_files tool', () => {
       content_pattern: 'name',
       include_content: true,
       recursive: false,
+      case_sensitive: false,
+      max_results: 100,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(1);
@@ -102,6 +112,10 @@ describe('search_files tool', () => {
       directory: tempDir,
       file_pattern: '*.ts',
       recursive: true,
+      case_sensitive: false,
+      max_results: 100,
+      include_content: false,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(3);
@@ -125,6 +139,10 @@ describe('search_files tool', () => {
       file_pattern: '*.ts',
       recursive: true,
       max_depth: 1,
+      case_sensitive: false,
+      max_results: 100,
+      include_content: false,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(2);
@@ -143,6 +161,8 @@ describe('search_files tool', () => {
       case_sensitive: false,
       include_content: true,
       recursive: false,
+      max_results: 100,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(1);
@@ -160,6 +180,9 @@ describe('search_files tool', () => {
       content_pattern: 'hello', // 小文字
       case_sensitive: true,
       recursive: false,
+      max_results: 100,
+      include_content: false,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(0); // マッチしない
@@ -177,6 +200,9 @@ describe('search_files tool', () => {
       file_pattern: '*.txt',
       max_results: 3,
       recursive: false,
+      case_sensitive: false,
+      include_content: false,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(10); // 実際に見つかった数
@@ -190,6 +216,11 @@ describe('search_files tool', () => {
       searchFilesTool.execute({
         directory: nonExistentDir,
         file_pattern: '*',
+        recursive: true,
+        case_sensitive: false,
+        max_results: 100,
+        include_content: false,
+        file_size_limit: 10 * 1024 * 1024,
       })
     ).rejects.toThrow('ディレクトリが見つからないかアクセスできません');
   });
@@ -202,6 +233,11 @@ describe('search_files tool', () => {
       searchFilesTool.execute({
         directory: filePath,
         file_pattern: '*',
+        recursive: true,
+        case_sensitive: false,
+        max_results: 100,
+        include_content: false,
+        file_size_limit: 10 * 1024 * 1024,
       })
     ).rejects.toThrow('指定されたパスはディレクトリではありません');
   });
@@ -216,6 +252,10 @@ describe('search_files tool', () => {
       directory: tempDir,
       file_pattern: 'test*',
       recursive: false,
+      case_sensitive: false,
+      max_results: 100,
+      include_content: false,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(1);
@@ -233,6 +273,9 @@ describe('search_files tool', () => {
       content_pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}',
       include_content: true,
       recursive: false,
+      case_sensitive: false,
+      max_results: 100,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.total_found).toBe(1);
@@ -252,6 +295,10 @@ describe('search_files tool', () => {
       content_pattern: 'content',
       recursive: true,
       max_depth: 5,
+      case_sensitive: false,
+      max_results: 100,
+      include_content: false,
+      file_size_limit: 10 * 1024 * 1024,
     });
 
     expect(result.search_info.directory).toBe(tempDir);

@@ -31,6 +31,7 @@ describe('list_directory tool', () => {
     // ツールを実行
     const result = await listDirectoryTool.execute({
       directory_path: tempDir,
+      recursive: false,
     });
 
     // 結果を検証
@@ -82,6 +83,7 @@ describe('list_directory tool', () => {
     // .txtファイルのみをフィルタ
     const result = await listDirectoryTool.execute({
       directory_path: tempDir,
+      recursive: false,
       pattern: '\\.txt$',
     });
 
@@ -97,6 +99,7 @@ describe('list_directory tool', () => {
     await expect(
       listDirectoryTool.execute({
         directory_path: nonExistentPath,
+        recursive: false,
       })
     ).rejects.toThrow('ディレクトリが見つかりません');
   });
@@ -108,6 +111,7 @@ describe('list_directory tool', () => {
     await expect(
       listDirectoryTool.execute({
         directory_path: filePath,
+        recursive: false,
       })
     ).rejects.toThrow('指定されたパスはディレクトリではありません');
   });
@@ -118,6 +122,7 @@ describe('list_directory tool', () => {
 
     const result = await listDirectoryTool.execute({
       directory_path: emptyDir,
+      recursive: false,
     });
 
     expect(result.total_count).toBe(0);
@@ -137,6 +142,7 @@ describe('list_directory tool', () => {
       // 相対パスでツールを実行
       const result = await listDirectoryTool.execute({
         directory_path: './subdir',
+        recursive: false,
       });
 
       expect(result.total_count).toBe(1);
@@ -154,6 +160,7 @@ describe('list_directory tool', () => {
 
     const result = await listDirectoryTool.execute({
       directory_path: tempDir,
+      recursive: false,
     });
 
     const entry = result.entries[0];
@@ -172,6 +179,7 @@ describe('list_directory tool', () => {
     await expect(
       listDirectoryTool.execute({
         directory_path: tempDir,
+        recursive: false,
         pattern: '[[invalid regex',
       })
     ).rejects.toThrow();

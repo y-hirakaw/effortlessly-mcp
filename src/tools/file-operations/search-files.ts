@@ -73,7 +73,7 @@ type SearchFilesResultType = z.infer<typeof SearchFilesResult>;
 export const searchFilesTool: MdcToolImplementation<SearchFilesParamsType, SearchFilesResultType> = {
   name: 'search_files',
   description: '指定されたディレクトリでファイル名パターンやファイル内容のテキスト検索を行います',
-  inputSchema: SearchFilesParams,
+  inputSchema: SearchFilesParams as z.ZodSchema<SearchFilesParamsType>,
 
   async execute(params: SearchFilesParamsType): Promise<SearchFilesResultType> {
     logger.info('search_files tool called', { params });
@@ -95,7 +95,7 @@ export const searchFilesTool: MdcToolImplementation<SearchFilesParamsType, Searc
           throw error;
         }
         // ファイル/ディレクトリが存在しない場合
-        logger.error('Directory not found or not accessible', { directoryPath, error });
+        logger.error(`Directory not found or not accessible: ${directoryPath}`);
         throw new Error(`ディレクトリが見つからないかアクセスできません: ${params.directory}`);
       }
 
@@ -146,7 +146,7 @@ export const searchFilesTool: MdcToolImplementation<SearchFilesParamsType, Searc
       }
 
       // その他のエラー
-      logger.error('Unexpected error in search_files', { error });
+      logger.error(`Unexpected error in search_files: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(`ファイル検索中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
   },

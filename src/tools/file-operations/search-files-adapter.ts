@@ -30,13 +30,11 @@ export class SearchFilesTool implements ITool {
         type: 'boolean',
         description: '再帰的に検索するかどうか',
         required: false,
-        default: true,
       },
       case_sensitive: {
         type: 'boolean',
         description: '大文字小文字を区別するかどうか',
         required: false,
-        default: false,
       },
       max_depth: {
         type: 'number',
@@ -47,19 +45,16 @@ export class SearchFilesTool implements ITool {
         type: 'number',
         description: '最大結果数',
         required: false,
-        default: 100,
       },
       include_content: {
         type: 'boolean',
         description: 'マッチした行の内容を含めるかどうか',
         required: false,
-        default: false,
       },
       file_size_limit: {
         type: 'number',
         description: 'テキスト検索対象ファイルの最大サイズ（バイト）',
         required: false,
-        default: 10485760, // 10MB
       },
     },
   };

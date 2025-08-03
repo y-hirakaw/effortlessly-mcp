@@ -30,7 +30,7 @@ type ReadFileResultType = z.infer<typeof ReadFileResult>;
 export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileResultType> = {
   name: 'read_file',
   description: '指定されたファイルの内容を読み取ります',
-  inputSchema: ReadFileParams,
+  inputSchema: ReadFileParams as z.ZodSchema<ReadFileParamsType>,
 
   async execute(params: ReadFileParamsType): Promise<ReadFileResultType> {
     logger.info('read_file tool called', { params });
@@ -44,7 +44,7 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
       try {
         await fs.access(filePath);
       } catch (error) {
-        logger.error('File not found', { filePath, error });
+        logger.error(`File not found: ${filePath}`);
         throw new Error(`ファイルが見つかりません: ${params.file_path}`);
       }
 
@@ -53,14 +53,14 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
       
       // ディレクトリの場合はエラー
       if (stats.isDirectory()) {
-        logger.error('Path is a directory', { filePath });
+        logger.error(`Path is a directory: ${filePath}`);
         throw new Error(`指定されたパスはディレクトリです: ${params.file_path}`);
       }
 
       // ファイルサイズの上限チェック（100MB）
       const maxSize = 100 * 1024 * 1024; // 100MB
       if (stats.size > maxSize) {
-        logger.error('File too large', { filePath, size: stats.size, maxSize });
+        logger.error(`File too large: ${filePath}, size: ${stats.size}, maxSize: ${maxSize}`);
         throw new Error(`ファイルサイズが大きすぎます: ${stats.size} バイト（最大: ${maxSize} バイト）`);
       }
 
@@ -87,7 +87,7 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
       }
 
       // その他のエラー
-      logger.error('Unexpected error in read_file', { error });
+      logger.error(`Unexpected error in read_file: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(`ファイルの読み取り中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
