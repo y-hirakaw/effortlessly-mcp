@@ -10,6 +10,10 @@ import {
   WorkspaceGetInfoTool, 
   WorkspaceListAllTool 
 } from './project-management/index.js';
+import { 
+  CodeFindSymbolTool, 
+  CodeFindReferencesTool 
+} from './code-analysis/index.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -47,6 +51,10 @@ export class ToolRegistry {
     this.registerTool(new WorkspaceActivateTool());
     this.registerTool(new WorkspaceGetInfoTool());
     this.registerTool(new WorkspaceListAllTool());
+    
+    // コード解析ツール
+    this.registerTool(new CodeFindSymbolTool());
+    this.registerTool(new CodeFindReferencesTool());
   }
 
   /**

@@ -135,6 +135,35 @@ function registerTools(): void {
         );
         break;
         
+      case 'code_find_symbol':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            symbol_name: z.string().min(1).describe('検索するシンボル名'),
+            search_type: z.enum(['exact', 'fuzzy']).optional().default('fuzzy').describe('検索タイプ'),
+            symbol_kind: z.number().optional().describe('シンボルの種類（SymbolKind）'),
+            file_pattern: z.string().optional().describe('ファイルパターン（部分マッチ）'),
+            max_results: z.number().min(1).max(1000).optional().default(100).describe('最大結果数')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_find_references':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().min(1).describe('ファイルパス'),
+            line: z.number().min(0).describe('行番号（0から開始）'),
+            column: z.number().min(0).describe('列番号（0から開始）'),
+            include_declaration: z.boolean().optional().default(true).describe('宣言も含めるかどうか')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);
         continue;

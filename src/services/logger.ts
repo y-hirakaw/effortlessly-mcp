@@ -1,4 +1,5 @@
-import { LogLevel, ILogEntry } from '../types/common.js';
+import { LogLevel } from '../types/common.js';
+// import { ILogEntry } from '../types/common.js'; // Temporarily disabled
 
 /**
  * Simple console logger for the MCP server
@@ -26,33 +27,28 @@ export class Logger {
     return levels.indexOf(level) >= levels.indexOf(this.logLevel);
   }
 
-  private formatMessage(entry: ILogEntry): string {
-    const timestamp = entry.timestamp;
-    const level = entry.level.toUpperCase();
-    const message = entry.message;
-    const context = entry.context ? ` | Context: ${JSON.stringify(entry.context)}` : '';
-    const error = entry.error ? ` | Error: ${entry.error.message}` : '';
-    
-    return `[${timestamp}] ${level}: ${message}${context}${error}`;
-  }
+  // private formatMessage(entry: ILogEntry): string {
+  //   const timestamp = entry.timestamp;
+  //   const level = entry.level.toUpperCase();
+  //   const message = entry.message;
+  //   const context = entry.context ? ` | Context: ${JSON.stringify(entry.context)}` : '';
+  //   const error = entry.error ? ` | Error: ${entry.error.message}` : '';
+  //   
+  //   return `[${timestamp}] ${level}: ${message}${context}${error}`;
+  // }
 
   private log(level: LogLevel, message: string, context?: Record<string, unknown>, error?: Error): void {
     if (!this.shouldLog(level)) {
       return;
     }
 
-    const entry: ILogEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      context,
-      error,
-    };
-
-    const formattedMessage = this.formatMessage(entry);
-
-    // Use console.error for all logs since MCP uses stdio for communication
-    // This ensures logs don't interfere with MCP protocol messages
+    // TEMPORARY: Enable console output for LSP debugging
+    const timestamp = new Date().toISOString();
+    const levelStr = level.toUpperCase();
+    const contextStr = context ? ` | Context: ${JSON.stringify(context)}` : '';
+    const errorStr = error ? ` | Error: ${error.message}` : '';
+    
+    const formattedMessage = `[${timestamp}] ${levelStr}: ${message}${contextStr}${errorStr}`;
     console.error(formattedMessage);
   }
 

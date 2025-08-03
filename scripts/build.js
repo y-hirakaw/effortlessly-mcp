@@ -20,9 +20,6 @@ const buildOptions = {
   target: 'node20',
   outfile: 'build/index.js',
   format: 'esm',
-  banner: {
-    js: '#!/usr/bin/env node',
-  },
   sourcemap: true,
   minify: process.env.NODE_ENV === 'production',
   define: {
@@ -31,6 +28,9 @@ const buildOptions = {
   external: [
     '@modelcontextprotocol/sdk',
     'zod',
+    'better-sqlite3',
+    'js-yaml',
+    'vscode-languageserver-protocol',
   ],
 };
 
