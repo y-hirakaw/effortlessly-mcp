@@ -19,6 +19,17 @@ import {
   CodeFindReferencingSymbolsTool,
   CodeGetSymbolsOverviewTool
 } from './code-analysis/index.js';
+import {
+  ProjectMemoryWriteTool,
+  ProjectMemoryReadTool,
+  ProjectMemoryListTool
+} from './project-memory/index.js';
+import { ProjectUpdateWorkflowTool } from './project-update-workflow.js';
+import {
+  CodeReplaceSymbolBodyTool,
+  CodeInsertAtSymbolTool,
+  CodeReplaceWithRegexTool
+} from './code-editing/index.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -65,6 +76,19 @@ export class ToolRegistry {
     this.registerTool(new CodeSearchPatternTool());
     this.registerTool(new CodeFindReferencingSymbolsTool());
     this.registerTool(new CodeGetSymbolsOverviewTool());
+    
+    // プロジェクト知識管理ツール
+    this.registerTool(new ProjectMemoryWriteTool());
+    this.registerTool(new ProjectMemoryReadTool());
+    this.registerTool(new ProjectMemoryListTool());
+    
+    // プロジェクト更新ワークフローツール
+    this.registerTool(new ProjectUpdateWorkflowTool());
+    
+    // 精密コード編集ツール
+    this.registerTool(new CodeReplaceSymbolBodyTool());
+    this.registerTool(new CodeInsertAtSymbolTool());
+    this.registerTool(new CodeReplaceWithRegexTool());
   }
 
   /**
