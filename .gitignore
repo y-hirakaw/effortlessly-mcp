@@ -144,6 +144,6 @@ build/
 sample.md
 .serena/
 
-# Swift build directories
-test-swift-project/.build/
-test-cocoapods-project/Pods/
+# Test project build directories
+tests/test-projects/test-swift-project/.build/
+tests/test-projects/test-cocoapods-project/Pods/
