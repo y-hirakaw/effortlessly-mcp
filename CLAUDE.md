@@ -50,12 +50,16 @@ All MCP server-generated files are organized under `.claude/workspace/effortless
 ## Development Commands
 
 ```bash
-# Setup (not yet implemented - placeholder commands)
+# Setup and Development
 npm install              # Install dependencies
-npm run build           # Build with esbuild
+npm run build           # Build with TypeScript
+npm run build:fast      # Fast build with esbuild
+npm run dev             # Development mode with tsx
 npm test               # Run tests with Vitest
+npm run test:coverage  # Run tests with coverage
 npm run lint           # Run ESLint
 npm run typecheck      # TypeScript type checking
+npm run format         # Format code with Prettier
 ```
 
 ## Security Design Principles
@@ -68,23 +72,63 @@ npm run typecheck      # TypeScript type checking
 
 ## Implementation Status
 
-The project is in the planning phase with a comprehensive Requirements Definition Document (RDD+Task.md). Implementation follows these phases:
+The project is in active development with substantial implementation completed. Major components are functional:
 
-1. **Phase 1**: Basic setup and core architecture
-2. **Phase 2**: Security implementation (workspace management, access control, audit logging)
-3. **Phase 3**: Basic tools (secure file operations, project management)
-4. **Phase 4**: LSP integration for semantic code analysis
-5. **Phase 5**: Testing and documentation
-6. **Phase 6**: Optimization and release preparation
+**✅ Completed Features:**
+- Core MCP server architecture (`src/index.ts`)
+- Basic file operations (read, list, search, metadata)
+- Smart editing tools (smart-edit-file, smart-insert-text)
+- Project memory management system
+- Code analysis tools (symbol search, references, dependencies)
+- Code editing tools (symbol replacement, regex replacement)
+- LSP integration (TypeScript, Swift support)
+- Project workspace management
+- Testing framework with good coverage
 
-## Key Features (Planned)
+**🔄 In Progress:**
+- Additional LSP language support
+- Performance optimizations
+- Documentation completion
 
-### Core Tools
-- `secure_read_file`: Safe file reading with filtering
-- `secure_list_directory`: Directory listing with restrictions
+**📋 Planned:**
+- Security hardening
+- Enterprise features
+- Release preparation
+
+## Key Features
+
+### Core Tools (✅ Implemented)
+- `read_file`: File reading with encoding support
+- `list_directory`: Directory listing with recursive and pattern support
+- `get_file_metadata`: File metadata retrieval (size, permissions, dates)
+- `search_files`: File search with content and name patterns
+- `smart_edit_file`: Safe file editing with backup and preview
+- `smart_insert_text`: Flexible text insertion with position control
+
+### Workspace Management (✅ Implemented)
 - `workspace_activate`: Activate a project workspace
+- `workspace_get_info`: Get current workspace information
+- `workspace_list_all`: List all registered workspaces
+
+### Code Analysis Tools (✅ Implemented)
 - `code_find_symbol`: Semantic symbol search using LSP
 - `code_find_references`: Find all references to a symbol
+- `code_find_referencing_symbols`: Find symbols that reference target
+- `code_get_symbol_hierarchy`: Get hierarchical symbol structure
+- `code_get_symbols_overview`: Overview of symbols in files/directories
+- `code_search_pattern`: Advanced pattern search with regex
+- `code_analyze_dependencies`: Dependency analysis and graph generation
+
+### Code Editing Tools (✅ Implemented)
+- `code_replace_symbol_body`: Replace entire symbol implementation
+- `code_insert_at_symbol`: Insert code before/after symbols
+- `code_replace_with_regex`: Flexible regex-based replacements
+
+### Project Memory (✅ Implemented)
+- `project_memory_write`: Store project-specific knowledge
+- `project_memory_read`: Retrieve stored knowledge
+- `project_memory_list`: List available memory entries
+- `project_update_workflow`: Generate update workflows
 
 ### Security Features
 - Automatic sensitive pattern detection (API keys, passwords, credentials)
@@ -110,11 +154,14 @@ The project is in the planning phase with a comprehensive Requirements Definitio
 
 ## Current Focus
 
-The project is currently in the planning and architecture phase. The next steps are:
-1. Initialize the TypeScript project with proper tooling
-2. Implement the core MCP server structure
-3. Build the security layer with workspace management
-4. Add basic file operation tools with security controls
+The project has a solid foundation with most core features implemented. Current development priorities:
+
+1. **Performance Optimization**: LSP response times, symbol indexing, large file handling
+2. **Language Support**: Expanding LSP integration beyond TypeScript and Swift
+3. **Security Enhancement**: Implementing planned security features and audit logging
+4. **Documentation**: Comprehensive API documentation and usage examples
+5. **Testing**: Expanding test coverage and integration tests
+6. **Enterprise Features**: Advanced configuration and monitoring capabilities
 
 # ファイル操作について
 
@@ -175,3 +222,47 @@ The project is currently in the planning and architecture phase. The next steps 
 **避けるべきパターン**:
 - `mcp__serena__search_for_pattern`: 複雑な正規表現で長時間処理
 - `mcp__serena__replace_regex`: 大きなファイルの置換で処理時間過大
+
+## 🚨 重要：編集ツール使用ルール
+
+### effortlessly-mcp編集ツールの優先使用
+
+**必須**: Claude Codeの標準ツール（Edit, MultiEdit, Write）の代わりに、effortlessly-mcpの編集ツールを優先的に使用してください。
+
+#### 利用可能な編集ツール
+
+1. **`mcp__effortlessly-mcp__smart_edit_file`** ✅ **優先使用**
+   - 標準Editツールの代替
+   - 安全な置換操作（プレビュー、バックアップ、エラーハンドリング付き）
+   - パラメータ: `file_path`, `old_text`, `new_text`, `case_sensitive?`, `replace_all?`, `preview_mode?`
+
+2. **`mcp__effortlessly-mcp__smart_insert_text`** ✅ **優先使用**  
+   - 柔軟な位置指定テキスト挿入
+   - 行番号・相対位置・ファイル開始/終了での精密挿入
+   - パラメータ: `file_path`, `text`, `position_type`, `line_number?`, `reference_text?`, `auto_indent?`, `preview_mode?`
+
+#### 使用優先順位
+
+1. **第一選択**: `mcp__effortlessly-mcp__smart_edit_file` （置換操作）
+2. **第一選択**: `mcp__effortlessly-mcp__smart_insert_text` （挿入操作）
+3. **フォールバック**: 標準 `Edit`, `MultiEdit`, `Write` ツール（MCPツールでエラーの場合のみ）
+
+#### 必須の使用パターン
+
+- ✅ **正しい使用例**: 
+  ```
+  mcp__effortlessly-mcp__smart_edit_file を使用してファイルを編集
+  → 自動バックアップ作成、安全な置換処理
+  ```
+
+- ❌ **避けるべきパターン**:
+  ```  
+  標準 Edit ツールを直接使用
+  → バックアップなし、テスト機会の損失
+  ```
+
+#### テスト・開発の観点
+
+- **重要**: effortlessly-mcpツールの使用により、開発中のMCPサーバーの動作確認を同時に実施
+- **品質向上**: 実際の使用状況でのフィードバック収集
+- **機能改善**: 使用中に発見された問題の早期修正

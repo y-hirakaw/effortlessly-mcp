@@ -4,10 +4,10 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from './base.js';
-import { IToolMetadata, IToolResult } from '../types/common.js';
-import { ProjectMemoryService } from '../services/project-memory.js';
-import { WorkspaceManager } from './project-management/workspace-manager.js';
+import { BaseTool } from '../base.js';
+import { IToolMetadata, IToolResult } from '../../types/common.js';
+import { ProjectMemoryService } from '../../services/project-memory.js';
+import { WorkspaceManager } from '../project-management/workspace-manager.js';
 
 const ProjectMemoryWriteSchema = z.object({
   memory_name: z.string().min(1).describe('Name of the memory to save'),

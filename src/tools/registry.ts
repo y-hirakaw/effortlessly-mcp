@@ -30,6 +30,10 @@ import {
   CodeInsertAtSymbolTool,
   CodeReplaceWithRegexTool
 } from './code-editing/index.js';
+import {
+  SmartEditFileTool,
+  SmartInsertTextTool
+} from './file-operations/index.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -89,6 +93,10 @@ export class ToolRegistry {
     this.registerTool(new CodeReplaceSymbolBodyTool());
     this.registerTool(new CodeInsertAtSymbolTool());
     this.registerTool(new CodeReplaceWithRegexTool());
+    
+    // スマート編集ツール
+    this.registerTool(new SmartEditFileTool());
+    this.registerTool(new SmartInsertTextTool());
   }
 
   /**

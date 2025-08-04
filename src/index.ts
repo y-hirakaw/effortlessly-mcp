@@ -194,6 +194,184 @@ function registerTools(): void {
         );
         break;
         
+      case 'smart_edit_file':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('編集対象ファイルパス'),
+            old_text: z.string().describe('置換対象の文字列'),
+            new_text: z.string().describe('置換後の文字列'),
+            preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の変更は行わない）'),
+            create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成（デフォルト: true）'),
+            case_sensitive: z.boolean().optional().default(true).describe('大文字小文字を区別（デフォルト: true）'),
+            replace_all: z.boolean().optional().default(false).describe('すべての出現箇所を置換（デフォルト: false）'),
+            max_file_size: z.number().optional().default(1048576).describe('最大ファイルサイズ（バイト、デフォルト: 1MB）'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'smart_insert_text':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('編集対象ファイルパス'),
+            text: z.string().describe('挿入するテキスト'),
+            position_type: z.enum(['line_number', 'after_text', 'before_text', 'start', 'end']).describe('挿入位置の指定方法'),
+            line_number: z.number().optional().describe('行番号（1から開始、position_type="line_number"の場合）'),
+            reference_text: z.string().optional().describe('参照テキスト（after_text/before_textの場合）'),
+            auto_indent: z.boolean().optional().default(true).describe('自動インデント調整（デフォルト: true）'),
+            preserve_empty_lines: z.boolean().optional().default(true).describe('空行を保持（デフォルト: true）'),
+            preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の挿入は行わない）'),
+            create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成（デフォルト: true）'),
+            max_file_size: z.number().optional().default(1048576).describe('最大ファイルサイズ（バイト、デフォルト: 1MB）'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'project_update_workflow':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            task: z.string().optional().describe('更新タスクの種類'),
+            scope: z.enum(['full', 'incremental', 'targeted']).optional().default('full').describe('更新の範囲'),
+            focus_areas: z.array(z.string()).optional().describe('特定のフォーカスエリア'),
+            preview: z.boolean().optional().default(false).describe('手順のプレビューのみ表示')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'project_memory_write':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            memory_name: z.string().describe('メモリファイル名'),
+            content: z.string().describe('保存する内容'),
+            tags: z.array(z.string()).optional().describe('タグのリスト'),
+            overwrite: z.boolean().optional().default(false).describe('既存ファイルを上書きするか')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'project_memory_read':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            memory_name: z.string().describe('読み取るメモリファイル名')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'project_memory_list':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            tag_filter: z.string().optional().describe('タグによるフィルタリング'),
+            include_statistics: z.boolean().optional().default(false).describe('統計情報を含める')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_search_pattern':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            pattern: z.string().describe('検索パターン（正規表現）'),
+            file_pattern: z.string().optional().describe('対象ファイルのパターン（glob形式）'),
+            directory_path: z.string().optional().describe('検索対象ディレクトリ'),
+            max_results: z.number().optional().default(100).describe('最大結果数'),
+            include_context: z.boolean().optional().default(true).describe('コンテキストを含める'),
+            case_sensitive: z.boolean().optional().default(false).describe('大文字小文字を区別')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_find_referencing_symbols':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            target_file: z.string().describe('対象ファイルパス'),
+            target_symbol: z.string().describe('対象シンボル名'),
+            search_scope: z.enum(['workspace', 'project', 'directory']).optional().default('workspace').describe('検索範囲'),
+            max_results: z.number().optional().default(100).describe('最大結果数'),
+            include_context: z.boolean().optional().default(true).describe('コンテキストを含める')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_get_symbols_overview':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            relative_path: z.string().describe('対象パス（ファイルまたはディレクトリ）'),
+            max_depth: z.number().optional().default(3).describe('最大階層深度'),
+            include_private: z.boolean().optional().default(false).describe('プライベートシンボルを含める'),
+            symbol_kinds: z.array(z.number()).optional().describe('含めるシンボル種類')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_replace_symbol_body':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('対象ファイルパス'),
+            symbol_name: z.string().describe('置換対象のシンボル名'),
+            new_body: z.string().describe('新しいシンボル本体'),
+            backup: z.boolean().optional().default(true).describe('バックアップを作成')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_insert_at_symbol':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('対象ファイルパス'),
+            symbol_name: z.string().describe('挿入位置のシンボル名'),
+            content: z.string().describe('挿入するコンテンツ'),
+            position: z.enum(['before', 'after', 'inside']).describe('挿入位置'),
+            backup: z.boolean().optional().default(true).describe('バックアップを作成')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'code_replace_with_regex':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('対象ファイルパス'),
+            search_pattern: z.string().describe('検索パターン（正規表現）'),
+            replacement: z.string().describe('置換文字列'),
+            flags: z.string().optional().describe('正規表現フラグ'),
+            backup: z.boolean().optional().default(true).describe('バックアップを作成')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);
         continue;
