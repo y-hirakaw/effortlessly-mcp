@@ -1,38 +1,49 @@
 # effortlessly-mcp
 
-エンタープライズ環境対応のMCP（Model Context Protocol）サーバーです。安全なコード解析とセマンティック検索を提供し、Claude Codeとの統合により高度な開発支援を実現します。
+エンタープライズ環境対応のMCP（Model Context Protocol）サーバーです。安全なコード解析とセマンティック検索機能を提供し、Claude Codeとの統合により高度な開発支援を実現します。
+
+**主要な特徴**：
+- 🔥 **21のMCPツール** - ファイル操作からLSP統合まで包括的サポート
+- ⚡ **高性能LSP統合** - TypeScript/Swift対応
+　- 今後の対応予定: Java, Kotlin, Go, Python
+- 🛡️ **エンタープライズセキュリティ(開発中)** - 包括的なアクセス制御とログ監査
+- 🧪 **フォールバック機能** - LSP障害時のテキストベース検索
 
 ## 機能
 
-### 🛠️ コア機能（11のMCPツール）
+### 🛠️ コア機能（21のMCPツール）
 
-- **ファイル操作** (4ツール)
-  - `read_file` - ファイル内容読み取り
-  - `list_directory` - ディレクトリ一覧取得（パターンフィルタ対応）
-  - `get_file_metadata` - ファイル/ディレクトリのメタデータ取得
-  - `search_files` - 高度なファイル検索（名前・内容・正規表現）
+#### 📁 **ファイル編集関係** (7ツール)
+- `read_file` - ファイル内容読み取り（エンコーディング対応）
+- `list_directory` - ディレクトリ一覧取得（再帰・パターンフィルタ対応）
+- `get_file_metadata` - ファイル/ディレクトリのメタデータ取得
+- `search_files` - 高度なファイル検索（名前・内容・正規表現）
+- `smart_edit_file` - 安全なファイル編集（バックアップ・プレビュー付き）
+- `smart_insert_text` - 柔軟な位置指定テキスト挿入
+- `echo` - 接続テスト用
 
-- **プロジェクト管理** (3ツール)
-  - `workspace_activate` - プロジェクトワークスペースの活性化
-  - `workspace_get_info` - 現在のワークスペース情報取得
-  - `workspace_list_all` - 登録済みワークスペース一覧
+#### 🔍 **LSPを利用前提のもの** (10ツール)
+- `code_find_symbol` - シンボル検索（関数、クラス、変数等）
+- `code_find_references` - 参照検索とコード解析
+- `code_get_symbol_hierarchy` - シンボル階層構造取得
+- `code_analyze_dependencies` - 依存関係分析とグラフ生成
+- `code_search_pattern` - 高度パターン検索（正規表現）
+- `code_find_referencing_symbols` - シンボル参照元検索
+- `code_get_symbols_overview` - シンボル構造概要取得
+- `code_replace_symbol_body` - シンボル本体置換
+- `code_insert_at_symbol` - シンボル位置コード挿入
+- `code_replace_with_regex` - 正規表現によるコード置換
 
-- **セマンティック検索** (2ツール)
-  - `code_find_symbol` - シンボル検索（関数、クラス、変数等）
-  - `code_find_references` - 参照検索とコード解析
+#### 🗃️ **プロジェクトメモリ化関連** (7ツール)
+- `workspace_activate` - プロジェクトワークスペース活性化
+- `workspace_get_info` - 現在のワークスペース情報取得
+- `workspace_list_all` - 登録済みワークスペース一覧
+- `project_memory_write` - プロジェクト固有知識の永続化
+- `project_memory_read` - 保存された知識の取得
+- `project_memory_list` - 利用可能メモリ一覧
+- `project_update_workflow` - プロジェクト更新ワークフロー生成
 
-- **ユーティリティ** (2ツール)
-  - `echo` - 接続テスト用
-  - 他の統合ツール
-
-### 🔥 高度な機能
-
-- **LSP統合**: TypeScript, Go, Java, C++のセマンティック解析
-- **エンタープライズセキュリティ**: 包括的なアクセス制御とログ監査
-- **高性能**: RDD要件を60-99%上回る実測性能
-- **完全テストカバレッジ**: 282テスト、100%成功率
-
-## インストール
+## クイックスタート
 
 ### 前提条件
 
@@ -40,41 +51,36 @@
 - **npm** または **yarn**
 - **LSPサーバー**（使用する言語）:
   ```bash
-  # TypeScript
+  # TypeScript（推奨）
   npm install -g typescript-language-server typescript
   
-  # Go
-  go install golang.org/x/tools/gopls@latest
+  # Swift（macOS、オプション）
+  # Xcodeがインストール済みの場合は自動で利用可能
   ```
 
-### グローバルインストール（推奨）
+### インストール
+
+#### 方法1: 開発版（現在推奨）
 
 ```bash
-npm install -g effortlessly-mcp
-```
-
-### 開発者向けインストール
-
-```bash
+# リポジトリをクローン
 git clone https://github.com/y-hirakaw/effortlessly-mcp.git
 cd effortlessly-mcp
+
+# 依存関係のインストールとビルド
 npm install
 npm run build
-npm link  # グローバルアクセス用
 ```
 
-## Claude Code統合
+#### 方法2: パッケージインストール（将来版）
 
-### 🎯 方法1: 自動起動設定
+- npxで提供予定
 
-Claude Codeの設定ファイルに以下を追加することで、MCPサーバーとLSP Proxy Serverの両方を自動起動できます：
+### Claude Code統合設定
 
-**設定ファイル場所**:
-- **macOS**: `~/Library/Application Support/Claude/config.json`
-- **Linux**: `~/.config/claude/config.json`
-- **Windows**: `%APPDATA%\Claude\config.json`
+effortlessly-mcpをClaude Codeで使用するには、Claude Codeの設定ファイルに以下を追加：
 
-#### **開発版設定（現在推奨）**:
+**現在推奨の設定**:
 ```json
 {
   "mcpServers": {
@@ -93,69 +99,6 @@ Claude Codeの設定ファイルに以下を追加することで、MCPサーバ
 ```
 
 > **📝 注意**: `/path/to/your/effortlessly-mcp/build/index.js` は実際のクローンしたディレクトリのパスに置き換えてください。
-
-#### **将来版設定（npxインストール後）**:
-```json
-{
-  "mcpServers": {
-    "effortlessly-mcp": {
-      "command": "npx",
-      "args": ["effortlessly-mcp"],
-      "env": {
-        "NODE_ENV": "production"
-      }
-    },
-    "effortlessly-lsp-proxy": {
-      "command": "npx",
-      "args": ["effortlessly-lsp-proxy"],
-      "env": {
-        "NODE_ENV": "production"
-      }
-    }
-  }
-}
-```
-
-> **⚠️ 注意**: 将来版設定は現在開発中です。`npm install -g effortlessly-mcp` が利用可能になってから使用してください。
-
-**利用方法**:
-```bash
-# 1. effortlessly-mcpをクローン・ビルド
-git clone https://github.com/y-hirakaw/effortlessly-mcp.git
-cd effortlessly-mcp
-npm install && npm run build
-
-# 2. Claude Codeの設定ファイルに上記設定を追加
-
-# 3. Claude Codeを起動
-claude-code /path/to/your/project
-```
-
-### 🔧 方法2: 手動起動
-
-```bash
-# 1. LSP Proxy Serverを起動
-effortlessly-lsp-proxy &
-
-# 2. Claude Codeを起動
-claude-code /path/to/your/project
-
-# 3. ワークスペースを活性化（Claude Code内で実行）
-# await mcp.callTool('workspace_activate', {
-#   workspace_path: '/path/to/your/project',
-#   lsp_servers: ['typescript', 'go']
-# });
-```
-
-### 動作確認
-
-```bash
-# LSP Proxy Server動作確認
-curl http://localhost:3001/health
-
-# effortlessly-mcpが利用可能になっているか確認
-# Claude Code内で11のツールが認識されているはず
-```
 
 ## アーキテクチャ
 
@@ -198,31 +141,19 @@ TypeScript/Go/Java/C++ LSP Servers
 - **リンター**: ESLint v9 + TypeScript strict mode
 - **設定形式**: YAML
 - **データベース**: SQLite（シンボル・ファイルインデックス）
-- **セキュリティ**: エンタープライズグレード（包括的監査ログ）
-
-## 開発・検証
-
-```bash
-# 開発コマンド
-npm run typecheck  # 型チェック
-npm run lint      # コード品質チェック  
-npm test          # 全テストスイート実行（282テスト）
-npm run build     # 本番ビルド
-
-# 動作確認
-effortlessly-lsp-proxy &           # LSP Proxy Server起動
-curl http://localhost:3001/health   # ヘルスチェック
-```
 
 ## 📚 詳細ドキュメント
 
 ### 🚀 はじめに
 - **[セットアップガイド](docs/SETUP.md)** - 完全なインストール・設定手順
 - **[使い方ガイド](docs/USAGE.md)** - 実践的な使用方法と活用例
+
+### 🏗️ 言語別開発ガイド
+- **[TypeScript開発ガイド](docs/TYPESCRIPT-GUIDE.md)** - TypeScript Language Server統合による開発支援
 - **[Swift開発ガイド](docs/SWIFT-GUIDE.md)** - SourceKit-LSP統合によるSwift開発支援
 
 ### 📖 技術資料
-- **[ツールリファレンス](docs/TOOLS.md)** - 全25ツールの詳細仕様とAPI
+- **[ツールリファレンス](docs/TOOLS.md)** - 全21ツールの詳細仕様とAPI
 - **[APIドキュメント](docs/API.md)** - MCP統合とプロトコル詳細
 - **[セキュリティガイド](docs/SECURITY.md)** - エンタープライズセキュリティ設定
 
@@ -230,7 +161,7 @@ curl http://localhost:3001/health   # ヘルスチェック
 - **[トラブルシューティング](docs/TROUBLESHOOTING.md)** - 問題解決ガイド
 
 ### 📋 開発資料
-- **[要件定義書](RDD+Task.md)** - プロジェクト全体の仕様・進捗
+- **[TypeScript LSP統合RDD](RDD_ts_lsp.md)** - LSP統合機能の詳細要求・実装状況
 
 ## ステータス
 
@@ -247,4 +178,4 @@ curl http://localhost:3001/health   # ヘルスチェック
 
 ## ライセンス
 
-MIT License - エンタープライズ利用を促進
+MIT License
