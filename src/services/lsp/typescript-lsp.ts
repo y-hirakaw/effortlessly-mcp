@@ -93,8 +93,85 @@ export class TypeScriptLSP extends LSPClientBase {
 
   /**
    * シンボル名で検索（ファジー検索対応）
+   * ワークスペース全体のシンボル検索にLSPの workspace/symbol を使用
    */
   async searchSymbols(query: string, options?: {
+    kind?: SymbolKind;
+    exactMatch?: boolean;
+    maxResults?: number;
+  }): Promise<SymbolSearchResult[]> {
+    const { kind, exactMatch = false, maxResults = 100 } = options || {};
+    
+    try {
+      // LSP接続状態を確認
+      const state = this.getState();
+      if (!state.initialized) {
+        this.logger.warn('LSP not initialized for symbol search', { 
+          connected: state.connected, 
+          initialized: state.initialized,
+          errorState: state.errorState
+        });
+        return [];
+      }
+      
+      this.logger.info(`Searching workspace symbols for query: "${query}"`);
+      
+      // LSPのworkspace/symbolリクエストを使用（より効率的）
+      const symbols = await this.sendRequest('workspace/symbol', { query });
+      this.logger.info(`LSP returned ${symbols?.length || 0} symbols for query: "${query}"`);
+      
+      if (!symbols || !Array.isArray(symbols)) {
+        this.logger.warn('Invalid response from workspace/symbol request');
+        return [];
+      }
+      
+      const results: SymbolSearchResult[] = [];
+      
+      for (const symbol of symbols as SymbolInformation[]) {
+        // 種類フィルタ
+        if (kind !== undefined && symbol.kind !== kind) {
+          continue;
+        }
+        
+        // 名前フィルタ（exactMatchの場合のみ厳密チェック）
+        const matches = exactMatch 
+          ? symbol.name === query
+          : true; // workspace/symbol自体がクエリマッチングを行うため
+          
+        if (matches) {
+          this.logger.info(`Found matching symbol: ${symbol.name} (kind: ${symbol.kind})`);
+          results.push({
+            name: symbol.name,
+            kind: symbol.kind,
+            file: this.uriToPath(symbol.location.uri),
+            position: symbol.location.range.start,
+            range: symbol.location.range,
+            detail: undefined,
+            documentation: undefined
+          });
+          
+          if (results.length >= maxResults) {
+            break;
+          }
+        }
+      }
+      
+      this.logger.info(`Returning ${results.length} filtered symbols`);
+      return results;
+      
+    } catch (error) {
+      this.logger.error('Failed to search symbols via LSP workspace/symbol', error as Error);
+      
+      // フォールバック: ファイル単位の検索
+      this.logger.info('Falling back to file-based symbol search');
+      return await this.searchSymbolsFallback(query, options);
+    }
+  }
+
+  /**
+   * フォールバック: ファイル単位でのシンボル検索
+   */
+  private async searchSymbolsFallback(query: string, options?: {
     kind?: SymbolKind;
     exactMatch?: boolean;
     maxResults?: number;
@@ -105,23 +182,23 @@ export class TypeScriptLSP extends LSPClientBase {
     try {
       // ワークスペース内のTypeScriptファイルを取得
       const files = await this.findTypeScriptFiles();
-      this.logger.info(`Found ${files.length} TypeScript files in workspace`);
+      this.logger.info(`Fallback: Found ${files.length} TypeScript files in workspace`);
       
-      // logger.tsファイルが含まれているかチェック
-      const loggerFile = files.find(f => f.includes('logger.ts'));
-      if (loggerFile) {
-        this.logger.info(`Logger file found: ${loggerFile}`);
-      } else {
-        this.logger.warn('Logger file not found in TypeScript files');
-      }
+      // 主要ファイルを優先（src/index.ts, src/services/logger.ts等）
+      const priorityFiles = files.filter(f => 
+        f.includes('src/index.ts') ||
+        f.includes('src/services/logger.ts') ||
+        f.includes('logger.ts') ||
+        f.includes('index.ts')
+      );
       
-      // デバッグ：logger.tsファイルのみテスト
-      const targetFiles = loggerFile ? [loggerFile] : files.slice(0, 10);
-      this.logger.info(`Processing ${targetFiles.length} files (focusing on logger.ts if available)`);
+      const targetFiles = [...priorityFiles, ...files.filter(f => !priorityFiles.includes(f))].slice(0, 20);
+      this.logger.info(`Fallback: Processing ${targetFiles.length} files`);
+      
       for (const file of targetFiles) {
         try {
           const symbols = await this.getFileSymbols(file);
-          this.logger.info(`File ${file}: found ${symbols.length} symbols`);
+          this.logger.info(`Fallback: File ${file}: found ${symbols.length} symbols`);
           
           for (const symbol of symbols) {
             // 種類フィルタ
@@ -135,15 +212,15 @@ export class TypeScriptLSP extends LSPClientBase {
               : symbol.name.toLowerCase().includes(query.toLowerCase());
               
             if (matches) {
-              this.logger.info(`Found matching symbol: ${symbol.name} (kind: ${symbol.kind})`);
+              this.logger.info(`Fallback: Found matching symbol: ${symbol.name} (kind: ${symbol.kind})`);
               results.push({
                 name: symbol.name,
                 kind: symbol.kind,
                 file: this.uriToPath(symbol.location.uri),
                 position: symbol.location.range.start,
                 range: symbol.location.range,
-                detail: undefined, // SymbolInformationには detail は含まれない
-                documentation: undefined // SymbolInformationには documentation は含まれない
+                detail: undefined,
+                documentation: undefined
               });
               
               if (results.length >= maxResults) {
@@ -156,14 +233,14 @@ export class TypeScriptLSP extends LSPClientBase {
             break;
           }
         } catch (error) {
-          this.logger.warn(`Failed to get symbols for ${file}`, { error: (error as Error).message });
+          this.logger.warn(`Fallback: Failed to get symbols for ${file}`, { error: (error as Error).message });
         }
       }
       
       return results;
     } catch (error) {
-      this.logger.error('Failed to search symbols', error as Error);
-      throw error;
+      this.logger.error('Fallback symbol search failed', error as Error);
+      return [];
     }
   }
 
@@ -176,8 +253,42 @@ export class TypeScriptLSP extends LSPClientBase {
     includeDeclaration = true
   ): Promise<ReferenceSearchResult[]> {
     try {
+      // LSP接続状態を確認
+      const state = this.getState();
+      if (!state.initialized) {
+        this.logger.warn('LSP not initialized for reference search', { 
+          connected: state.connected, 
+          initialized: state.initialized,
+          errorState: state.errorState
+        });
+        return [];
+      }
+
       const uri = this.pathToUri(file);
+      this.logger.info(`Searching references for ${file} at position`, { position });
+
+      // ファイルを明示的に開いて最新の状態にする
+      try {
+        const fileContent = await fs.readFile(file, 'utf8');
+        this.sendNotification('textDocument/didOpen', {
+          textDocument: {
+            uri,
+            languageId: 'typescript',
+            version: 1,
+            text: fileContent
+          }
+        });
+        
+        // 短時間待機
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (fileError) {
+        this.logger.warn(`Could not open file for reference search: ${file}`, { 
+          error: (fileError as Error).message 
+        });
+      }
+
       const locations = await this.findReferences(uri, position, includeDeclaration);
+      this.logger.info(`Found ${locations.length} references for ${file}`);
       
       const results: ReferenceSearchResult[] = [];
       
@@ -193,6 +304,11 @@ export class TypeScriptLSP extends LSPClientBase {
           context
         });
       }
+
+      // ファイルを閉じる
+      this.sendNotification('textDocument/didClose', {
+        textDocument: { uri }
+      });
       
       return results;
     } catch (error) {

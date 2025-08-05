@@ -10,7 +10,8 @@ import { existsSync, readFileSync } from 'fs';
 import type { 
   SymbolInformation, 
   Location, 
-  Position 
+  Position,
+  WorkspaceSymbolParams
 } from 'vscode-languageserver-protocol';
 import { Logger } from '../logger.js';
 import { 
@@ -35,6 +36,8 @@ class LSPProcess extends EventEmitter {
     reject: (error: Error) => void;
   }>();
   private initialized = false;
+  private requestCount = 0;
+  private lastActivity = new Date();
 
   constructor(
     private config: LSPServerConfig,
@@ -110,8 +113,11 @@ class LSPProcess extends EventEmitter {
       // TypeScript LSPの場合、プロジェクト認識を確認して再試行
       if (this.config.language === 'typescript') {
         try {
+          // LSP標準のWorkspaceSymbolParamsを使用
+          const params: WorkspaceSymbolParams = { query };
+          
           // 最初の試行
-          let symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
+          let symbols = await this.sendRequest('workspace/symbol', params) as SymbolInformation[];
           if (symbols && symbols.length > 0) {
             this.logger.info(`Found ${symbols.length} symbols for query: "${query}"`);
             return symbols;
@@ -130,7 +136,7 @@ class LSPProcess extends EventEmitter {
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // 再試行
-          symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
+          symbols = await this.sendRequest('workspace/symbol', params) as SymbolInformation[];
           this.logger.info(`Found ${symbols?.length || 0} symbols for query: "${query}" after project reload`);
           return symbols || [];
           
@@ -138,12 +144,14 @@ class LSPProcess extends EventEmitter {
           this.logger.warn('Project reload failed, using fallback approach', { error: (reloadError as Error).message });
           
           // フォールバック: 通常の検索を実行
-          const symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
+          const params: WorkspaceSymbolParams = { query };
+          const symbols = await this.sendRequest('workspace/symbol', params) as SymbolInformation[];
           return symbols || [];
         }
       } else {
         // 他の言語の場合は通常通り
-        const symbols = await this.sendRequest('workspace/symbol', { query }) as SymbolInformation[];
+        const params: WorkspaceSymbolParams = { query };
+        const symbols = await this.sendRequest('workspace/symbol', params) as SymbolInformation[];
         this.logger.info(`Found ${symbols?.length || 0} symbols for query: "${query}"`);
         return symbols || [];
       }
@@ -188,7 +196,12 @@ class LSPProcess extends EventEmitter {
           hover: { dynamicRegistration: false }
         },
         workspace: {
-          symbol: { dynamicRegistration: false },
+          symbol: { 
+            dynamicRegistration: false,
+            symbolKind: {
+              valueSet: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+            }
+          },
           didChangeConfiguration: { dynamicRegistration: false },
           didChangeWatchedFiles: { dynamicRegistration: false },
           executeCommand: { dynamicRegistration: false },
@@ -304,7 +317,7 @@ class LSPProcess extends EventEmitter {
         }
       }
       
-      // TypeScript特有のプロジェクト検証
+      // TypeScript特有のプロジェクト検証と強制認識
       const tsConfigPath = `${this.workspaceRoot}/tsconfig.json`;
       const packageJsonPath = `${this.workspaceRoot}/package.json`;
       
@@ -317,6 +330,14 @@ class LSPProcess extends EventEmitter {
             include: tsConfig.include,
             compilerOptions: tsConfig.compilerOptions ? Object.keys(tsConfig.compilerOptions) : []
           });
+          
+          // プロジェクト強制認識のためtsconfig.jsonを更新通知
+          this.sendNotification('workspace/didChangeWatchedFiles', {
+            changes: [{
+              uri: `file://${tsConfigPath}`,
+              type: 2 // Changed
+            }]
+          });
         } catch (error) {
           this.logger.warn('Failed to parse tsconfig.json', { error: (error as Error).message });
         }
@@ -324,6 +345,29 @@ class LSPProcess extends EventEmitter {
       
       if (!existsSync(packageJsonPath)) {
         this.logger.warn('package.json not found - this may affect project recognition');
+      } else {
+        // package.jsonも更新通知して依存関係を再認識させる
+        this.sendNotification('workspace/didChangeWatchedFiles', {
+          changes: [{
+            uri: `file://${packageJsonPath}`,
+            type: 2 // Changed
+          }]
+        });
+      }
+      
+      // 追加の待機時間でプロジェクト認識を確実にする
+      this.logger.info('Waiting for TypeScript project recognition...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // プロジェクト再読み込みを明示的に要求
+      try {
+        await this.sendRequest('workspace/executeCommand', {
+          command: '_typescript.reloadProjects',
+          arguments: []
+        });
+        this.logger.info('TypeScript projects reloaded successfully');
+      } catch (error) {
+        this.logger.warn('Failed to reload TypeScript projects', { error: (error as Error).message });
       }
     }
     
@@ -348,12 +392,22 @@ class LSPProcess extends EventEmitter {
       }
 
       const id = ++this.requestId;
+      this.requestCount++;
+      this.lastActivity = new Date();
+      
       const request = {
         jsonrpc: '2.0',
         id,
         method,
         params
       };
+
+      this.logger.info(`Sending LSP request: ${method}`, {
+        language: this.config.language,
+        id,
+        params,
+        requestCount: this.requestCount
+      });
 
       this.pendingRequests.set(id, { resolve, reject });
 
@@ -477,9 +531,9 @@ class LSPProcess extends EventEmitter {
     return {
       running: this.process !== undefined,
       initialized: this.initialized,
-      lastActivity: new Date(),
+      lastActivity: this.lastActivity,
       errorCount: 0,
-      requestCount: 0,
+      requestCount: this.requestCount,
       pid: this.process?.pid
     };
   }
@@ -576,25 +630,49 @@ export class LSPManager extends EventEmitter {
    * シンボル検索（複数言語対応）
    */
   async searchSymbols(query: string, languages?: string[]): Promise<SymbolInformation[]> {
-    const targetLanguages = languages || Array.from(this.processes.keys());
+    // 言語が指定されていない場合は、利用可能な言語（特にTypeScript）をデフォルトとする
+    const targetLanguages = languages || ['typescript'];
     const results: SymbolInformation[] = [];
+
+    this.logger.info(`Starting symbol search for query: "${query}"`, {
+      targetLanguages,
+      availableLanguages: this.getAvailableLanguages(),
+      runningProcesses: Array.from(this.processes.keys())
+    });
 
     for (const language of targetLanguages) {
       try {
+        // 利用可能な言語かチェック
+        if (!this.getAvailableLanguages().includes(language)) {
+          this.logger.warn(`Language not available: ${language}`);
+          continue;
+        }
+
         // 必要に応じてLSPを開始
         if (!this.processes.has(language)) {
+          this.logger.info(`Starting LSP for language: ${language}`);
           await this.startLSP(language);
         }
 
         const process = this.processes.get(language);
         if (process) {
+          this.logger.info(`Searching symbols in ${language} LSP process`);
           const symbols = await process.searchWorkspaceSymbols(query);
+          this.logger.info(`Found ${symbols.length} symbols in ${language}`);
           results.push(...symbols);
+        } else {
+          this.logger.warn(`Failed to get LSP process for ${language}`);
         }
       } catch (error) {
-        this.logger.warn(`Symbol search failed for ${language}`, { error: (error as Error).message });
+        this.logger.error(`Symbol search failed for ${language}`, error as Error);
       }
     }
+
+    this.logger.info(`Symbol search completed`, {
+      query,
+      totalResults: results.length,
+      languagesSearched: targetLanguages
+    });
 
     return results;
   }

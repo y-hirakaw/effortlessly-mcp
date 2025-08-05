@@ -5,7 +5,8 @@
 
 import { z } from 'zod';
 import path from 'path';
-import type { SymbolKind } from 'vscode-languageserver-protocol';
+import { execSync } from 'child_process';
+import type { SymbolKind, SymbolInformation } from 'vscode-languageserver-protocol';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
 import { getHttpLSPClient } from '../../services/lsp-proxy/http-lsp-client.js';
@@ -47,6 +48,113 @@ export interface CodeSymbolResult {
 }
 
 /**
+ * テキストベースのシンボル検索（フォールバック機能）
+ */
+async function textBasedSymbolSearch(
+  symbolName: string, 
+  workspaceRoot: string, 
+  params: CodeFindSymbolParams
+): Promise<{
+  query: string;
+  languages: string[] | 'all';
+  total: number;
+  symbols: SymbolInformation[];
+}> {
+  const logger = Logger.getInstance();
+  
+  try {
+    logger.info(`Starting text-based symbol search for: ${symbolName}`);
+    
+    // TypeScriptファイルでシンボルを検索するコマンド
+    const searchPatterns = [
+      `class\\s+${symbolName}`,
+      `interface\\s+${symbolName}`,
+      `function\\s+${symbolName}`,
+      `const\\s+${symbolName}`,
+      `let\\s+${symbolName}`,
+      `var\\s+${symbolName}`,
+      `export\\s+class\\s+${symbolName}`,
+      `export\\s+interface\\s+${symbolName}`,
+      `export\\s+function\\s+${symbolName}`,
+      `export\\s+const\\s+${symbolName}`
+    ];
+    
+    const results: SymbolInformation[] = [];
+    
+    for (const pattern of searchPatterns) {
+      try {
+        // grep コマンドでパターン検索
+        const grepCommand = `grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" -E "${pattern}" "${workspaceRoot}"`;
+        const output = execSync(grepCommand, { encoding: 'utf8', timeout: 5000 }).toString();
+        
+        if (output.trim()) {
+          const lines = output.trim().split('\n');
+          logger.info(`Found ${lines.length} matches with pattern: ${pattern}`);
+          
+          for (const line of lines.slice(0, params.max_results || 10)) {
+            const match = line.match(/^([^:]+):(\d+):(.+)$/);
+            if (match) {
+              const [, filePath, lineNumber, content] = match;
+              
+              // シンボルの種類を推測
+              let symbolKind = 12; // Function as default
+              if (content.includes('class')) symbolKind = 5; // Class
+              else if (content.includes('interface')) symbolKind = 11; // Interface
+              else if (content.includes('const') || content.includes('let') || content.includes('var')) symbolKind = 13; // Variable
+              
+              const symbolInfo: SymbolInformation = {
+                name: symbolName,
+                kind: symbolKind as SymbolKind,
+                location: {
+                  uri: `file://${filePath}`,
+                  range: {
+                    start: { line: parseInt(lineNumber) - 1, character: 0 },
+                    end: { line: parseInt(lineNumber) - 1, character: content.length }
+                  }
+                }
+              };
+              
+              results.push(symbolInfo);
+            }
+          }
+        }
+      } catch (error) {
+        // 個別のパターンエラーは無視して続行
+        logger.debug(`Pattern search failed: ${pattern}`, { error: (error as Error).message });
+      }
+    }
+    
+    // 重複除去（同じファイルの同じ行）
+    const uniqueResults = results.filter((symbol, index, array) => 
+      array.findIndex(s => 
+        s.location.uri === symbol.location.uri && 
+        s.location.range.start.line === symbol.location.range.start.line
+      ) === index
+    );
+    
+    logger.info(`Text-based search found ${uniqueResults.length} unique symbols`);
+    
+    return {
+      query: symbolName,
+      languages: ['typescript'],
+      total: uniqueResults.length,
+      symbols: uniqueResults
+    };
+    
+  } catch (error) {
+    logger.error('Text-based symbol search failed', error as Error);
+    
+    // 空の結果を返す
+    return {
+      query: symbolName,
+      languages: ['typescript'],
+      total: 0,
+      symbols: []
+    };
+  }
+}
+
+/**
  * code_find_symbol ツール実装
  */
 export const codeFindSymbolTool = {
@@ -80,10 +188,24 @@ export const codeFindSymbolTool = {
       const httpLSPClient = getHttpLSPClient();
       
       // シンボル検索を実行
-      const searchResponse = await httpLSPClient.searchSymbols(params.symbol_name, {
-        languages: params.symbol_kind ? undefined : ['typescript'], // 種類指定がない場合はTypeScriptのみ
-        maxResults: params.max_results
-      });
+      let searchResponse;
+      try {
+        searchResponse = await httpLSPClient.searchSymbols(params.symbol_name, {
+          languages: params.symbol_kind ? undefined : ['typescript'], // 種類指定がない場合はTypeScriptのみ
+          maxResults: params.max_results
+        });
+        
+        logger.info(`LSP API returned ${searchResponse.symbols.length} symbols`);
+        
+        // LSP APIが結果を返さない場合、テキストベースフォールバックを実行
+        if (searchResponse.symbols.length === 0) {
+          logger.info('LSP API returned no results, falling back to text-based search');
+          searchResponse = await textBasedSymbolSearch(params.symbol_name, workspaceRoot, params);
+        }
+      } catch (error) {
+        logger.warn('LSP API failed, falling back to text-based search', { error: (error as Error).message });
+        searchResponse = await textBasedSymbolSearch(params.symbol_name, workspaceRoot, params);
+      }
 
       // ファイルパターンフィルタを適用（指定されている場合）
       const filteredSymbols = params.file_pattern 

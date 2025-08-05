@@ -329,12 +329,24 @@ export abstract class LSPClientBase extends EventEmitter {
    */
   protected handleMessage(message: any): void {
     this.state.lastActivity = new Date();
-    this.logger.info('LSP: Received message', { 
-      id: message.id, 
-      method: message.method, 
-      hasError: !!message.error,
-      hasResult: !!message.result
-    });
+    
+    // より詳細なログ情報を提供
+    if (message.id !== undefined) {
+      this.logger.info('LSP: Received response', { 
+        id: message.id, 
+        hasError: !!message.error,
+        hasResult: !!message.result,
+        resultType: message.result ? typeof message.result : undefined,
+        resultLength: Array.isArray(message.result) ? message.result.length : undefined,
+        errorCode: message.error?.code,
+        errorMessage: message.error?.message?.substring(0, 200) // エラーメッセージを切り詰め
+      });
+    } else if (message.method) {
+      this.logger.info('LSP: Received notification', { 
+        method: message.method,
+        hasParams: !!message.params
+      });
+    }
 
     if (message.id !== undefined && this.pendingRequests.has(message.id)) {
       // レスポンス処理
@@ -342,16 +354,39 @@ export abstract class LSPClientBase extends EventEmitter {
       this.pendingRequests.delete(message.id);
 
       if (message.error) {
-        this.logger.error('LSP: Received error response', new Error(`LSP Error: ${message.error.message}`));
-        pending.reject(new Error(`LSP Error: ${message.error.message}`));
+        const errorDetail = {
+          code: message.error.code,
+          message: message.error.message,
+          data: message.error.data
+        };
+        this.logger.error('LSP: Received error response', new Error(`LSP Error: ${JSON.stringify(errorDetail)}`));
+        pending.reject(new Error(`LSP Error: ${message.error.message} (Code: ${message.error.code || 'unknown'})`));
       } else {
-        this.logger.info('LSP: Received successful response');
+        // 成功レスポンスの詳細情報
+        const resultInfo = {
+          type: typeof message.result,
+          isArray: Array.isArray(message.result),
+          length: Array.isArray(message.result) ? message.result.length : undefined,
+          isEmpty: Array.isArray(message.result) ? message.result.length === 0 : !message.result
+        };
+        this.logger.info('LSP: Received successful response', resultInfo);
         pending.resolve(message.result);
       }
     } else if (message.method) {
-      // 通知処理
-      this.logger.info(`LSP: Received notification: ${message.method}`);
+      // 通知処理 - より詳細なログ
+      this.logger.info(`LSP: Processing notification: ${message.method}`, {
+        hasParams: !!message.params,
+        paramsType: message.params ? typeof message.params : undefined
+      });
       this.emit('notification', message.method, message.params);
+    } else {
+      // 予期しないメッセージ形式
+      this.logger.warn('LSP: Received unexpected message format', {
+        hasId: message.id !== undefined,
+        hasMethod: !!message.method,
+        hasError: !!message.error,
+        hasResult: !!message.result
+      });
     }
   }
 

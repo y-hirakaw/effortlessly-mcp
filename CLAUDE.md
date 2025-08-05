@@ -266,3 +266,8 @@ The project has a solid foundation with most core features implemented. Current 
 - **重要**: effortlessly-mcpツールの使用により、開発中のMCPサーバーの動作確認を同時に実施
 - **品質向上**: 実際の使用状況でのフィードバック収集
 - **機能改善**: 使用中に発見された問題の早期修正
+
+# タスクを実施する上での重要事項
+
+* 課題に対処する際に、課題に対処しきれていない状態で完了を宣言しないこと
+  * 課題が残っているなら正直にその内容を伝えること

@@ -5,6 +5,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import type { Server } from 'http';
 // import type { SymbolInformation } from 'vscode-languageserver-protocol'; // 未使用のため削除
 import { Logger } from '../logger.js';
@@ -107,14 +108,22 @@ export class LSPProxyServer {
           return;
         }
 
+        // ファイルパスの正規化 - 相対パスの場合は絶対パスに変換
+        const normalizedPath = this.normalizeFilePath(filePath);
+        this.logger.info(`Finding references for file: ${normalizedPath}`, { 
+          originalPath: filePath,
+          normalizedPath,
+          position 
+        });
+
         const references = await this.lspManager.findReferences(
-          filePath,
+          normalizedPath,
           position,
           includeDeclaration || false
         );
 
         res.json({
-          filePath,
+          filePath: normalizedPath,
           position,
           total: references.length,
           references
@@ -208,6 +217,18 @@ export class LSPProxyServer {
 
     await this.lspManager.stopAll();
     this.logger.info('LSP Proxy Server stopped');
+  }
+
+  /**
+   * ファイルパスを正規化（相対パスを絶対パスに変換）
+   */
+  private normalizeFilePath(filePath: string): string {
+    if (path.isAbsolute(filePath)) {
+      return filePath;
+    }
+    
+    // 相対パスの場合はワークスペースルートを基準に絶対パスに変換
+    return path.resolve(this.workspaceRoot, filePath);
   }
 
   /**
