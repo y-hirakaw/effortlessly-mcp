@@ -219,6 +219,7 @@ curl http://localhost:3001/health   # ヘルスチェック
 ### 🚀 はじめに
 - **[セットアップガイド](docs/SETUP.md)** - 完全なインストール・設定手順
 - **[使い方ガイド](docs/USAGE.md)** - 実践的な使用方法と活用例
+- **[Swift開発ガイド](docs/SWIFT-GUIDE.md)** - SourceKit-LSP統合によるSwift開発支援
 
 ### 📖 技術資料
 - **[ツールリファレンス](docs/TOOLS.md)** - 全25ツールの詳細仕様とAPI
