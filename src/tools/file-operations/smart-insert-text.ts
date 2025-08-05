@@ -1,6 +1,6 @@
 /**
- * スマートテキスト挿入ツール
- * 行番号指定、相対位置、インデント自動調整機能付き
+ * スマートテキスト挿入ツール（改良版）
+ * 行番号指定、相対位置、インデント自動調整、新規ファイル作成機能付き
  */
 
 import { z } from 'zod';
@@ -20,7 +20,8 @@ const SmartInsertTextSchema = z.object({
   preserve_empty_lines: z.boolean().optional().default(true).describe('空行を保持'),
   preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の挿入は行わない）'),
   create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成'),
-  max_file_size: z.number().optional().default(1024 * 1024).describe('最大ファイルサイズ（バイト）')
+  max_file_size: z.number().optional().default(1024 * 1024).describe('最大ファイルサイズ（バイト）'),
+  create_new_file: z.boolean().optional().default(false).describe('新規ファイル作成を許可')
 });
 
 type SmartInsertTextParams = z.infer<typeof SmartInsertTextSchema>;
@@ -38,6 +39,7 @@ interface InsertResult {
   original_line_count: number;
   new_line_count: number;
   preview_content?: string;
+  is_new_file?: boolean;
 }
 
 /**
@@ -46,7 +48,7 @@ interface InsertResult {
 export class SmartInsertTextTool extends BaseTool {
   readonly metadata: IToolMetadata = {
     name: 'smart_insert_text',
-    description: '柔軟な位置指定によるテキスト挿入（行番号、相対位置、自動インデント対応）',
+    description: '柔軟な位置指定によるテキスト挿入（行番号、相対位置、自動インデント、新規ファイル作成対応）',
     parameters: {
       file_path: {
         type: 'string',
@@ -97,6 +99,11 @@ export class SmartInsertTextTool extends BaseTool {
         type: 'number',
         description: '最大ファイルサイズ（バイト、デフォルト: 1MB）',
         required: false
+      },
+      create_new_file: {
+        type: 'boolean',
+        description: '新規ディレクトリも含めて作成を許可（デフォルト: false）。ファイルのみの場合は自動作成されます',
+        required: false
       }
     }
   };
@@ -113,28 +120,59 @@ export class SmartInsertTextTool extends BaseTool {
         return this.createErrorResult(validationError);
       }
 
-      // 2. ファイル存在確認
+      // 2. ファイル存在確認と新規作成対応
       let fileStats;
+      let originalContent = '';
+      let isNewFile = false;
+
       try {
         fileStats = await fs.stat(params.file_path);
-      } catch {
-        return this.createErrorResult(`ファイルが見つかりません: ${params.file_path}`);
+        
+        // 3. ファイルサイズチェック
+        if (fileStats.size > params.max_file_size) {
+          return this.createErrorResult(
+            `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`
+          );
+        }
+
+        // 4. ディレクトリではないことを確認
+        if (fileStats.isDirectory()) {
+          return this.createErrorResult(`指定されたパスはディレクトリです: ${params.file_path}`);
+        }
+
+        // 5. ファイル内容読み取り
+        originalContent = await fs.readFile(params.file_path, 'utf-8');
+      } catch (error: any) {
+        // ファイルが存在しない場合
+        if (error.code === 'ENOENT') {
+          // 親ディレクトリが存在するかチェック
+          const dir = path.dirname(params.file_path);
+          try {
+            await fs.access(dir);
+            // 親ディレクトリが存在すれば自動的に新規ファイル作成
+            isNewFile = true;
+            originalContent = '';
+            Logger.getInstance().info(`File not found, creating new file automatically: ${params.file_path}`);
+          } catch {
+            // 親ディレクトリが存在しない場合
+            if (params.create_new_file) {
+              // create_new_fileフラグがtrueの場合のみディレクトリも作成
+              isNewFile = true;
+              originalContent = '';
+              await fs.mkdir(dir, { recursive: true });
+              Logger.getInstance().info(`Creating new file with directories: ${params.file_path}`);
+            } else {
+              return this.createErrorResult(
+                `ファイルまたは親ディレクトリが存在しません: ${params.file_path}. ` +
+                `ディレクトリも作成する場合は create_new_file=true を指定してください。`
+              );
+            }
+          }
+        } else {
+          return this.createErrorResult(`ファイルアクセスエラー: ${error.message}`);
+        }
       }
 
-      // 3. ファイルサイズチェック
-      if (fileStats.size > params.max_file_size) {
-        return this.createErrorResult(
-          `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`
-        );
-      }
-
-      // 4. ディレクトリではないことを確認
-      if (fileStats.isDirectory()) {
-        return this.createErrorResult(`指定されたパスはディレクトリです: ${params.file_path}`);
-      }
-
-      // 5. ファイル内容読み取り
-      const originalContent = await fs.readFile(params.file_path, 'utf-8');
       const lines = originalContent.split('\n');
 
       // 6. 挿入位置の計算
@@ -167,15 +205,16 @@ export class SmartInsertTextTool extends BaseTool {
           },
           original_line_count: lines.length,
           new_line_count: insertResult.lines.length,
-          preview_content: newContent
+          preview_content: newContent,
+          is_new_file: isNewFile
         };
 
         return this.createTextResult(JSON.stringify(result, null, 2));
       }
 
-      // 9. バックアップ作成
+      // 9. バックアップ作成（既存ファイルのみ）
       let backupPath: string | undefined;
-      if (params.create_backup) {
+      if (params.create_backup && !isNewFile) {
         backupPath = await this.createBackup(params.file_path, originalContent);
       }
 
@@ -194,14 +233,16 @@ export class SmartInsertTextTool extends BaseTool {
         },
         backup_path: backupPath,
         original_line_count: lines.length,
-        new_line_count: insertResult.lines.length
+        new_line_count: insertResult.lines.length,
+        is_new_file: isNewFile
       };
 
       Logger.getInstance().info('Smart insert completed', {
         file_path: params.file_path,
         position_type: params.position_type,
         insert_position: result.insert_position,
-        backup_created: !!backupPath
+        backup_created: !!backupPath,
+        is_new_file: isNewFile
       });
 
       return this.createTextResult(JSON.stringify(result, null, 2));
@@ -247,12 +288,13 @@ export class SmartInsertTextTool extends BaseTool {
     params: SmartInsertTextParams
   ): { success: boolean; lineIndex?: number; column?: number; error?: string } {
     switch (params.position_type) {
-      case 'line_number':
+      case 'line_number': {
         const lineIndex = params.line_number! - 1;
         if (lineIndex > lines.length) {
           return { success: false, error: `指定された行番号がファイルの行数を超えています: ${params.line_number} > ${lines.length}` };
         }
         return { success: true, lineIndex, column: 0 };
+      }
 
       case 'start':
         return { success: true, lineIndex: 0, column: 0 };

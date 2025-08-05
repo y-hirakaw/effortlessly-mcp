@@ -92,7 +92,7 @@ export class SmartEditFileTool extends BaseTool {
       },
       create_new_file: {
         type: 'boolean',
-        description: '新規ディレクトリも含めて作成を許可（デフォルト: false）。ファイルのみの場合は自動作成されます',
+        description: '新規ファイル作成を許可（デフォルト: false）',
         required: false
       }
     }
@@ -129,29 +129,17 @@ export class SmartEditFileTool extends BaseTool {
       } catch (error: any) {
         // ファイルが存在しない場合
         if (error.code === 'ENOENT') {
-          // 親ディレクトリが存在するかチェック
-          const dir = path.dirname(params.file_path);
-          try {
-            await fs.access(dir);
-            // 親ディレクトリが存在すれば自動的に新規ファイル作成
-            isNewFile = true;
-            originalContent = '';
-            Logger.getInstance().info(`File not found, creating new file automatically: ${params.file_path}`);
-          } catch {
-            // 親ディレクトリが存在しない場合
-            if (params.create_new_file) {
-              // create_new_fileフラグがtrueの場合のみディレクトリも作成
-              isNewFile = true;
-              originalContent = '';
-              await fs.mkdir(dir, { recursive: true });
-              Logger.getInstance().info(`Creating new file with directories: ${params.file_path}`);
-            } else {
-              return this.createErrorResult(
-                `ファイルまたは親ディレクトリが存在しません: ${params.file_path}. ` +
-                `ディレクトリも作成する場合は create_new_file=true を指定してください。`
-              );
-            }
+          if (!params.create_new_file) {
+            return this.createErrorResult(`ファイルが見つかりません: ${params.file_path}. 新規作成を行う場合は create_new_file=true を指定してください。`);
           }
+          
+          // 新規ファイル作成の場合
+          isNewFile = true;
+          originalContent = '';
+          
+          // ディレクトリの存在確認と作成
+          const dir = path.dirname(params.file_path);
+          await fs.mkdir(dir, { recursive: true });
         } else {
           return this.createErrorResult(`ファイルアクセスエラー: ${error.message}`);
         }
@@ -223,24 +211,16 @@ export class SmartEditFileTool extends BaseTool {
         return this.createTextResult(JSON.stringify(result, null, 2));
       }
 
-      // 7. 置換結果の整合性チェック（既存ファイルのみ）
-      if (!isNewFile && !this.validateReplacement(originalContent, editResult.newContent, editResult.matches.length)) {
-        return this.createErrorResult(
-          `置換処理でファイルの整合性が損なわれる可能性があります。操作を中止しました。` +
-          `バックアップから復旧してください。`
-        );
-      }
-
-      // 8. バックアップ作成（既存ファイルのみ）
+      // 7. バックアップ作成（既存ファイルのみ）
       let backupPath: string | undefined;
       if (params.create_backup && !isNewFile) {
         backupPath = await this.createBackup(params.file_path, originalContent);
       }
 
-      // 10. ファイル更新
+      // 8. ファイル更新
       await fs.writeFile(params.file_path, editResult.newContent, 'utf-8');
 
-      // 11. 結果をまとめる
+      // 9. 結果をまとめる
       const result: EditResult = {
         success: true,
         file_path: params.file_path,
@@ -320,85 +300,24 @@ export class SmartEditFileTool extends BaseTool {
       if (!replaceAll) break;
     }
 
-    // 実際の置換実行（文字位置ベースの安全な置換）
+    // 実際の置換実行（後ろから置換してインデックスずれを防ぐ）
     if (matches.length > 0) {
-      // マッチを後ろから処理してインデックスずれを防ぐ
-      const sortedMatches = [...matches].sort((a, b) => {
-        // 正確な文字位置で並び替え
-        const posA = this.getAbsolutePosition(content, a.line_number, a.match_start);
-        const posB = this.getAbsolutePosition(content, b.line_number, b.match_start);
-        return posB - posA;
-      });
-
+      // マッチを後ろから処理
+      const sortedMatches = [...matches].reverse();
       newContent = content;
 
       for (const match of sortedMatches) {
-        // 絶対位置を正確に計算
-        const absoluteStart = this.getAbsolutePosition(newContent, match.line_number, match.match_start);
-        const absoluteEnd = absoluteStart + oldText.length;
+        const startIndex = content.lastIndexOf(match.line_content);
+        const matchStart = startIndex + match.match_start;
+        const matchEnd = matchStart + oldText.length;
         
-        // 置換前に対象テキストを検証
-        const targetText = newContent.substring(absoluteStart, absoluteEnd);
-        const expectedText = caseSensitive ? oldText : oldText.toLowerCase();
-        const actualText = caseSensitive ? targetText : targetText.toLowerCase();
-        
-        if (actualText !== expectedText) {
-          // 置換対象が一致しない場合はスキップ（安全性確保）
-          continue;
-        }
-        
-        // 安全な置換実行
-        newContent = newContent.substring(0, absoluteStart) + 
+        newContent = newContent.substring(0, matchStart) + 
                     newText + 
-                    newContent.substring(absoluteEnd);
+                    newContent.substring(matchEnd);
       }
     }
 
     return { newContent, matches };
-  }
-
-  /**
-   * 行番号と列位置から絶対文字位置を計算
-   */
-  private getAbsolutePosition(content: string, lineNumber: number, columnPosition: number): number {
-    const lines = content.split('\n');
-    let position = 0;
-    
-    // 指定行より前の行の文字数を加算
-    for (let i = 0; i < lineNumber - 1 && i < lines.length; i++) {
-      position += lines[i].length + 1; // +1 は改行文字分
-    }
-    
-    // 指定行内の列位置を加算
-    position += columnPosition;
-    
-    return position;
-  }
-
-  /**
-   * 置換結果の整合性チェック
-   */
-  private validateReplacement(original: string, result: string, expectedChanges: number): boolean {
-    // 基本的な整合性チェック
-    if (result.length === 0 && original.length > 0 && expectedChanges > 0) {
-      return false; // 内容が完全に消失
-    }
-    
-    // 構文的な整合性チェック（TypeScript/JavaScript の場合）
-    if (original.includes('export class') && !result.includes('export class')) {
-      return false; // クラス定義の破損
-    }
-    
-    if (original.includes('import ') && result.includes('import ') === false && original.includes('import ')) {
-      // インポート文の不整合チェック（完全消失の場合のみエラー）
-      const originalImports = (original.match(/import /g) || []).length;
-      const resultImports = (result.match(/import /g) || []).length;
-      if (originalImports > 0 && resultImports === 0) {
-        return false;
-      }
-    }
-    
-    return true;
   }
 
   private async createBackup(filePath: string, content: string): Promise<string> {
