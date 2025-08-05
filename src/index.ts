@@ -5,6 +5,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { Logger } from './services/logger.js';
 import { ToolRegistry } from './tools/registry.js';
+import { AutoWorkspaceManager } from './services/AutoWorkspaceManager.js';
+import { WorkspaceManager } from './tools/project-management/workspace-manager.js';
 import { McpError } from './types/errors.js';
 import { ITool } from './types/common.js';
 
@@ -15,6 +17,10 @@ const SERVER_VERSION = '1.0.0';
 // Initialize logger and tool registry
 const logger = Logger.getInstance();
 const toolRegistry = ToolRegistry.getInstance();
+
+// Initialize workspace manager and auto workspace manager
+const workspaceManager = WorkspaceManager.getInstance();
+const autoWorkspaceManager = new AutoWorkspaceManager(workspaceManager);
 
 // Create server instance
 const server = new McpServer({
@@ -387,6 +393,9 @@ function registerTools(): void {
 function createToolHandler(name: string, tool: ITool) {
   return async (parameters: Record<string, unknown>) => {
     try {
+      // 🚀 自動ワークスペースアクティベーション（初回のツール呼び出し時のみ）
+      await autoWorkspaceManager.ensureWorkspaceActive();
+      
       const result = await tool.execute(parameters);
       return result;
     } catch (error) {
