@@ -214,12 +214,21 @@ effortlessly-lsp-proxy &           # LSP Proxy Server起動
 curl http://localhost:3001/health   # ヘルスチェック
 ```
 
-## 詳細ドキュメント
+## 📚 詳細ドキュメント
 
+### 🚀 はじめに
 - **[セットアップガイド](docs/SETUP.md)** - 完全なインストール・設定手順
-- **[APIドキュメント](docs/API.md)** - 全11ツールの詳細仕様
+- **[使い方ガイド](docs/USAGE.md)** - 実践的な使用方法と活用例
+
+### 📖 技術資料
+- **[ツールリファレンス](docs/TOOLS.md)** - 全25ツールの詳細仕様とAPI
+- **[APIドキュメント](docs/API.md)** - MCP統合とプロトコル詳細
 - **[セキュリティガイド](docs/SECURITY.md)** - エンタープライズセキュリティ設定
+
+### 🛠️ 運用・保守
 - **[トラブルシューティング](docs/TROUBLESHOOTING.md)** - 問題解決ガイド
+
+### 📋 開発資料
 - **[要件定義書](RDD+Task.md)** - プロジェクト全体の仕様・進捗
 
 ## ステータス
