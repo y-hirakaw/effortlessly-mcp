@@ -5,10 +5,10 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import path from 'path';
 import fs from 'fs/promises';
-import { codeGetSymbolHierarchyTool } from '../../tools/code-analysis/code-get-symbol-hierarchy.js';
-import { codeAnalyzeDependenciesTool } from '../../tools/code-analysis/code-analyze-dependencies.js';
-import { WorkspaceManager } from '../../tools/project-management/workspace-manager.js';
-import { Logger } from '../../services/logger.js';
+import { codeGetSymbolHierarchyTool } from '../../build/tools/code-analysis/code-get-symbol-hierarchy.js';
+import { codeAnalyzeDependenciesTool } from '../../build/tools/code-analysis/code-analyze-dependencies.js';
+import { WorkspaceManager } from '../../build/tools/project-management/workspace-manager.js';
+import { Logger } from '../../build/services/logger.js';
 
 const testProjectPath = path.join(process.cwd(), 'test-semantic-search-project');
 const logger = Logger.getInstance();

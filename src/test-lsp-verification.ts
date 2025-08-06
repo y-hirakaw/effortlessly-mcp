@@ -76,6 +76,8 @@ const user1 = manager.addUser('John Doe', 'john@example.com', ['admin']);
 const user2 = manager.addUser('Jane Smith', 'jane@example.com');
 
 // 検証用ログ出力
+/* eslint-disable no-console */
 console.log('Active users:', manager.getActiveUsers());
 console.log('User by ID:', manager.findUserById(1));
 console.log('Total users:', user1, user2);
+/* eslint-enable no-console */

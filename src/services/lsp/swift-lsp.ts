@@ -13,14 +13,20 @@ import type {
 import { LSPClientBase } from './lsp-client.js';
 import type { SwiftLSPConfig, SymbolSearchResult, ReferenceSearchResult } from './types.js';
 import { Logger } from '../logger.js';
+import { SwiftLSPCache } from './swift-lsp-cache.js';
+import { SwiftLSPMetrics } from './swift-lsp-metrics.js';
+
+
+
+
 
 /**
  * Swift専用LSPクライアント（SourceKit-LSP）
  */
 export class SwiftLSP extends LSPClientBase {
-  private symbolCache = new Map<string, SymbolInformation[]>();
-  private cacheTimestamp = new Map<string, number>();
-  private static readonly CACHE_TTL = 30000; // 30秒
+  // 責務別クラスインスタンス
+  private readonly cache = new SwiftLSPCache();
+  private readonly metrics = new SwiftLSPMetrics();
   
   // デバッグログ用の追加フィールド
   private debugMode = true; // 詳細デバッグログを有効化
@@ -32,20 +38,6 @@ export class SwiftLSP extends LSPClientBase {
     id?: number;
     data: any;
   }> = [];
-
-  // Phase 1強化: パフォーマンス監視とユーザーフィードバック収集
-  private performanceMetrics = {
-    lspSearchAttempts: 0,
-    lspSearchSuccesses: 0,
-    fallbackSearchUsage: 0,
-    averageResponseTime: 0,
-    cacheHitRate: 0,
-    totalSearches: 0
-  };
-  
-  private fallbackSearchCache = new Map<string, SymbolSearchResult[]>();
-  private fallbackCacheTimestamp = new Map<string, number>();
-  private static readonly FALLBACK_CACHE_TTL = 60000; // 1分間キャッシュ
 
   constructor(workspaceRoot: string, logger?: Logger) {
     const config: SwiftLSPConfig = {
@@ -223,12 +215,9 @@ export class SwiftLSP extends LSPClientBase {
    * Phase 1強化: パフォーマンス統計の取得
    */
   getPerformanceMetrics() {
-    const metrics = { ...this.performanceMetrics };
+    const metrics = this.metrics.getMetrics();
     
-    // 成功率を計算
-    metrics.cacheHitRate = this.performanceMetrics.totalSearches > 0 
-      ? Math.round((this.symbolCache.size / this.performanceMetrics.totalSearches) * 100) / 100
-      : 0;
+    const cacheStats = this.cache.getStats();
     
     return {
       ...metrics,
@@ -238,8 +227,8 @@ export class SwiftLSP extends LSPClientBase {
       fallbackUsageRate: metrics.totalSearches > 0 
         ? Math.round((metrics.fallbackSearchUsage / metrics.totalSearches) * 100) / 100 
         : 0,
-      cacheSize: this.symbolCache.size,
-      fallbackCacheSize: this.fallbackSearchCache.size
+      cacheSize: cacheStats.symbolCacheSize,
+      fallbackCacheSize: cacheStats.fallbackCacheSize
     };
   }
 
@@ -247,14 +236,7 @@ export class SwiftLSP extends LSPClientBase {
    * Phase 1強化: パフォーマンス統計をリセット
    */
   resetPerformanceMetrics() {
-    this.performanceMetrics = {
-      lspSearchAttempts: 0,
-      lspSearchSuccesses: 0,
-      fallbackSearchUsage: 0,
-      averageResponseTime: 0,
-      cacheHitRate: 0,
-      totalSearches: 0
-    };
+    this.metrics.reset();
   }
 
   /**
@@ -414,7 +396,7 @@ export class SwiftLSP extends LSPClientBase {
             }
           }
         }
-      } catch (error) {
+      } catch {
         // ディレクトリアクセスエラーは無視
       }
     }
@@ -432,7 +414,7 @@ export class SwiftLSP extends LSPClientBase {
     maxResults?: number;
   }): Promise<SymbolSearchResult[]> {
     const startTime = Date.now();
-    this.performanceMetrics.totalSearches++;
+    this.metrics.recordLSPAttempt(); // 新しいメトリクスクラス使用
     
     const { exactMatch = false, maxResults = 100 } = options || {};
     let results: SymbolSearchResult[] = [];
@@ -443,19 +425,19 @@ export class SwiftLSP extends LSPClientBase {
       const cachedFallbackResult = this.getCachedFallbackResults(cacheKey);
       if (cachedFallbackResult.length > 0) {
         this.logger.info(`Swift LSP: Fallback cache hit for query: "${query}"`);
-        this.updateAverageResponseTime(Date.now() - startTime);
+        this.metrics.recordResponseTime(Date.now() - startTime);
         return cachedFallbackResult;
       }
       
       // まずLSPベースの検索を試行
-      this.performanceMetrics.lspSearchAttempts++;
+      this.metrics.recordLSPAttempt();
       results = await this.searchSymbolsWithLSP(query, { exactMatch, maxResults });
       
       // LSPで結果が得られた場合はそれを返す
       if (results.length > 0) {
-        this.performanceMetrics.lspSearchSuccesses++;
+        this.metrics.recordLSPSuccess();
         this.logger.info(`Swift LSP: Found ${results.length} symbols via LSP`);
-        this.updateAverageResponseTime(Date.now() - startTime);
+        this.metrics.recordResponseTime(Date.now() - startTime);
         return results;
       }
       
@@ -463,7 +445,7 @@ export class SwiftLSP extends LSPClientBase {
       this.logger.warn('Swift LSP: No results from LSP, falling back to text-based search');
       results = await this.searchSymbolsWithFallbackCached(query, { exactMatch, maxResults }, cacheKey);
       
-      this.updateAverageResponseTime(Date.now() - startTime);
+      this.metrics.recordResponseTime(Date.now() - startTime);
       return results;
     } catch (error) {
       this.logger.error('Swift LSP: LSP search failed, attempting fallback search', error as Error);
@@ -473,7 +455,7 @@ export class SwiftLSP extends LSPClientBase {
         const cacheKey = `${query}_${JSON.stringify(options)}`;
         results = await this.searchSymbolsWithFallbackCached(query, { exactMatch, maxResults }, cacheKey);
         this.logger.info(`Swift LSP: Fallback search found ${results.length} symbols`);
-        this.updateAverageResponseTime(Date.now() - startTime);
+        this.metrics.recordResponseTime(Date.now() - startTime);
         return results;
       } catch (fallbackError) {
         this.logger.error('Swift LSP: Both LSP and fallback search failed', fallbackError as Error);
@@ -642,21 +624,11 @@ export class SwiftLSP extends LSPClientBase {
   /**
    * Phase 1強化: フォールバックキャッシュ取得
    */
-  private getCachedFallbackResults(cacheKey: string): SymbolSearchResult[] {
-    const timestamp = this.fallbackCacheTimestamp.get(cacheKey);
-    if (timestamp && Date.now() - timestamp < SwiftLSP.FALLBACK_CACHE_TTL) {
-      return this.fallbackSearchCache.get(cacheKey) || [];
-    }
-    return [];
-  }
-
   /**
-   * Phase 1強化: 平均応答時間の更新
+   * フォールバックキャッシュから結果を取得 (新しいキャッシュクラス使用)
    */
-  private updateAverageResponseTime(responseTime: number) {
-    const totalSearches = this.performanceMetrics.totalSearches;
-    this.performanceMetrics.averageResponseTime = 
-      (this.performanceMetrics.averageResponseTime * (totalSearches - 1) + responseTime) / totalSearches;
+  private getCachedFallbackResults(cacheKey: string): SymbolSearchResult[] {
+    return this.cache.getFallbackCache(cacheKey) || [];
   }
 
   /**
@@ -667,14 +639,13 @@ export class SwiftLSP extends LSPClientBase {
     options: { exactMatch?: boolean; maxResults?: number },
     cacheKey: string
   ): Promise<SymbolSearchResult[]> {
-    this.performanceMetrics.fallbackSearchUsage++;
+    this.metrics.recordFallbackUsage();
     
     const results = await this.searchSymbolsWithFallback(query, options);
     
-    // 結果をキャッシュ
+    // 結果をキャッシュ (新しいキャッシュクラス使用)
     if (results.length > 0) {
-      this.fallbackSearchCache.set(cacheKey, results);
-      this.fallbackCacheTimestamp.set(cacheKey, Date.now());
+      this.cache.setFallbackCache(cacheKey, results);
     }
     
     return results;
@@ -798,9 +769,9 @@ export class SwiftLSP extends LSPClientBase {
       },
       performanceMetrics: this.getPerformanceMetrics(),
       cacheStatus: {
-        lspCacheSize: this.symbolCache.size,
-        fallbackCacheSize: this.fallbackSearchCache.size,
-        oldestCacheEntry: this.getOldestCacheEntry()
+        lspCacheSize: this.cache.getStats().symbolCacheSize,
+        fallbackCacheSize: this.cache.getStats().fallbackCacheSize,
+        oldestCacheEntry: null // 新しいキャッシュクラスでは不要
       },
       projectInfo: {
         workspaceRoot: this.config.workspaceRoot,
@@ -833,29 +804,7 @@ export class SwiftLSP extends LSPClientBase {
     return report;
   }
 
-  /**
-   * 最も古いキャッシュエントリの取得
-   */
-  private getOldestCacheEntry(): string | null {
-    let oldestTime = Infinity;
-    let oldestKey: string | null = null;
-    
-    for (const [key, timestamp] of this.cacheTimestamp.entries()) {
-      if (timestamp < oldestTime) {
-        oldestTime = timestamp;
-        oldestKey = key;
-      }
-    }
-    
-    for (const [key, timestamp] of this.fallbackCacheTimestamp.entries()) {
-      if (timestamp < oldestTime) {
-        oldestTime = timestamp;
-        oldestKey = key;
-      }
-    }
-    
-    return oldestKey ? new Date(oldestTime).toISOString() : null;
-  }
+
 
   /**
    * 参照検索（定義元と使用箇所）
@@ -896,14 +845,11 @@ export class SwiftLSP extends LSPClientBase {
    */
   private async getFileSymbols(file: string): Promise<SymbolInformation[]> {
     const uri = this.pathToUri(file);
-    const now = Date.now();
     
-    // キャッシュチェック
-    if (this.symbolCache.has(file)) {
-      const timestamp = this.cacheTimestamp.get(file) || 0;
-      if (now - timestamp < SwiftLSP.CACHE_TTL) {
-        return this.symbolCache.get(file)!;
-      }
+    // キャッシュチェック (新しいキャッシュクラス使用)
+    const cachedSymbols = this.cache.getSymbolCache(file);
+    if (cachedSymbols) {
+      return cachedSymbols;
     }
     
     try {
@@ -949,9 +895,8 @@ export class SwiftLSP extends LSPClientBase {
       });
       this.logger.info(`Swift LSP: Sent didClose notification for: ${uri}`);
       
-      // キャッシュに保存
-      this.symbolCache.set(file, symbols);
-      this.cacheTimestamp.set(file, now);
+      // キャッシュに保存 (新しいキャッシュクラス使用)
+      this.cache.setSymbolCache(file, symbols);
       
       return symbols;
     } catch (error) {
@@ -979,11 +924,11 @@ export class SwiftLSP extends LSPClientBase {
   }
 
   /**
-   * キャッシュをクリア
+   * キャッシュをクリア (新しいキャッシュクラス使用)
    */
   clearCache(): void {
-    this.symbolCache.clear();
-    this.cacheTimestamp.clear();
+    // 新しいキャッシュインスタンスで置き換え
+    (this as any).cache = new SwiftLSPCache();
     this.logger.info('Swift LSP: cache cleared');
   }
 
@@ -1310,8 +1255,7 @@ export class SwiftLSP extends LSPClientBase {
       // 5. キャッシュ動作テスト
       try {
         const cacheKey = 'test_cache_key';
-        this.fallbackSearchCache.set(cacheKey, []);
-        this.fallbackCacheTimestamp.set(cacheKey, Date.now());
+        this.cache.setFallbackCache(cacheKey, []);
         const cached = this.getCachedFallbackResults(cacheKey);
         testResults.cacheOperation.success = Array.isArray(cached);
       } catch (error) {

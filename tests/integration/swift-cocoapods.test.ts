@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SwiftLSP } from '../../services/lsp/swift-lsp.js';
+import { SwiftLSP } from '../../build/services/lsp/swift-lsp.js';
 import { existsSync } from 'fs';
 import path from 'path';
-import { Logger } from '../../services/logger.js';
+import { Logger } from '../../build/services/logger.js';
 
 describe('Swift CocoaPods Integration Tests', () => {
   const COCOAPODS_PROJECT_ROOT = path.join(process.cwd(), 'test-cocoapods-project');

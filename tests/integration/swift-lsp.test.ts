@@ -7,8 +7,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { spawn, ChildProcess } from 'child_process';
 import { promisify } from 'util';
 import { existsSync } from 'fs';
-import { SwiftLSP } from '../../services/lsp/swift-lsp.js';
-import { Logger } from '../../services/logger.js';
+import { SwiftLSP } from '../../build/services/lsp/swift-lsp.js';
+import { Logger } from '../../build/services/logger.js';
 
 const sleep = promisify(setTimeout);
 

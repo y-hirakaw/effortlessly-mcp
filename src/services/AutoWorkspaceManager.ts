@@ -90,7 +90,7 @@ export class AutoWorkspaceManager {
     
     // カスタムバナーがある場合はそれを使用
     if (this.config.display.custom_banner) {
-      console.log(this.config.display.custom_banner)
+      this.log(this.config.display.custom_banner)
       return
     }
     
@@ -125,7 +125,7 @@ export class AutoWorkspaceManager {
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 `
-    console.log(banner)
+    this.log(banner)
   }
   
   private async detectProjectType(dir: string): Promise<string> {
@@ -204,6 +204,7 @@ export class AutoWorkspaceManager {
    */
   private log(...args: any[]): void {
     if (this.config?.display.verbose_logging !== false) {
+      // eslint-disable-next-line no-console
       console.log(...args)
     }
   }
