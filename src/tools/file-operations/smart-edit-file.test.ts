@@ -270,4 +270,158 @@ describe('SmartEditFileTool', () => {
       expect(result.content[0].text).toContain('指定されたパスはディレクトリです');
     });
   });
+
+  describe('Issue #1: 単一文字置換の問題修正テスト', () => {
+    it('「}」のような単一文字で、ファイル末尾の「}」だけを置換する', async () => {
+      // 12,000行に近い大きなSwiftファイルをシミュレート
+      const swiftContent = `class TestClass {
+    func method1() {
+        if true {
+            print("test")
+        }
+    }
+    
+    func method2() {
+        for i in 0..<10 {
+            print(i)
+        }
+    }
+    
+    func method3() {
+        while true {
+            break
+        }
+    }
+}`; // 最後の「}」がクラスの終了
+      
+      await fs.writeFile(testFilePath, swiftContent, 'utf-8');
+
+      // プレビューモードで安全性をテスト
+      const previewResult = await tool.execute({
+        file_path: testFilePath,
+        old_text: '}',
+        new_text: '} // End of TestClass',
+        replace_all: false,
+        preview_mode: true
+      });
+
+      expect(previewResult.isError).toBeUndefined();
+      
+      const previewData = JSON.parse(previewResult.content[0].text);
+      expect(previewData.success).toBe(true);
+      expect(previewData.replacement_count).toBe(1);
+      expect(previewData.matches_found).toHaveLength(1);
+      
+      // 最初にマッチした位置が想定通りか確認（最初の「}」の位置であることを確認）
+      const firstMatch = previewData.matches_found[0];
+      expect(firstMatch.absolute_position).toBeDefined();
+      expect(firstMatch.line_number).toBe(5); // method1内の最初の「}」
+      
+      // 実際に置換してもファイルが壊れないことを確認
+      const actualResult = await tool.execute({
+        file_path: testFilePath,
+        old_text: '}',
+        new_text: '} // Modified',
+        replace_all: false
+      });
+      
+      expect(actualResult.isError).toBeUndefined();
+      const actualData = JSON.parse(actualResult.content[0].text);
+      expect(actualData.success).toBe(true);
+      expect(actualData.replacement_count).toBe(1);
+      
+      const modifiedContent = await fs.readFile(testFilePath, 'utf-8');
+      // 最初の「}」だけが置換されていることを確認
+      expect(modifiedContent.includes('} // Modified')).toBe(true);
+      // 他の「}」は変更されていないことを確認
+      expect((modifiedContent.match(/}/g) || []).length).toBe(swiftContent.match(/}/g)?.length);
+    });
+
+    it('複数の同一文字が存在するファイルで正確な位置特定ができる', async () => {
+      const testContent = `{
+  if (true) {
+    console.log("test");
+  }
+  
+  function test() {
+    return "value";
+  }
+}`;
+      
+      await fs.writeFile(testFilePath, testContent, 'utf-8');
+
+      // 最初の「}」だけを置換
+      const result = await tool.execute({
+        file_path: testFilePath,
+        old_text: '}',
+        new_text: '} // first brace',
+        replace_all: false
+      });
+
+      expect(result.isError).toBeUndefined();
+      
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.success).toBe(true);
+      expect(resultData.replacement_count).toBe(1);
+      expect(resultData.matches_found[0].absolute_position).toBeDefined();
+      
+      const modifiedContent = await fs.readFile(testFilePath, 'utf-8');
+      const lines = modifiedContent.split('\n');
+      
+      // 4行目の「}」が置換されていることを確認
+      expect(lines[3]).toContain('} // first brace');
+      // 他の行は変更されていないことを確認
+      expect(lines[8]).not.toContain('first brace');
+    });
+
+    it('絶対位置情報が正確に計算されている', async () => {
+      const testContent = 'line1\nline2}\nline3\nline4}';
+      await fs.writeFile(testFilePath, testContent, 'utf-8');
+
+      const result = await tool.execute({
+        file_path: testFilePath,
+        old_text: '}',
+        new_text: '}_modified',
+        replace_all: true,
+        preview_mode: true
+      });
+
+      expect(result.isError).toBeUndefined();
+      
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.success).toBe(true);
+      expect(resultData.matches_found).toHaveLength(2);
+      
+      // 各マッチの絶対位置が正確に記録されている
+      const matches = resultData.matches_found;
+      expect(matches[0].absolute_position).toBe(11); // line2}の「}」位置
+      expect(matches[0].line_number).toBe(2);
+      expect(matches[1].absolute_position).toBe(24); // line4}の「}」位置
+      expect(matches[1].line_number).toBe(4);
+    });
+
+    it('置換の整合性チェックが機能する', async () => {
+      const testContent = 'function test() {\n  return "value";\n}';
+      await fs.writeFile(testFilePath, testContent, 'utf-8');
+
+      // 正常なケース：関数の終了「}」を置換
+      const validResult = await tool.execute({
+        file_path: testFilePath,
+        old_text: '}',
+        new_text: '} // end function'
+      });
+
+      expect(validResult.isError).toBeUndefined();
+      
+      const resultData = JSON.parse(validResult.content[0].text);
+      expect(resultData.success).toBe(true);
+      expect(resultData.replacement_count).toBe(1);
+      
+      const modifiedContent = await fs.readFile(testFilePath, 'utf-8');
+      expect(modifiedContent).toContain('} // end function');
+      // 元の構造が維持されている
+      expect(modifiedContent).toContain('function test()');
+      expect(modifiedContent).toContain('return "value"');
+    });
+  });
 });

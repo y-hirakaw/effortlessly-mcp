@@ -281,23 +281,23 @@ export class SmartEditFileTool extends BaseTool {
       line_content: string;
       match_start: number;
       match_end: number;
+      absolute_position?: number;
     }>;
   } {
     const matches: any[] = [];
-    let newContent = content;
 
     // 検索用の文字列を準備
     const searchText = caseSensitive ? oldText : oldText.toLowerCase();
     const searchContent = caseSensitive ? content : content.toLowerCase();
 
-    // マッチ箇所を特定
+    // 全てのマッチ箇所を特定（絶対位置ベース）
     let searchIndex = 0;
 
     while (true) {
       const matchIndex = searchContent.indexOf(searchText, searchIndex);
       if (matchIndex === -1) break;
 
-      // 行番号を計算
+      // 行番号と行内位置を計算
       const beforeMatch = content.substring(0, matchIndex);
       const lineNumber = beforeMatch.split('\n').length;
       const lineStartIndex = beforeMatch.lastIndexOf('\n') + 1;
@@ -311,7 +311,8 @@ export class SmartEditFileTool extends BaseTool {
         line_number: lineNumber,
         line_content: lineContent,
         match_start: matchIndex - lineStartIndex,
-        match_end: matchIndex - lineStartIndex + oldText.length
+        match_end: matchIndex - lineStartIndex + oldText.length,
+        absolute_position: matchIndex
       });
 
       searchIndex = matchIndex + oldText.length;
@@ -320,30 +321,30 @@ export class SmartEditFileTool extends BaseTool {
       if (!replaceAll) break;
     }
 
-    // 実際の置換実行（文字位置ベースの安全な置換）
+    // 実際の置換実行（直接的な絶対位置ベース置換）
+    let newContent = content;
+    
     if (matches.length > 0) {
       // マッチを後ろから処理してインデックスずれを防ぐ
-      const sortedMatches = [...matches].sort((a, b) => {
-        // 正確な文字位置で並び替え
-        const posA = this.getAbsolutePosition(content, a.line_number, a.match_start);
-        const posB = this.getAbsolutePosition(content, b.line_number, b.match_start);
-        return posB - posA;
-      });
-
-      newContent = content;
+      const sortedMatches = [...matches].sort((a, b) => b.absolute_position! - a.absolute_position!);
 
       for (const match of sortedMatches) {
-        // 絶対位置を正確に計算
-        const absoluteStart = this.getAbsolutePosition(newContent, match.line_number, match.match_start);
+        const absoluteStart = match.absolute_position!;
         const absoluteEnd = absoluteStart + oldText.length;
         
-        // 置換前に対象テキストを検証
+        // 置換前に対象テキストを再検証（安全性確保）
         const targetText = newContent.substring(absoluteStart, absoluteEnd);
         const expectedText = caseSensitive ? oldText : oldText.toLowerCase();
         const actualText = caseSensitive ? targetText : targetText.toLowerCase();
         
         if (actualText !== expectedText) {
-          // 置換対象が一致しない場合はスキップ（安全性確保）
+          // 置換対象が一致しない場合はスキップ（詳細ログ出力）
+          Logger.getInstance().warn('Replacement target mismatch, skipping', {
+            expected: oldText,
+            actual: targetText,
+            position: absoluteStart,
+            line: match.line_number
+          });
           continue;
         }
         
@@ -357,23 +358,6 @@ export class SmartEditFileTool extends BaseTool {
     return { newContent, matches };
   }
 
-  /**
-   * 行番号と列位置から絶対文字位置を計算
-   */
-  private getAbsolutePosition(content: string, lineNumber: number, columnPosition: number): number {
-    const lines = content.split('\n');
-    let position = 0;
-    
-    // 指定行より前の行の文字数を加算
-    for (let i = 0; i < lineNumber - 1 && i < lines.length; i++) {
-      position += lines[i].length + 1; // +1 は改行文字分
-    }
-    
-    // 指定行内の列位置を加算
-    position += columnPosition;
-    
-    return position;
-  }
 
   /**
    * 置換結果の整合性チェック

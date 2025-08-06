@@ -32,6 +32,7 @@ describe('read_file tool', () => {
     const result = await readFileTool.execute({
       file_path: testFilePath,
       encoding: "utf-8",
+      include_line_numbers: false,
     });
 
     // 結果を検証
@@ -49,6 +50,7 @@ describe('read_file tool', () => {
     const result = await readFileTool.execute({
       file_path: testFilePath,
       encoding: 'latin1',
+      include_line_numbers: false,
     });
 
     expect(result.content).toBe(testContent);
@@ -62,6 +64,7 @@ describe('read_file tool', () => {
       readFileTool.execute({
         file_path: nonExistentPath,
         encoding: "utf-8",
+        include_line_numbers: false,
       })
     ).rejects.toThrow('ファイルが見つかりません');
   });
@@ -71,6 +74,7 @@ describe('read_file tool', () => {
       readFileTool.execute({
         file_path: tempDir,
         encoding: "utf-8",
+        include_line_numbers: false,
       })
     ).rejects.toThrow('指定されたパスはディレクトリです');
   });
@@ -88,6 +92,7 @@ describe('read_file tool', () => {
     const result = await readFileTool.execute({
       file_path: largeFilePath,
       encoding: "utf-8",
+      include_line_numbers: false,
     });
 
     // この場合は正常に読み取れる（1MBは制限内）
@@ -109,6 +114,7 @@ describe('read_file tool', () => {
       const result = await readFileTool.execute({
         file_path: './relative.txt',
         encoding: "utf-8",
+        include_line_numbers: false,
       });
 
       expect(result.content).toBe(testContent);
@@ -125,6 +131,7 @@ describe('read_file tool', () => {
     const result = await readFileTool.execute({
       file_path: testFilePath,
       encoding: "utf-8",
+      include_line_numbers: false,
     });
 
     expect(result.content).toBe('');
@@ -140,10 +147,131 @@ describe('read_file tool', () => {
     const result = await readFileTool.execute({
       file_path: testFilePath,
       encoding: 'base64',
+      include_line_numbers: false,
     });
 
     expect(result.content).toBe(binaryData.toString('base64'));
     expect(result.encoding).toBe('base64');
     expect(result.size).toBe(5);
+  });
+
+  describe('部分読み取り機能', () => {
+    let multilineFilePath: string;
+    const multilineContent = `line 1
+line 2
+line 3
+line 4
+line 5
+line 6
+line 7
+line 8
+line 9
+line 10`;
+
+    beforeEach(async () => {
+      multilineFilePath = path.join(tempDir, 'multiline.txt');
+      await fs.writeFile(multilineFilePath, multilineContent, 'utf-8');
+    });
+
+    it('offsetを指定して指定行から読み取る', async () => {
+      const result = await readFileTool.execute({
+        file_path: multilineFilePath,
+        encoding: "utf-8",
+        include_line_numbers: false,
+        offset: 3, // 3行目から
+      });
+
+      expect(result.content).toBe('line 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10');
+      expect(result.total_lines).toBe(10);
+      expect(result.lines_read).toBe(8);
+      expect(result.range).toEqual({ start: 3, end: 10 });
+    });
+
+    it('limitを指定して指定行数だけ読み取る', async () => {
+      const result = await readFileTool.execute({
+        file_path: multilineFilePath,
+        encoding: "utf-8",
+        include_line_numbers: false,
+        limit: 5, // 最初の5行だけ
+      });
+
+      expect(result.content).toBe('line 1\nline 2\nline 3\nline 4\nline 5');
+      expect(result.total_lines).toBe(10);
+      expect(result.lines_read).toBe(5);
+      expect(result.range).toEqual({ start: 1, end: 5 });
+    });
+
+    it('offsetとlimitの両方を指定して範囲読み取り', async () => {
+      const result = await readFileTool.execute({
+        file_path: multilineFilePath,
+        encoding: "utf-8",
+        include_line_numbers: false,
+        offset: 4, // 4行目から
+        limit: 3,  // 3行分
+      });
+
+      expect(result.content).toBe('line 4\nline 5\nline 6');
+      expect(result.total_lines).toBe(10);
+      expect(result.lines_read).toBe(3);
+      expect(result.range).toEqual({ start: 4, end: 6 });
+    });
+
+    it('行番号を含めて表示', async () => {
+      const result = await readFileTool.execute({
+        file_path: multilineFilePath,
+        encoding: "utf-8",
+        offset: 2,
+        limit: 3,
+        include_line_numbers: true,
+      });
+
+      expect(result.content).toBe('   2→line 2\n   3→line 3\n   4→line 4');
+      expect(result.total_lines).toBe(10);
+      expect(result.lines_read).toBe(3);
+      expect(result.range).toEqual({ start: 2, end: 4 });
+    });
+
+    it('全ファイルに行番号を付けて読み取り', async () => {
+      const result = await readFileTool.execute({
+        file_path: multilineFilePath,
+        encoding: "utf-8",
+        include_line_numbers: true,
+      });
+
+      expect(result.content).toContain('   1→line 1');
+      expect(result.content).toContain('  10→line 10');
+      expect(result.total_lines).toBe(10);
+      expect(result.lines_read).toBe(10);
+    });
+
+    it('範囲外のoffsetを指定した場合の処理', async () => {
+      const result = await readFileTool.execute({
+        file_path: multilineFilePath,
+        encoding: "utf-8",
+        include_line_numbers: false,
+        offset: 15, // ファイルの行数を超える
+        limit: 5,
+      });
+
+      expect(result.content).toBe('');
+      expect(result.total_lines).toBe(10);
+      expect(result.lines_read).toBe(0);
+      expect(result.range).toEqual({ start: 15, end: 10 });
+    });
+
+    it('limitがファイル末尾を超える場合の処理', async () => {
+      const result = await readFileTool.execute({
+        file_path: multilineFilePath,
+        encoding: "utf-8",
+        include_line_numbers: false,
+        offset: 8,
+        limit: 10, // ファイル末尾を超える
+      });
+
+      expect(result.content).toBe('line 8\nline 9\nline 10');
+      expect(result.total_lines).toBe(10);
+      expect(result.lines_read).toBe(3);
+      expect(result.range).toEqual({ start: 8, end: 10 });
+    });
   });
 });

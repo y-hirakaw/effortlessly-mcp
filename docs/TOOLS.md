@@ -17,26 +17,44 @@ effortlessly-mcpは以下のカテゴリに分類される25個のツールを�
 
 ### 1. read_file
 
-ファイル内容の読み取り
+ファイル内容の読み取り（部分読み取り・行番号表示対応）
 
 **パラメータ:**
 - `file_path` (string, required): 読み取るファイルのパス
 - `encoding` (string, optional): ファイルのエンコーディング（デフォルト: utf-8）
+- `offset` (number, optional): 読み取り開始行番号（1から始まる）
+- `limit` (number, optional): 読み取る行数
+- `include_line_numbers` (boolean, optional): 行番号を含めるかどうか（デフォルト: false）
 
 **戻り値:**
 ```json
 {
   "content": "ファイル内容",
   "encoding": "utf-8",
-  "size": 1024
+  "size": 1024,
+  "total_lines": 50,
+  "lines_read": 10,
+  "range": {
+    "start": 10,
+    "end": 20
+  }
 }
 ```
 
 **使用例:**
 ```typescript
+// 基本的なファイル読み取り
 const result = await mcp.callTool('read_file', {
   file_path: '/path/to/file.ts',
   encoding: 'utf-8'
+});
+
+// 部分読み取り（10行目から5行分、行番号付き）
+const partialResult = await mcp.callTool('read_file', {
+  file_path: '/path/to/large-file.ts',
+  offset: 10,
+  limit: 5,
+  include_line_numbers: true
 });
 ```
 
