@@ -239,7 +239,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: `project_structure_index_${new Date().toISOString().split('T')[0]}`,
+          memory_name: 'project_structure_index',
           content: '前のステップで収集した情報を統合したMarkdown形式のプロジェクト構造インデックス',
           tags: ['index', 'structure', 'auto-generated', scope]
         },
@@ -318,7 +318,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: `dependencies_map_${new Date().toISOString().split('T')[0]}`,
+          memory_name: 'dependencies_map',
           content: '依存関係分析結果をまとめたMarkdown',
           tags: ['dependencies', 'analysis', 'auto-generated', scope]
         },
@@ -375,7 +375,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: `tech_stack_inventory_${new Date().toISOString().split('T')[0]}`,
+          memory_name: 'tech_stack_inventory',
           content: '技術スタック棚卸し結果のMarkdown',
           tags: ['tech-stack', 'inventory', 'auto-generated']
         },
@@ -431,7 +431,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: `development_context_${new Date().toISOString().split('T')[0]}`,
+          memory_name: 'development_context',
           content: '開発コンテキスト情報を統合したMarkdown',
           tags: ['context', 'development', 'onboarding', 'auto-generated']
         },

@@ -38,10 +38,14 @@
 - `workspace_activate` - プロジェクトワークスペース活性化
 - `workspace_get_info` - 現在のワークスペース情報取得
 - `workspace_list_all` - 登録済みワークスペース一覧
-- `project_memory_write` - プロジェクト固有知識の永続化
-- `project_memory_read` - 保存された知識の取得
+- `project_memory_write` - プロジェクト固有知識の永続化（**固定ファイル名対応**）
+- `project_memory_read` - 保存された知識の取得（**5つの特化インデックス**）
 - `project_memory_list` - 利用可能メモリ一覧
 - `project_update_workflow` - プロジェクト更新ワークフロー生成
+
+> **✨ v1.0.2 新機能**: 特化プロジェクトインデックスシステム
+> - 固定ファイル名構造で常に最新情報にアクセス
+> - 5つの専用インデックス: 構造/Manager/アーキテクチャ/セキュリティ/LSP統合
 
 ## クイックスタート
 
@@ -173,9 +177,10 @@ TypeScript/Go/Java/C++ LSP Servers
 
 最新の変更内容や機能追加については、[CHANGELOG.md](CHANGELOG.md)をご確認ください。
 
-**最新リリース**: v1.0.1 (2025-08-06)
-- MCPツールのトークン制限対策実装
-- smart_edit_file精度向上とread_file機能拡張
+**最新リリース**: v1.0.2 (2025-08-06)
+- プロジェクトメモリシステムの構造化改善（固定ファイル名構造）
+- 5つの特化インデックス追加（構造/Manager/アーキテクチャ/セキュリティ/LSP統合）
+- 古い情報参照問題の根本解決
 
 ## 貢献・サポート
 

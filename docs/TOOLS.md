@@ -705,6 +705,44 @@ TypeScript/JavaScript/Swiftファイル内のシンボル（関数、クラス�
 }
 ```
 
+## 🗂️ 特化プロジェクトインデックス（v1.0.2+）
+
+effortlessly-mcpでは、プロジェクト情報を固定ファイル名で管理する特化インデックスシステムを提供しています。
+
+### 利用可能な特化インデックス
+
+| インデックス名 | ファイル名 | 内容 |
+|---------------|-----------|------|
+| **メインインデックス** | `project_structure_index` | プロジェクト全体の目次とクイックリファレンス |
+| **Managerクラス** | `manager_classes_index` | 4つの中核クラス（Workspace/Project/LSP/Security）の詳細 |
+| **アーキテクチャ** | `architecture_overview` | 5層システム構造の詳細解説 |
+| **セキュリティマップ** | `security_implementation_map` | 実装済み/予定のセキュリティ機能一覧 |
+| **LSP統合状況** | `lsp_integration_status` | TypeScript/Swift等の言語サポート詳細 |
+
+### 活用例
+
+```typescript
+// プロジェクト概要の取得
+const overview = await mcp.callTool('project_memory_read', {
+  memory_name: 'project_structure_index'
+});
+
+// 特定Manager情報の確認
+const managers = await mcp.callTool('project_memory_read', {
+  memory_name: 'manager_classes_index'
+});
+
+// セキュリティ実装状況の確認
+const security = await mcp.callTool('project_memory_read', {
+  memory_name: 'security_implementation_map'
+});
+```
+
+**特徴:**
+- **固定ファイル名**: 古い情報参照問題を根本解決
+- **自動バックアップ**: 更新時に `.claude/workspace/effortlessly/memory/backups/` に自動保存
+- **構造化分離**: 情報種別ごとに専用インデックスで管理効率化
+
 ## プロジェクト管理ツール
 
 ### 1. project_memory_write

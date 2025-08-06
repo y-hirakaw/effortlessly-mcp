@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-08-06
+
+### Changed
+- プロジェクトメモリシステムの構造化改善
+  - 固定ファイル名構造に変更（dated形式から脱却）
+  - 5つの特化インデックスに分離：構造概要、Manager、アーキテクチャ、セキュリティ、LSP統合
+  - `.claude/workspace/effortlessly/memory/`で一元管理
+  - 古い情報参照問題の根本解決
+
+### Added
+- 特化プロジェクトインデックスシステム
+  - `project_structure_index.md` - メイン目次とクイックリファレンス
+  - `manager_classes_index.md` - 4つのManagerクラス詳細
+  - `architecture_overview.md` - 5層アーキテクチャ構造
+  - `security_implementation_map.md` - セキュリティ実装状況マップ
+  - `lsp_integration_status.md` - LSP統合詳細状況
+
+### Fixed
+- プロジェクト情報アクセスの一貫性向上
+  - `project_update_workflow`ツールの固定ファイル名対応
+  - CLAUDE.mdガイドの更新で正しい活用方法を明示
+
 ## [1.0.1] - 2025-08-06
 
 ### Fixed
@@ -37,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - セキュリティ機能
 - プロジェクトメモリ機能
 
-[unreleased]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.1...HEAD
+[unreleased]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/y-hirakaw/effortlessly-mcp/releases/tag/v1.0.0

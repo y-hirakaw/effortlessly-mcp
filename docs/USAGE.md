@@ -216,6 +216,98 @@ const patterns = await mcp.callTool('code_search_pattern', {
 
 ## プロジェクトメモリ機能
 
+### 🗂️ 特化プロジェクトインデックスシステム（v1.0.2+）
+
+effortlessly-mcpでは、プロジェクト情報を効率的に管理するための特化インデックスシステムを提供しています。すべての情報は `.claude/workspace/effortlessly/memory/` で固定ファイル名で管理され、常に最新情報にアクセスできます。
+
+#### 利用可能な特化インデックス
+
+```typescript
+// メインインデックス - プロジェクト全体の目次とクイックリファレンス
+const projectOverview = await mcp.callTool('project_memory_read', {
+  memory_name: 'project_structure_index'
+});
+
+// Managerクラス詳細 - 4つの中核クラスの詳細情報
+const managerInfo = await mcp.callTool('project_memory_read', {
+  memory_name: 'manager_classes_index'
+});
+
+// システムアーキテクチャ - 5層構造の詳細解説
+const architecture = await mcp.callTool('project_memory_read', {
+  memory_name: 'architecture_overview'
+});
+
+// セキュリティ実装状況 - 実装済み/予定のセキュリティ機能マップ
+const securityMap = await mcp.callTool('project_memory_read', {
+  memory_name: 'security_implementation_map'
+});
+
+// LSP統合状況 - TypeScript/Swift等の言語サポート詳細
+const lspStatus = await mcp.callTool('project_memory_read', {
+  memory_name: 'lsp_integration_status'
+});
+```
+
+#### インデックスの活用パターン
+
+```typescript
+// 新機能実装前の影響調査
+async function investigateImpact(featureName: string) {
+  // 1. プロジェクト構造の確認
+  const structure = await mcp.callTool('project_memory_read', {
+    memory_name: 'project_structure_index'
+  });
+  
+  // 2. 関連Managerクラスの特定
+  const managers = await mcp.callTool('project_memory_read', {
+    memory_name: 'manager_classes_index'
+  });
+  
+  // 3. アーキテクチャ層での位置確認
+  const architecture = await mcp.callTool('project_memory_read', {
+    memory_name: 'architecture_overview'
+  });
+  
+  return {
+    structure: structure.content,
+    relatedManagers: managers.content,
+    architecturalLayer: architecture.content
+  };
+}
+
+// セキュリティ要件の確認
+async function checkSecurityRequirements() {
+  const securityMap = await mcp.callTool('project_memory_read', {
+    memory_name: 'security_implementation_map'
+  });
+  
+  console.log('Phase 2 セキュリティ実装予定:', securityMap.content);
+}
+```
+
+#### プロジェクトインデックス更新のベストプラクティス
+
+```typescript
+// 構造化された情報更新
+const updateResult = await mcp.callTool('project_memory_write', {
+  memory_name: 'project_structure_index',
+  content: `# Project Structure Index - Updated ${new Date().toISOString()}
+
+## Quick Reference
+- **Total Files**: ${fileCount} files, ${lineCount} lines
+- **Core Components**: ${componentCount} components
+- **Architecture**: 5-layer security-first design
+
+## Major Components → [詳細はspecialized indexes参照]
+...
+`,
+  overwrite: true
+});
+```
+
+**重要**: 固定ファイル名使用により、常に最新情報にアクセス可能。古い情報参照問題が根本解決されています。
+
 ### ナレッジベースの作成と管理
 
 ```typescript
