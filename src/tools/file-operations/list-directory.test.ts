@@ -32,6 +32,7 @@ describe('list_directory tool', () => {
     const result = await listDirectoryTool.execute({
       directory_path: tempDir,
       recursive: false,
+      max_results: 100,
     });
 
     // 結果を検証
@@ -62,6 +63,7 @@ describe('list_directory tool', () => {
     const result = await listDirectoryTool.execute({
       directory_path: tempDir,
       recursive: true,
+      max_results: 100,
     });
 
     // 結果を検証
@@ -85,6 +87,7 @@ describe('list_directory tool', () => {
       directory_path: tempDir,
       recursive: false,
       pattern: '\\.txt$',
+      max_results: 100,
     });
 
     // 結果を検証
@@ -100,6 +103,7 @@ describe('list_directory tool', () => {
       listDirectoryTool.execute({
         directory_path: nonExistentPath,
         recursive: false,
+        max_results: 100,
       })
     ).rejects.toThrow('ディレクトリが見つかりません');
   });
@@ -112,6 +116,7 @@ describe('list_directory tool', () => {
       listDirectoryTool.execute({
         directory_path: filePath,
         recursive: false,
+        max_results: 100,
       })
     ).rejects.toThrow('指定されたパスはディレクトリではありません');
   });
@@ -123,6 +128,7 @@ describe('list_directory tool', () => {
     const result = await listDirectoryTool.execute({
       directory_path: emptyDir,
       recursive: false,
+      max_results: 100,
     });
 
     expect(result.total_count).toBe(0);
@@ -143,6 +149,7 @@ describe('list_directory tool', () => {
       const result = await listDirectoryTool.execute({
         directory_path: './subdir',
         recursive: false,
+        max_results: 100,
       });
 
       expect(result.total_count).toBe(1);
@@ -161,6 +168,7 @@ describe('list_directory tool', () => {
     const result = await listDirectoryTool.execute({
       directory_path: tempDir,
       recursive: false,
+      max_results: 100,
     });
 
     const entry = result.entries[0];
@@ -181,6 +189,7 @@ describe('list_directory tool', () => {
         directory_path: tempDir,
         recursive: false,
         pattern: '[[invalid regex',
+        max_results: 100,
       })
     ).rejects.toThrow();
   });

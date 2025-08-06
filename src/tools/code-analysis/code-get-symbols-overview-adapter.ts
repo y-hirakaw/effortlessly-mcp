@@ -3,8 +3,6 @@
  * ファイル・ディレクトリの包括的シンボル構造概要
  */
 
-import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
 import type { IToolResult, ITool } from '../../types/common.js';
 import { 
   codeGetSymbolsOverviewTool, 
@@ -28,7 +26,7 @@ export class CodeGetSymbolsOverviewTool implements ITool {
       },
       max_files: {
         type: 'number' as const,
-        description: '最大処理ファイル数',
+        description: '最大処理ファイル数（1-500、デフォルト50）LLMトークン制限に応じて調整可能',
         required: false
       },
       include_private: {
@@ -54,12 +52,19 @@ export class CodeGetSymbolsOverviewTool implements ITool {
     }
   } as const;
 
-  async execute(request: z.infer<typeof CallToolRequestSchema>): Promise<IToolResult> {
+  async execute(parameters: Record<string, unknown>): Promise<IToolResult> {
     const logger = Logger.getInstance();
     
     try {
+      // デバッグ情報
+      logger.info('code_get_symbols_overview called', { 
+        parametersType: typeof parameters,
+        parameters: parameters,
+        hasParameters: !!parameters
+      });
+      
       // パラメータの検証
-      const params = CodeGetSymbolsOverviewParamsSchema.parse(request.params);
+      const params = CodeGetSymbolsOverviewParamsSchema.parse(parameters);
       
       // セキュリティチェック
       // const securityManager = SecurityManager.getInstance();
@@ -101,7 +106,7 @@ export class CodeGetSymbolsOverviewTool implements ITool {
       
       logger.error('code_get_symbols_overview failed', {
         errorMessage,
-        params: request.params
+        params: parameters
       } as any);
 
       return {

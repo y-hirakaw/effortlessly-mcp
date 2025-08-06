@@ -30,6 +30,7 @@ const ListDirectoryParams = z.object({
   directory_path: z.string().describe('一覧表示するディレクトリのパス'),
   recursive: z.boolean().optional().default(false).describe('サブディレクトリも再帰的に表示するか'),
   pattern: z.string().optional().describe('ファイル名のフィルタパターン（正規表現）'),
+  max_results: z.number().min(1).max(1000).optional().default(100).describe('最大結果数（LLMトークン制限対策: Claude=100推奨, GPT-4=50推奨, Gemini=500可能）'),
 });
 
 type ListDirectoryParamsType = z.infer<typeof ListDirectoryParams>;
@@ -96,15 +97,22 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
       // 結果をパスでソート
       entries.sort((a, b) => a.path.localeCompare(b.path));
 
+      // max_results制限を適用
+      const maxResults = params.max_results || 100;
+      const limitedEntries = entries.slice(0, maxResults);
+      const wasLimited = entries.length > maxResults;
+
       logger.info('Directory listed successfully', { 
         dirPath, 
-        entryCount: entries.length,
+        totalEntries: entries.length,
+        returnedEntries: limitedEntries.length,
+        wasLimited,
         recursive: params.recursive,
         pattern: params.pattern,
       });
 
       return {
-        entries,
+        entries: limitedEntries,
         total_count: entries.length,
         directory: dirPath,
       };

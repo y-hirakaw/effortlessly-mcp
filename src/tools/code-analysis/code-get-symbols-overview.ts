@@ -17,7 +17,7 @@ import { symbolKindToString } from './types.js';
  */
 export const CodeGetSymbolsOverviewParamsSchema = z.object({
   relative_path: z.string().describe('シンボル概要を取得する相対パス（ファイルまたはディレクトリ）'),
-  max_files: z.number().min(1).max(500).optional().default(100).describe('最大処理ファイル数'),
+  max_files: z.number().min(1).max(500).optional().default(50).describe('最大処理ファイル数（LLMトークン制限対策: Claude=50推奨, Gemini=200可能）'),
   include_private: z.boolean().optional().default(false).describe('プライベートシンボルも含めるか'),
   include_test_files: z.boolean().optional().default(true).describe('テストファイルも含めるか'),
   symbol_kinds: z.array(z.number()).optional().describe('含めるシンボル種類の配列（SymbolKind）'),

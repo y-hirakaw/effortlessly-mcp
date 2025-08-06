@@ -26,6 +26,11 @@ export class ListDirectoryTool implements ITool {
         description: 'ファイル名のフィルタパターン（正規表現）',
         required: false,
       },
+      max_results: {
+        type: 'number',
+        description: '最大結果数（1-1000、デフォルト100）トークン制限に応じて調整可能',
+        required: false,
+      },
     },
   };
 
