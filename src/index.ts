@@ -60,6 +60,9 @@ function registerTools(): void {
           {
             file_path: z.string().describe('読み取るファイルのパス'),
             encoding: z.string().optional().default('utf-8').describe('ファイルのエンコーディング（デフォルト: utf-8）'),
+            offset: z.number().optional().describe('読み取り開始行番号（1から始まる）'),
+            limit: z.number().optional().describe('読み取る行数'),
+            include_line_numbers: z.boolean().optional().default(false).describe('行番号を含めるかどうか'),
           },
           createToolHandler(name, tool)
         );

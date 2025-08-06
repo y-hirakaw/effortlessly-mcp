@@ -82,10 +82,10 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
       let linesRead: number | undefined;
       let range: { start: number; end: number } | undefined;
       
+      const lines = content.split('\n');
+      totalLines = lines.length;
+      
       if (params.offset !== undefined || params.limit !== undefined) {
-        const lines = content.split('\n');
-        totalLines = lines.length;
-        
         const startLine = Math.max(1, params.offset || 1) - 1; // 0-indexed
         const endLine = params.limit 
           ? Math.min(lines.length, startLine + params.limit)
@@ -105,8 +105,6 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
         }
       } else if (params.include_line_numbers) {
         // 全ファイルに行番号を付ける場合
-        const lines = content.split('\n');
-        totalLines = lines.length;
         linesRead = lines.length;
         content = lines
           .map((line, index) => `${String(index + 1).padStart(4)}→${line}`)
