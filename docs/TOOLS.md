@@ -6,6 +6,15 @@
 
 effortlessly-mcpは以下のカテゴリに分類される25個のツールを提供します：
 
+## 🆕 最新の更新 (v1.0.1)
+
+**トークン制限対策実装**:
+- `list_directory`: max_results制限（デフォルト100、最大1000）
+- `code_get_symbols_overview`: max_files制限（デフォルト50、最大500）
+- LLMの種類に応じた推奨値設定で安定動作を実現
+
+## ツールカテゴリ
+
 - **ファイル操作**: 5ツール（読み取り、一覧、検索、メタデータ、エコー）
 - **ワークスペース管理**: 3ツール（有効化、情報取得、一覧表示）
 - **スマート編集**: 2ツール（ファイル編集、テキスト挿入）
@@ -66,6 +75,7 @@ const partialResult = await mcp.callTool('read_file', {
 - `directory_path` (string, required): 一覧表示するディレクトリのパス
 - `recursive` (boolean, optional): 再帰的に一覧表示するかどうか（デフォルト: false）
 - `pattern` (string, optional): ファイル名のフィルタパターン（正規表現）
+- `max_results` (number, optional): 最大結果数（デフォルト: 100、最大: 1000）**トークン制限対策**
 
 **戻り値:**
 ```json
@@ -487,6 +497,7 @@ TypeScript/JavaScript/Swiftファイル内のシンボル（関数、クラス�
 
 **パラメータ:**
 - `relative_path` (string, required): 対象パス（ファイルまたはディレクトリ）
+- `max_files` (number, optional): 最大処理ファイル数（デフォルト: 50、最大: 500）**トークン制限対策**
 - `max_depth` (number, optional): 最大階層深度（デフォルト: 3）
 - `include_private` (boolean, optional): プライベートシンボルを含める（デフォルト: false）
 - `symbol_kinds` (array, optional): 含めるシンボル種類
