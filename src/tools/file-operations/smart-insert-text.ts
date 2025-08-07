@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { Logger } from '../../services/logger.js';
-import { promises as fs } from 'fs';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import * as path from 'path';
 
 const SmartInsertTextSchema = z.object({
@@ -120,13 +120,16 @@ export class SmartInsertTextTool extends BaseTool {
         return this.createErrorResult(validationError);
       }
 
+      // FileSystemServiceのインスタンスを取得
+      const fsService = FileSystemService.getInstance();
+      
       // 2. ファイル存在確認と新規作成対応
       let fileStats;
       let originalContent = '';
       let isNewFile = false;
 
       try {
-        fileStats = await fs.stat(params.file_path);
+        fileStats = await fsService.stat(params.file_path);
         
         // 3. ファイルサイズチェック
         if (fileStats.size > params.max_file_size) {
@@ -141,14 +144,14 @@ export class SmartInsertTextTool extends BaseTool {
         }
 
         // 5. ファイル内容読み取り
-        originalContent = await fs.readFile(params.file_path, 'utf-8');
+        originalContent = await fsService.readFile(params.file_path, { encoding: 'utf-8' }) as string;
       } catch (error: any) {
         // ファイルが存在しない場合
         if (error.code === 'ENOENT') {
           // 親ディレクトリが存在するかチェック
           const dir = path.dirname(params.file_path);
           try {
-            await fs.access(dir);
+            await fsService.access(dir);
             // 親ディレクトリが存在すれば自動的に新規ファイル作成
             isNewFile = true;
             originalContent = '';
@@ -159,7 +162,7 @@ export class SmartInsertTextTool extends BaseTool {
               // create_new_fileフラグがtrueの場合のみディレクトリも作成
               isNewFile = true;
               originalContent = '';
-              await fs.mkdir(dir, { recursive: true });
+              await fsService.mkdir(dir, { recursive: true });
               Logger.getInstance().info(`Creating new file with directories: ${params.file_path}`);
             } else {
               return this.createErrorResult(
@@ -219,7 +222,7 @@ export class SmartInsertTextTool extends BaseTool {
       }
 
       // 10. ファイル更新
-      await fs.writeFile(params.file_path, newContent, 'utf-8');
+      await fsService.writeFile(params.file_path, newContent, { encoding: 'utf-8' });
 
       // 11. 結果をまとめる
       const result: InsertResult = {
@@ -361,13 +364,14 @@ export class SmartInsertTextTool extends BaseTool {
   }
 
   private async createBackup(filePath: string, content: string): Promise<string> {
+    const fsService = FileSystemService.getInstance();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupDir = '.claude/workspace/effortlessly/backups';
     const fileName = path.basename(filePath);
     const backupPath = path.join(backupDir, `${fileName}.${timestamp}.backup`);
     
-    await fs.mkdir(backupDir, { recursive: true });
-    await fs.writeFile(backupPath, content, 'utf-8');
+    await fsService.mkdir(backupDir, { recursive: true });
+    await fsService.writeFile(backupPath, content, { encoding: 'utf-8' });
     
     return backupPath;
   }

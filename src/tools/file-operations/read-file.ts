@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { promises as fs } from 'fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
@@ -49,16 +49,19 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
       const filePath = path.resolve(params.file_path);
       logger.debug('Resolved file path', { filePath });
 
+      // FileSystemServiceのインスタンスを取得
+      const fsService = FileSystemService.getInstance();
+
       // ファイルの存在確認
       try {
-        await fs.access(filePath);
+        await fsService.access(filePath);
       } catch (error) {
         logger.error(`File not found: ${filePath}`);
         throw new Error(`ファイルが見つかりません: ${params.file_path}`);
       }
 
       // ファイルの統計情報を取得
-      const stats = await fs.stat(filePath);
+      const stats = await fsService.stat(filePath);
       
       // ディレクトリの場合はエラー
       if (stats.isDirectory()) {
@@ -75,7 +78,7 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
 
       // ファイルの読み取り
       const encoding = params.encoding || 'utf-8';
-      let content = await fs.readFile(filePath, { encoding: encoding as BufferEncoding });
+      let content = await fsService.readFile(filePath, { encoding: encoding as BufferEncoding }) as string;
       
       // 部分読み取りが指定されている場合
       let totalLines: number | undefined;

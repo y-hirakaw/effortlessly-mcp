@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { promises as fs } from 'fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
@@ -83,9 +83,12 @@ export const searchFilesTool: MdcToolImplementation<SearchFilesParamsType, Searc
       const directoryPath = path.resolve(params.directory);
       logger.debug('Resolved directory path', { directoryPath });
 
+      // FileSystemServiceのインスタンスを取得
+      const fsService = FileSystemService.getInstance();
+      
       // ディレクトリの存在確認
       try {
-        const stats = await fs.stat(directoryPath);
+        const stats = await fsService.stat(directoryPath);
         if (!stats.isDirectory()) {
           throw new Error(`指定されたパスはディレクトリではありません: ${params.directory}`);
         }
@@ -182,7 +185,8 @@ async function searchDirectory(
   }
 
   try {
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const fsService = FileSystemService.getInstance();
+    const entries = await fsService.readdir(dirPath, { withFileTypes: true }) as import('fs').Dirent[];
     context.directoriesScanned++;
 
     for (const entry of entries) {
@@ -252,7 +256,8 @@ async function processFile(
   }
 
   try {
-    const stats = await fs.stat(filePath);
+    const fsService = FileSystemService.getInstance();
+    const stats = await fsService.stat(filePath);
     const result: SearchResult = {
       path: filePath,
       name: fileName,
@@ -317,7 +322,8 @@ async function searchFileContent(
   includeContent: boolean
 ): Promise<SearchMatch[]> {
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
+    const fsService = FileSystemService.getInstance();
+    const content = await fsService.readFile(filePath, { encoding: 'utf-8' }) as string;
     const lines = content.split('\n');
     const matches: SearchMatch[] = [];
 
@@ -354,6 +360,8 @@ async function searchFileContent(
 async function isBinaryFile(filePath: string): Promise<boolean> {
   try {
     // ファイルの最初の512バイトを読み取り
+    // TODO: FileSystemServiceにopen操作を追加したら移行する
+    const { promises: fs } = await import('fs');
     const buffer = Buffer.alloc(512);
     const fileHandle = await fs.open(filePath, 'r');
     const { bytesRead } = await fileHandle.read(buffer, 0, 512, 0);

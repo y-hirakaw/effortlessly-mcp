@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { promises as fs } from 'fs';
 import type { Stats } from 'node:fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
@@ -60,20 +60,23 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
     logger.info('get_file_metadata tool called', { params });
 
     try {
+      // FileSystemServiceのインスタンスを取得
+      const fsService = FileSystemService.getInstance();
+      
       // ファイルパスの正規化
       const filePath = path.resolve(params.file_path);
       logger.debug('Resolved file path', { filePath });
 
       // ファイルの存在確認
       try {
-        await fs.access(filePath);
+        await fsService.access(filePath);
       } catch (error) {
         logger.error(`File not found: ${filePath}`);
         throw new Error(`ファイルが見つかりません: ${params.file_path}`);
       }
 
       // ファイルの統計情報を取得
-      const stats = await fs.stat(filePath);
+      const stats = await fsService.stat(filePath);
       
       // ファイル名を取得
       const fileName = path.basename(filePath);
@@ -82,10 +85,11 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
       const fileType = getFileType(stats);
 
       // アクセス権限をチェック
+      const { constants } = await import('fs');
       const [isReadable, isWritable, isExecutable] = await Promise.all([
-        checkAccess(filePath, fs.constants.R_OK),
-        checkAccess(filePath, fs.constants.W_OK),
-        checkAccess(filePath, fs.constants.X_OK),
+        checkAccess(filePath, constants.R_OK),
+        checkAccess(filePath, constants.W_OK),
+        checkAccess(filePath, constants.X_OK),
       ]);
 
       // パーミッション情報（Unix系システムのみ）
@@ -153,7 +157,8 @@ function getFileType(stats: Stats): FileType {
  */
 async function checkAccess(filePath: string, mode: number): Promise<boolean> {
   try {
-    await fs.access(filePath, mode);
+    const fsService = FileSystemService.getInstance();
+    await fsService.access(filePath, mode);
     return true;
   } catch {
     return false;

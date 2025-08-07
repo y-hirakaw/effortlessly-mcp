@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { promises as fs } from 'fs';
 import type { Stats } from 'node:fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
@@ -64,20 +64,22 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
     logger.info('list_directory tool called', { params });
 
     try {
+      // FileSystemServiceのインスタンスを取得
+      const fsService = FileSystemService.getInstance();
       // ディレクトリパスの正規化
       const dirPath = path.resolve(params.directory_path);
       logger.debug('Resolved directory path', { dirPath });
 
       // ディレクトリの存在確認
       try {
-        await fs.access(dirPath);
+        await fsService.access(dirPath);
       } catch (error) {
         logger.error(`Directory not found: ${dirPath}`);
         throw new Error(`ディレクトリが見つかりません: ${params.directory_path}`);
       }
 
       // ディレクトリかどうかの確認
-      const stats = await fs.stat(dirPath);
+      const stats = await fsService.stat(dirPath);
       if (!stats.isDirectory()) {
         logger.error(`Path is not a directory: ${dirPath}`);
         throw new Error(`指定されたパスはディレクトリではありません: ${params.directory_path}`);
@@ -138,7 +140,8 @@ async function listDirectorySingle(
   entries: DirectoryEntry[], 
   pattern?: string
 ): Promise<void> {
-  const items = await fs.readdir(dirPath);
+  const fsService = FileSystemService.getInstance();
+  const items = await fsService.readdir(dirPath) as string[];
   const regex = pattern ? new RegExp(pattern) : undefined;
 
   for (const item of items) {
@@ -150,7 +153,7 @@ async function listDirectorySingle(
     const itemPath = path.join(dirPath, item);
     
     try {
-      const stats = await fs.stat(itemPath);
+      const stats = await fsService.stat(itemPath);
       const entry: DirectoryEntry = {
         name: item,
         path: itemPath,
