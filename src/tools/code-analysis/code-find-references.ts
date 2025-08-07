@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import path from 'path';
-import fs from 'fs/promises';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import { TypeScriptLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
@@ -81,8 +81,9 @@ export const codeFindReferencesTool = {
       logger.info(`Searching references in: ${absoluteFilePath} at ${params.line}:${params.column}`);
 
       // ファイルが存在することを確認
+      const fsService = FileSystemService.getInstance();
       try {
-        await fs.access(absoluteFilePath);
+        await fsService.access(absoluteFilePath);
       } catch {
         throw new Error(`File not found: ${params.file_path}`);
       }

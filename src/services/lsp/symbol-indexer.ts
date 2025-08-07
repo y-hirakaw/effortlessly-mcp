@@ -5,7 +5,7 @@
 
 import Database from 'better-sqlite3';
 import path from 'path';
-import fs from 'fs/promises';
+import { FileSystemService } from '../FileSystemService.js';
 import type { SymbolKind } from 'vscode-languageserver-protocol';
 import type { SymbolSearchResult } from './types.js';
 import { Logger } from '../logger.js';
@@ -32,7 +32,8 @@ export class SymbolIndexer {
   async initialize(): Promise<void> {
     try {
       // インデックスディレクトリを作成
-      await fs.mkdir(this.indexDir, { recursive: true });
+      const fsService = FileSystemService.getInstance();
+      await fsService.mkdir(this.indexDir, { recursive: true });
 
       // SQLiteデータベースを開く
       this.db = new Database(this.dbPath);

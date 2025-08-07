@@ -1,8 +1,8 @@
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import * as yaml from 'js-yaml';
 import { Logger } from '../../services/logger.js';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import { ValidationError, FileSystemError } from '../../types/errors.js';
 import { 
   WorkspaceConfig, 
@@ -63,9 +63,10 @@ export class WorkspaceManager {
       path.join(this.workspaceBaseDir, 'backups'),
     ];
 
+    const fsService = FileSystemService.getInstance();
     for (const dir of directories) {
       try {
-        await fs.mkdir(dir, { recursive: true });
+        await fsService.mkdir(dir, { recursive: true });
       } catch (error) {
         this.logger.error(`Failed to create directory: ${dir}`, { error_message: error instanceof Error ? error.message : String(error) } as any);
         throw new FileSystemError(`ディレクトリの作成に失敗しました: ${dir}`);
@@ -85,8 +86,9 @@ export class WorkspaceManager {
       const validatedPath = WorkspaceConfigValidator.validateRootPath(workspacePath);
       
       // ディレクトリの存在確認
+      const fsService = FileSystemService.getInstance();
       try {
-        const stats = await fs.stat(validatedPath);
+        const stats = await fsService.stat(validatedPath);
         if (!stats.isDirectory()) {
           throw new ValidationError('指定されたパスはディレクトリではありません');
         }
@@ -183,7 +185,8 @@ export class WorkspaceManager {
       await this.ensureWorkspaceStructure();
       
       const configDir = path.join(this.workspaceBaseDir, 'config');
-      const files = await fs.readdir(configDir);
+      const fsService = FileSystemService.getInstance();
+      const files = await fsService.readdir(configDir) as string[];
       
       const workspaces: WorkspaceListItem[] = [];
       
@@ -229,7 +232,8 @@ export class WorkspaceManager {
       lineWidth: -1,
     });
     
-    await fs.writeFile(configPath, yamlContent, 'utf8');
+    const fsService = FileSystemService.getInstance();
+    await fsService.writeFile(configPath, yamlContent, { encoding: 'utf8' });
   }
 
   /**
@@ -239,7 +243,8 @@ export class WorkspaceManager {
     const configPath = this.getWorkspaceConfigPath(workspaceName);
     
     try {
-      const content = await fs.readFile(configPath, 'utf8');
+      const fsService = FileSystemService.getInstance();
+      const content = await fsService.readFile(configPath, { encoding: 'utf8' }) as string;
       const data = yaml.load(content) as { workspace: WorkspaceConfig };
       
       const config = WorkspaceConfigValidator.validateConfig(data.workspace);
@@ -279,7 +284,8 @@ export class WorkspaceManager {
     
     const processDirectory = async (currentPath: string): Promise<void> => {
       try {
-        const entries = await fs.readdir(currentPath, { withFileTypes: true });
+        const fsService = FileSystemService.getInstance();
+        const entries = await fsService.readdir(currentPath, { withFileTypes: true }) as import('fs').Dirent[];
         
         for (const entry of entries) {
           const fullPath = path.join(currentPath, entry.name);
@@ -287,7 +293,7 @@ export class WorkspaceManager {
           if (entry.isFile()) {
             fileCount++;
             try {
-              const stats = await fs.stat(fullPath);
+              const stats = await fsService.stat(fullPath);
               totalSize += stats.size;
             } catch {
               // ファイル統計取得に失敗した場合はスキップ

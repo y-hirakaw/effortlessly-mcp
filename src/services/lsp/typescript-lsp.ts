@@ -4,7 +4,7 @@
  */
 
 import path from 'path';
-import fs from 'fs/promises';
+import { FileSystemService } from '../FileSystemService.js';
 import type { 
   SymbolInformation, 
   Position, 
@@ -65,7 +65,8 @@ export class TypeScriptLSP extends LSPClientBase {
     
     async function scanDirectory(dir: string): Promise<void> {
       try {
-        const entries = await fs.readdir(dir, { withFileTypes: true });
+        const fsService = FileSystemService.getInstance();
+        const entries = await fsService.readdir(dir, { withFileTypes: true }) as import('fs').Dirent[];
         
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
@@ -269,7 +270,8 @@ export class TypeScriptLSP extends LSPClientBase {
 
       // ファイルを明示的に開いて最新の状態にする
       try {
-        const fileContent = await fs.readFile(file, 'utf8');
+        const fsService = FileSystemService.getInstance();
+        const fileContent = await fsService.readFile(file, { encoding: 'utf8' }) as string;
         this.sendNotification('textDocument/didOpen', {
           textDocument: {
             uri,
@@ -334,7 +336,8 @@ export class TypeScriptLSP extends LSPClientBase {
     
     try {
       // ファイルが存在することを確認
-      await fs.access(file);
+      const fsService = FileSystemService.getInstance();
+      await fsService.access(file);
       
       // LSP接続状態を確認
       const state = this.getState();
@@ -349,7 +352,7 @@ export class TypeScriptLSP extends LSPClientBase {
       }
       
       // ファイルを明示的に開く（重要：これがないとシンボルが取得できない）
-      const fileContent = await fs.readFile(file, 'utf8');
+      const fileContent = await fsService.readFile(file, { encoding: 'utf8' }) as string;
       this.logger.info(`Opening file: ${file} (${fileContent.length} chars)`);
       
       this.sendNotification('textDocument/didOpen', {
@@ -391,7 +394,8 @@ export class TypeScriptLSP extends LSPClientBase {
    */
   private async getLineContext(file: string, line: number): Promise<string> {
     try {
-      const content = await fs.readFile(file, 'utf8');
+      const fsService = FileSystemService.getInstance();
+      const content = await fsService.readFile(file, { encoding: 'utf8' }) as string;
       const lines = content.split('\n');
       
       // 前後1行を含む3行を取得
@@ -435,7 +439,8 @@ export class TypeScriptLSP extends LSPClientBase {
       // tsconfig.json検索
       const tsConfigPath = path.join(this.config.workspaceRoot, 'tsconfig.json');
       try {
-        await fs.access(tsConfigPath);
+        const fsService = FileSystemService.getInstance();
+        await fsService.access(tsConfigPath);
         result.hasTsConfig = true;
         result.tsConfigPath = tsConfigPath;
       } catch {
@@ -445,12 +450,13 @@ export class TypeScriptLSP extends LSPClientBase {
       // package.json検索
       const packageJsonPath = path.join(this.config.workspaceRoot, 'package.json');
       try {
-        await fs.access(packageJsonPath);
+        const fsService = FileSystemService.getInstance();
+        await fsService.access(packageJsonPath);
         result.hasPackageJson = true;
         result.packageJsonPath = packageJsonPath;
 
         // TypeScriptバージョンを取得
-        const packageContent = await fs.readFile(packageJsonPath, 'utf8');
+        const packageContent = await fsService.readFile(packageJsonPath, { encoding: 'utf8' }) as string;
         const packageData = JSON.parse(packageContent);
         const tsVersion = packageData.devDependencies?.typescript || 
                          packageData.dependencies?.typescript;

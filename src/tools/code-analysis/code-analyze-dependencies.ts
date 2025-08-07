@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import path from 'path';
-import fs from 'fs/promises';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
 
@@ -133,8 +133,9 @@ export const codeAnalyzeDependenciesTool = {
       logger.info(`Analyzing dependencies for: ${absoluteFilePath}`);
 
       // ファイルが存在することを確認
+      const fsService = FileSystemService.getInstance();
       try {
-        await fs.access(absoluteFilePath);
+        await fsService.access(absoluteFilePath);
       } catch {
         throw new Error(`File not found: ${params.file_path}`);
       }
@@ -216,7 +217,8 @@ class DependencyAnalyzer {
 
     try {
       const language = this.getLanguageFromFile(filePath);
-      const content = await fs.readFile(filePath, 'utf-8');
+      const fsService = FileSystemService.getInstance();
+      const content = await fsService.readFile(filePath, { encoding: 'utf-8' }) as string;
       
       // インポート/エクスポート文を解析
       const imports = await this.parseImports(content, filePath, language);
@@ -453,11 +455,12 @@ class DependencyAnalyzer {
         let resolvedPath = path.resolve(fromDir, source);
         
         // 拡張子を補完
+        const fsService = FileSystemService.getInstance();
         const extensions = ['.ts', '.tsx', '.js', '.jsx', '.swift'];
         for (const ext of extensions) {
           const pathWithExt = resolvedPath + ext;
           try {
-            await fs.access(pathWithExt);
+            await fsService.access(pathWithExt);
             return pathWithExt;
           } catch {
             // ファイルが存在しない場合は続行
@@ -468,7 +471,7 @@ class DependencyAnalyzer {
         for (const ext of extensions) {
           const indexPath = path.join(resolvedPath, `index${ext}`);
           try {
-            await fs.access(indexPath);
+            await fsService.access(indexPath);
             return indexPath;
           } catch {
             // ファイルが存在しない場合は続行

@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import path from 'path';
-import fs from 'fs/promises';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import type { SymbolKind } from 'vscode-languageserver-protocol';
 import { TypeScriptLSP, SwiftLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
@@ -203,7 +203,8 @@ async function determineTargetFiles(
       : path.resolve(workspaceRoot, params.file_path);
     
     try {
-      await fs.access(absolutePath);
+      const fsService = FileSystemService.getInstance();
+      await fsService.access(absolutePath);
       return [absolutePath];
     } catch {
       throw new Error(`File not found: ${params.file_path}`);
@@ -221,7 +222,8 @@ async function determineTargetFiles(
 
   async function scanDirectory(dir: string): Promise<void> {
     try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
+      const fsService = FileSystemService.getInstance();
+      const entries = await fsService.readdir(dir, { withFileTypes: true }) as import('fs').Dirent[];
       
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);

@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import path from 'path';
-import fs from 'fs/promises';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import type { SymbolKind } from 'vscode-languageserver-protocol';
 import { TypeScriptLSP, SwiftLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
@@ -98,7 +98,8 @@ export const codeGetSymbolsOverviewTool = {
       
       // パスの存在確認
       try {
-        await fs.access(targetPath);
+        const fsService = FileSystemService.getInstance();
+        await fsService.access(targetPath);
       } catch {
         throw new Error(`Path not found: ${params.relative_path}`);
       }
@@ -218,7 +219,8 @@ async function determineTargetFiles(
   const supportedExtensions = ['.ts', '.tsx', '.js', '.jsx', '.swift'];
   const testPatterns = ['.test.', '.spec.', '__test__', '__tests__'];
   
-  const stat = await fs.stat(targetPath);
+  const fsService = FileSystemService.getInstance();
+  const stat = await fsService.stat(targetPath);
   
   if (stat.isFile()) {
     // 単一ファイル
@@ -237,7 +239,8 @@ async function determineTargetFiles(
 
   async function scanDirectory(dir: string): Promise<void> {
     try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
+      const fsService = FileSystemService.getInstance();
+      const entries = await fsService.readdir(dir, { withFileTypes: true }) as import('fs').Dirent[];
       
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
@@ -305,7 +308,8 @@ async function getFileSymbolsOverview(
   const relativePath = path.relative(workspaceRoot, filePath);
   
   // ファイル情報を取得
-  const fileContent = await fs.readFile(filePath, 'utf-8');
+  const fsService = FileSystemService.getInstance();
+  const fileContent = await fsService.readFile(filePath, { encoding: 'utf-8' }) as string;
   const lineCount = fileContent.split('\n').length;
   const fileSize = Buffer.byteLength(fileContent, 'utf-8');
   

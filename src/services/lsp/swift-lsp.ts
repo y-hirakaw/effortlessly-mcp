@@ -4,7 +4,7 @@
  */
 
 import path from 'path';
-import fs from 'fs/promises';
+import { FileSystemService } from '../FileSystemService.js';
 import type { 
   SymbolInformation, 
   Position, 
@@ -379,7 +379,8 @@ export class SwiftLSP extends LSPClientBase {
     
     async function scanDirectory(dir: string): Promise<void> {
       try {
-        const entries = await fs.readdir(dir, { withFileTypes: true });
+        const fsService = FileSystemService.getInstance();
+        const entries = await fsService.readdir(dir, { withFileTypes: true }) as import('fs').Dirent[];
         
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
@@ -668,7 +669,8 @@ export class SwiftLSP extends LSPClientBase {
     
     for (const file of files) {
       try {
-        const content = await fs.readFile(file, 'utf8');
+        const fsService = FileSystemService.getInstance();
+        const content = await fsService.readFile(file, { encoding: 'utf8' }) as string;
         const lines = content.split('\n');
         
         // Swiftシンボルの正規表現パターン
@@ -854,7 +856,8 @@ export class SwiftLSP extends LSPClientBase {
     
     try {
       // ファイルが存在することを確認
-      await fs.access(file);
+      const fsService = FileSystemService.getInstance();
+      await fsService.access(file);
       
       // LSP接続状態を確認
       const state = this.getState();
@@ -869,7 +872,7 @@ export class SwiftLSP extends LSPClientBase {
       }
       
       // ファイルを明示的に開く
-      const fileContent = await fs.readFile(file, 'utf8');
+      const fileContent = await fsService.readFile(file, { encoding: 'utf8' }) as string;
       this.logger.info(`Swift LSP: Opening file: ${file} (${fileContent.length} chars)`);
       
       this.sendNotification('textDocument/didOpen', {
@@ -910,7 +913,8 @@ export class SwiftLSP extends LSPClientBase {
    */
   private async getLineContext(file: string, line: number): Promise<string> {
     try {
-      const content = await fs.readFile(file, 'utf8');
+      const fsService = FileSystemService.getInstance();
+      const content = await fsService.readFile(file, { encoding: 'utf8' }) as string;
       const lines = content.split('\n');
       
       // 前後1行を含む3行を取得
@@ -950,7 +954,8 @@ export class SwiftLSP extends LSPClientBase {
         
         // 3. Package.swiftファイルを明示的に開いてプロジェクトを再認識
         const packageUri = this.pathToUri(projectConfig.packageSwiftPath!);
-        const packageContent = await fs.readFile(projectConfig.packageSwiftPath!, 'utf8');
+        const fsService = FileSystemService.getInstance();
+        const packageContent = await fsService.readFile(projectConfig.packageSwiftPath!, { encoding: 'utf8' }) as string;
         
         // Package.swiftを開く
         this.sendNotification('textDocument/didOpen', {
@@ -971,7 +976,7 @@ export class SwiftLSP extends LSPClientBase {
         
         for (const file of mainFiles) {
           try {
-            const content = await fs.readFile(file, 'utf8');
+            const content = await fsService.readFile(file, { encoding: 'utf8' }) as string;
             const uri = this.pathToUri(file);
             
             this.sendNotification('textDocument/didOpen', {
@@ -1041,12 +1046,13 @@ export class SwiftLSP extends LSPClientBase {
       // Package.swift検索
       const packageSwiftPath = path.join(this.config.workspaceRoot, 'Package.swift');
       try {
-        await fs.access(packageSwiftPath);
+        const fsService = FileSystemService.getInstance();
+        await fsService.access(packageSwiftPath);
         result.hasPackageSwift = true;
         result.packageSwiftPath = packageSwiftPath;
 
         // Package.swiftから依存関係を解析
-        const packageContent = await fs.readFile(packageSwiftPath, 'utf8');
+        const packageContent = await fsService.readFile(packageSwiftPath, { encoding: 'utf8' }) as string;
         const dependencies = this.parseSwiftPackageDependencies(packageContent);
         if (dependencies.length > 0) {
           result.dependencies = dependencies;
@@ -1058,12 +1064,13 @@ export class SwiftLSP extends LSPClientBase {
       // Podfile検索
       const podfilePath = path.join(this.config.workspaceRoot, 'Podfile');
       try {
-        await fs.access(podfilePath);
+        const fsService = FileSystemService.getInstance();
+        await fsService.access(podfilePath);
         result.hasPodfile = true;
         result.podfilePath = podfilePath;
 
         // Podfileからポッド依存関係を解析
-        const podfileContent = await fs.readFile(podfilePath, 'utf8');
+        const podfileContent = await fsService.readFile(podfilePath, { encoding: 'utf8' }) as string;
         const pods = this.parsePodfilePods(podfileContent);
         if (pods.length > 0) {
           result.pods = pods;

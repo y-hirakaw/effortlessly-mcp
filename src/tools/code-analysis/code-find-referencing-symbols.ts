@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { promises as fs } from 'fs';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
@@ -116,8 +116,9 @@ export const codeFindReferencingSymbolsTool: MdcToolImplementation<CodeFindRefer
       logger.debug('Resolved workspace path', { workspacePath: resolvedWorkspacePath });
 
       // ワークスペースの存在確認
+      const fsService = FileSystemService.getInstance();
       try {
-        const stats = await fs.stat(resolvedWorkspacePath);
+        const stats = await fsService.stat(resolvedWorkspacePath);
         if (!stats.isDirectory()) {
           throw new Error(`指定されたワークスペースパスはディレクトリではありません: ${workspacePath}`);
         }
@@ -259,7 +260,8 @@ async function findTargetFiles(workspacePath: string, context: SearchContext): P
   const files: string[] = [];
   
   try {
-    const entries = await fs.readdir(workspacePath, { withFileTypes: true });
+    const fsService = FileSystemService.getInstance();
+    const entries = await fsService.readdir(workspacePath, { withFileTypes: true }) as import('fs').Dirent[];
     
     for (const entry of entries) {
       const fullPath = path.join(workspacePath, entry.name);
@@ -302,7 +304,8 @@ async function searchFileForReferencingSymbols(
       return results;
     }
     
-    const content = await fs.readFile(filePath, 'utf-8');
+    const fsService = FileSystemService.getInstance();
+    const content = await fsService.readFile(filePath, { encoding: 'utf-8' }) as string;
     const lines = content.split('\n');
     
     // ターゲットシンボルを参照している行を検索
@@ -476,7 +479,8 @@ async function findSymbolAtPosition(
 ): Promise<ContainingSymbol | null> {
   // 簡易実装：実際のプロジェクトではLSPのdocumentSymbolsを使用
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
+    const fsService = FileSystemService.getInstance();
+    const content = await fsService.readFile(filePath, { encoding: 'utf-8' }) as string;
     const lines = content.split('\n');
     
     return await findContainingSymbol(lines, line, filePath);
@@ -572,6 +576,7 @@ function isTargetFile(fileName: string, fileTypes?: string[]): boolean {
 async function isBinaryFile(filePath: string): Promise<boolean> {
   try {
     const buffer = Buffer.alloc(512);
+    const { promises: fs } = await import('fs');
     const fileHandle = await fs.open(filePath, 'r');
     const { bytesRead } = await fileHandle.read(buffer, 0, 512, 0);
     await fileHandle.close();

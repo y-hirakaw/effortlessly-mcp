@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { promises as fs } from 'fs';
+import { FileSystemService } from '../../services/FileSystemService.js';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
@@ -113,7 +113,8 @@ export const codeSearchPatternTool: MdcToolImplementation<CodeSearchPatternParam
 
       // ワークスペースの存在確認
       try {
-        const stats = await fs.stat(resolvedWorkspacePath);
+        const fsService = FileSystemService.getInstance();
+        const stats = await fsService.stat(resolvedWorkspacePath);
         if (!stats.isDirectory()) {
           throw new Error(`指定されたワークスペースパスはディレクトリではありません: ${workspacePath}`);
         }
@@ -231,7 +232,8 @@ async function findFiles(
   const files: string[] = [];
   
   try {
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const fsService = FileSystemService.getInstance();
+    const entries = await fsService.readdir(dirPath, { withFileTypes: true }) as import('fs').Dirent[];
     
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name);
@@ -269,7 +271,8 @@ async function searchFile(
   context.filesScanned++;
   
   try {
-    const stats = await fs.stat(filePath);
+    const fsService = FileSystemService.getInstance();
+    const stats = await fsService.stat(filePath);
     
     // ファイルサイズのチェック
     if (stats.size > context.fileSizeLimit) {
@@ -283,7 +286,7 @@ async function searchFile(
       return null;
     }
     
-    const content = await fs.readFile(filePath, 'utf-8');
+    const content = await fsService.readFile(filePath, { encoding: 'utf-8' }) as string;
     const lines = content.split('\n');
     
     // パターンマッチング
@@ -529,6 +532,7 @@ async function isBinaryFile(filePath: string): Promise<boolean> {
   try {
     // ファイルの最初の512バイトを読み取り
     const buffer = Buffer.alloc(512);
+    const { promises: fs } = await import('fs');
     const fileHandle = await fs.open(filePath, 'r');
     const { bytesRead } = await fileHandle.read(buffer, 0, 512, 0);
     await fileHandle.close();
