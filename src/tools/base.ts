@@ -16,16 +16,78 @@ export abstract class BaseTool implements ITool {
    * Validates input parameters against the tool's schema
    */
   protected validateParameters(parameters: Record<string, unknown>): unknown {
+    // 詳細なデバッグ情報をログ出力
+    this.logger.debug(`Validating parameters for ${this.metadata.name}`, {
+      parameterKeys: Object.keys(parameters),
+      parameterTypes: Object.fromEntries(
+        Object.entries(parameters).map(([key, value]) => [key, typeof value])
+      ),
+      parameterSizes: Object.fromEntries(
+        Object.entries(parameters).map(([key, value]) => [
+          key, 
+          typeof value === 'string' ? value.length : 
+          typeof value === 'object' && value !== null ? JSON.stringify(value).length :
+          'N/A'
+        ])
+      ),
+      // smart_edit_fileツール固有の詳細情報
+      ...(this.metadata.name === 'smart_edit_file' && {
+        hasNewText: 'new_text' in parameters,
+        newTextType: typeof parameters.new_text,
+        newTextLength: typeof parameters.new_text === 'string' ? (parameters.new_text as string).length : 'N/A',
+        newTextPreview: typeof parameters.new_text === 'string' ? 
+          (parameters.new_text as string).substring(0, 100) + (
+            (parameters.new_text as string).length > 100 ? '...' : ''
+          ) : 
+          String(parameters.new_text),
+        hasOldText: 'old_text' in parameters,
+        oldTextLength: typeof parameters.old_text === 'string' ? (parameters.old_text as string).length : 'N/A'
+      })
+    });
+
     try {
       return this.schema.parse(parameters);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        // 詳細なエラー情報をログ出力
+        this.logger.error(`Parameter validation failed for ${this.metadata.name}`, error, {
+          zodErrors: error.errors,
+          receivedParameters: parameters,
+          problematicFields: error.errors.map(e => e.path.join('.')),
+          validationDetails: error.errors.map(e => ({
+            field: e.path.join('.'),
+            code: e.code,
+            message: e.message,
+            received: e.path.reduce((obj: any, path) => obj?.[path], parameters)
+          }))
+        });
+
+        // より詳細なエラーメッセージを作成
+        const fieldErrors = error.errors.map(e => {
+          const fieldPath = e.path.join('.');
+          const receivedValue = e.path.reduce((obj: any, path) => obj?.[path], parameters);
+          return `${fieldPath}: ${e.message} (受信値: ${typeof receivedValue === 'undefined' ? 'undefined' : typeof receivedValue})`;
+        }).join(', ');
+
         throw new ValidationError(
-          `Invalid parameters for tool ${this.metadata.name}`,
+          `Invalid parameters for tool ${this.metadata.name}: ${fieldErrors}`,
           {
             tool: this.metadata.name,
             errors: error.errors,
             receivedParameters: parameters,
+            detailedAnalysis: {
+              parameterCount: Object.keys(parameters).length,
+              missingRequiredFields: error.errors
+                .filter(e => e.code === 'invalid_type' && e.received === 'undefined')
+                .map(e => e.path.join('.')),
+              invalidTypeFields: error.errors
+                .filter(e => e.code === 'invalid_type')
+                .map(e => ({ 
+                  field: e.path.join('.'), 
+                  expected: (e as any).expected, 
+                  received: (e as any).received 
+                }))
+            }
           },
         );
       }

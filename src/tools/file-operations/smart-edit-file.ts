@@ -103,6 +103,62 @@ export class SmartEditFileTool extends BaseTool {
   protected async executeInternal(validatedParameters: unknown): Promise<IToolResult> {
     const params = validatedParameters as SmartEditFileParams;
 
+    // パラメータの事前検証とサニタイズ
+    if (typeof params.new_text === 'undefined') {
+      Logger.getInstance().error('Critical parameter error in smart_edit_file', new Error('new_text parameter is undefined'), { 
+        toolName: this.metadata.name,
+        allParams: params,
+        parameterTypes: Object.fromEntries(
+          Object.entries(params).map(([key, value]) => [key, typeof value])
+        ),
+        stringifiedParams: JSON.stringify(params, null, 2),
+        possibleCause: 'Claude Code parameter transmission issue'
+      });
+      
+      return this.createErrorResult(
+        '🚨 smart_edit_fileツールのパラメータエラーが発生しました\n\n' +
+        '原因: new_text パラメータが未定義です\n' +
+        '推定要因: Claude Code側でのパラメータ送信エラー\n' +
+        '対処法: 以下の代替手段をお試しください\n' +
+        '  1. 標準のEditツールを使用\n' +
+        '  2. MultiEditツールで複数箇所を一度に編集\n' +
+        '  3. テキストを短く分割して再実行\n\n' +
+        `デバッグ情報:\n` +
+        `- ファイルパス: ${params.file_path || 'undefined'}\n` +
+        `- old_text長: ${typeof params.old_text === 'string' ? params.old_text.length : 'undefined'}文字\n` +
+        `- new_text型: ${typeof params.new_text}\n` +
+        `- 特殊文字含有: ${typeof params.old_text === 'string' && /[`"'\\]/.test(params.old_text) ? 'あり' : 'なし'}`
+      );
+    }
+
+    // 追加の整合性チェック
+    if (typeof params.old_text === 'undefined') {
+      Logger.getInstance().error('old_text parameter is undefined in smart_edit_file', new Error('old_text parameter is undefined'), { params });
+      return this.createErrorResult(
+        'old_text パラメータが未定義です。Claude Code側でのパラメータ送信エラーの可能性があります。'
+      );
+    }
+
+    if (typeof params.file_path === 'undefined' || params.file_path === '') {
+      Logger.getInstance().error('file_path parameter is invalid in smart_edit_file', new Error('file_path parameter is invalid'), { params });
+      return this.createErrorResult(
+        'file_path パラメータが無効です。正しいファイルパスを指定してください。'
+      );
+    }
+
+    // パラメータ情報をデバッグログに記録
+    Logger.getInstance().info('smart_edit_file execution started with parameters', {
+      file_path: params.file_path,
+      old_text_length: params.old_text.length,
+      new_text_length: params.new_text.length,
+      preview_mode: params.preview_mode,
+      case_sensitive: params.case_sensitive,
+      replace_all: params.replace_all,
+      has_special_chars: /[`"'\\]/.test(params.old_text) || /[`"'\\]/.test(params.new_text),
+      old_text_preview: params.old_text.substring(0, 100) + (params.old_text.length > 100 ? '...' : ''),
+      new_text_preview: params.new_text.substring(0, 100) + (params.new_text.length > 100 ? '...' : '')
+    });
+
     try {
       // FileSystemServiceのインスタンスを取得
       const fsService = FileSystemService.getInstance();
@@ -266,8 +322,22 @@ export class SmartEditFileTool extends BaseTool {
       return this.createTextResult(JSON.stringify(result, null, 2));
 
     } catch (error: any) {
-      Logger.getInstance().error('Failed to perform smart edit', error.message);
-      return this.createErrorResult(`ファイル編集エラー: ${error.message}`);
+      // 詳細なエラー情報をログ記録
+      Logger.getInstance().error('Failed to perform smart edit', error, {
+        toolName: this.metadata.name,
+        parameters: {
+          file_path: params.file_path,
+          old_text_length: typeof params.old_text === 'string' ? params.old_text.length : 'undefined',
+          new_text_length: typeof params.new_text === 'string' ? params.new_text.length : 'undefined',
+          preview_mode: params.preview_mode
+        },
+        errorType: error.constructor.name,
+        possibleCause: this.analyzePossibleCause(error, params)
+      });
+
+      // ユーザー向けの詳細なエラーメッセージ
+      const userErrorMessage = this.createDetailedErrorMessage(error, params);
+      return this.createErrorResult(userErrorMessage);
     }
   }
 
@@ -399,5 +469,82 @@ export class SmartEditFileTool extends BaseTool {
     await fsService.writeFile(backupPath, content, { encoding: 'utf-8' });
     
     return backupPath;
+  }
+
+  /**
+   * エラーの可能性のある原因を分析
+   */
+  private analyzePossibleCause(error: any, params: SmartEditFileParams): string {
+    const errorMessage = error.message || '';
+    
+    // ファイルシステムエラー
+    if (error.code === 'ENOENT') return 'ファイルまたはディレクトリが見つからない';
+    if (error.code === 'EACCES') return 'ファイルアクセス権限不足';
+    if (error.code === 'EMFILE' || error.code === 'ENFILE') return 'システムファイル制限';
+    
+    // メモリ・サイズ関連
+    if (errorMessage.includes('Maximum call stack') || errorMessage.includes('out of memory')) {
+      return 'メモリ不足（大きなファイルまたは長いテキスト）';
+    }
+    
+    // 文字エンコーディング
+    if (errorMessage.includes('invalid character') || errorMessage.includes('encoding')) {
+      return '文字エンコーディングの問題';
+    }
+    
+    // パラメータサイズ
+    const oldTextSize = typeof params.old_text === 'string' ? params.old_text.length : 0;
+    const newTextSize = typeof params.new_text === 'string' ? params.new_text.length : 0;
+    if (oldTextSize > 100000 || newTextSize > 100000) {
+      return '大きなテキストサイズ（100KB以上）';
+    }
+    
+    // 特殊文字
+    const hasSpecialChars = typeof params.old_text === 'string' && typeof params.new_text === 'string' && 
+      (/[`"'\\]/.test(params.old_text) || /[`"'\\]/.test(params.new_text));
+    if (hasSpecialChars) {
+      return '特殊文字（バッククォート、引用符、バックスラッシュ）の処理問題';
+    }
+    
+    return '不明なエラー';
+  }
+
+  /**
+   * ユーザー向けの詳細なエラーメッセージを作成
+   */
+  private createDetailedErrorMessage(error: any, params: SmartEditFileParams): string {
+    const cause = this.analyzePossibleCause(error, params);
+    const oldTextSize = typeof params.old_text === 'string' ? params.old_text.length : 0;
+    const newTextSize = typeof params.new_text === 'string' ? params.new_text.length : 0;
+    
+    let message = `🚨 smart_edit_fileツールでエラーが発生しました\n\n`;
+    message += `エラー内容: ${error.message}\n`;
+    message += `推定原因: ${cause}\n\n`;
+    
+    message += `📊 パラメータ情報:\n`;
+    message += `- ファイル: ${params.file_path}\n`;
+    message += `- 置換前テキスト: ${oldTextSize}文字\n`;
+    message += `- 置換後テキスト: ${newTextSize}文字\n`;
+    message += `- プレビューモード: ${params.preview_mode ? 'はい' : 'いいえ'}\n\n`;
+    
+    message += `🔧 推奨対処法:\n`;
+    
+    if (cause.includes('大きな')) {
+      message += `1. テキストを小さく分割して複数回に分けて実行\n`;
+      message += `2. 標準のEditツールまたはMultiEditツールを使用\n`;
+    } else if (cause.includes('特殊文字')) {
+      message += `1. 特殊文字をエスケープまたは回避\n`;
+      message += `2. 標準のEditツールでより単純な置換を実行\n`;
+    } else if (cause.includes('メモリ')) {
+      message += `1. ファイルサイズを確認し、必要に応じて分割処理\n`;
+      message += `2. 他のアプリケーションを終了してメモリを確保\n`;
+    } else {
+      message += `1. 標準のEditツールを試してください\n`;
+      message += `2. ファイルパスと内容を確認してください\n`;
+    }
+    
+    message += `3. 問題が続く場合は、このエラー情報をGitHubのIssueで報告してください\n`;
+    
+    return message;
   }
 }
