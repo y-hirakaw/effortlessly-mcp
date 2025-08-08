@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2025-08-08
+
+### Added
+- Insert diff機能の大幅強化
+  - `smart_insert_text`での柔軟な位置指定による挿入処理
+  - プレビュー機能付きで安全な挿入操作
+  - 自動インデント調整機能
+- 包括テスト追加
+  - 各種挿入パターンのテストケース拡充
+  - diff機能の品質保証体制強化
+
+## [1.0.3] - 2025-08-08
+
+### Improved
+- smart_edit_fileツールの安全性とパフォーマンス最適化
+  - バックアップ機能の改善
+  - エラーハンドリングの強化
+  - 処理速度の向上
+
+### Fixed
+- ログ出力量最適化によるClaude Code停止問題の対策
+  - 大量ログ出力時のメモリ使用量削減
+  - Claude Code との互換性改善
+- smart_edit_file診断機能強化
+  - パラメータundefinedエラーの根本的対策
+  - 診断メッセージの改善
+
+### Changed  
+- FileSystemService Phase2A完全移行
+  - LSP・プロジェクト管理・コード解析の統合完了
+  - 統一ファイル操作プロキシによる一貫性向上
+  - 基本ファイル操作ツールの全面移行
+
 ## [1.0.2] - 2025-08-06
 
 ### Changed
@@ -59,7 +92,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - セキュリティ機能
 - プロジェクトメモリ機能
 
-[unreleased]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.2...HEAD
+[unreleased]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/y-hirakaw/effortlessly-mcp/releases/tag/v1.0.0
