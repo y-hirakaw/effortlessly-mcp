@@ -9,6 +9,7 @@ import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import * as path from 'path';
+import { DiffLogger } from '../../utils/diff-logger.js';
 
 const SmartInsertTextSchema = z.object({
   file_path: z.string().describe('編集対象ファイルパス'),
@@ -221,8 +222,27 @@ export class SmartInsertTextTool extends BaseTool {
         backupPath = await this.createBackup(params.file_path, originalContent);
       }
 
-      // 10. ファイル更新
+      // 10. ファイル更新とdiff出力
       await fsService.writeFile(params.file_path, newContent, { encoding: 'utf-8' });
+      
+      // 挿入操作のdiff表示
+      const diffLogger = DiffLogger.getInstance();
+      if (!isNewFile) {
+        // Insert特化のdiffログを使用
+        await diffLogger.logInsertDiff(
+          originalContent,
+          params.text,
+          {
+            line_number: insertPosition.lineIndex! + 1,
+            column: insertPosition.column!
+          },
+          params.file_path,
+          params.position_type,
+          params.reference_text
+        );
+      } else {
+        diffLogger.logNewFileCreation(params.file_path, newContent, 'Smart Insert');
+      }
 
       // 11. 結果をまとめる
       const result: InsertResult = {
@@ -375,4 +395,6 @@ export class SmartInsertTextTool extends BaseTool {
     
     return backupPath;
   }
+
+
 }

@@ -8,6 +8,7 @@ import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
+import { DiffLogger } from '../../utils/diff-logger.js';
 import * as path from 'path';
 
 const SmartEditFileSchema = z.object({
@@ -293,6 +294,10 @@ export class SmartEditFileTool extends BaseTool {
         backupPath = await this.createBackup(params.file_path, originalContent);
       }
 
+      // 9. 精密なdiffログ出力（実際の変更箇所のみ）
+      const diffLogger = DiffLogger.getInstance();
+      await diffLogger.logPreciseDiff(originalContent, editResult.newContent, params.file_path, 'Smart Edit');
+
       // 10. ファイル更新
       await fsService.writeFile(params.file_path, editResult.newContent, { encoding: 'utf-8' });
 
@@ -487,6 +492,8 @@ export class SmartEditFileTool extends BaseTool {
     
     return true;
   }
+
+
 
   private async createBackup(filePath: string, content: string): Promise<string> {
     const fsService = FileSystemService.getInstance();
