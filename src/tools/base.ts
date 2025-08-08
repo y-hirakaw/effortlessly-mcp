@@ -16,34 +16,21 @@ export abstract class BaseTool implements ITool {
    * Validates input parameters against the tool's schema
    */
   protected validateParameters(parameters: Record<string, unknown>): unknown {
-    // 詳細なデバッグ情報をログ出力
-    this.logger.debug(`Validating parameters for ${this.metadata.name}`, {
-      parameterKeys: Object.keys(parameters),
-      parameterTypes: Object.fromEntries(
-        Object.entries(parameters).map(([key, value]) => [key, typeof value])
-      ),
-      parameterSizes: Object.fromEntries(
-        Object.entries(parameters).map(([key, value]) => [
-          key, 
-          typeof value === 'string' ? value.length : 
-          typeof value === 'object' && value !== null ? JSON.stringify(value).length :
-          'N/A'
-        ])
-      ),
-      // smart_edit_fileツール固有の詳細情報
-      ...(this.metadata.name === 'smart_edit_file' && {
-        hasNewText: 'new_text' in parameters,
-        newTextType: typeof parameters.new_text,
-        newTextLength: typeof parameters.new_text === 'string' ? (parameters.new_text as string).length : 'N/A',
-        newTextPreview: typeof parameters.new_text === 'string' ? 
-          (parameters.new_text as string).substring(0, 100) + (
-            (parameters.new_text as string).length > 100 ? '...' : ''
-          ) : 
-          String(parameters.new_text),
-        hasOldText: 'old_text' in parameters,
-        oldTextLength: typeof parameters.old_text === 'string' ? (parameters.old_text as string).length : 'N/A'
-      })
-    });
+    // パフォーマンス向上のため、詳細ログを条件付きで出力
+    if (process.env.MCP_DEBUG === 'true' || process.env.NODE_ENV === 'development') {
+      this.logger.debug(`Validating parameters for ${this.metadata.name}`, {
+        parameterKeys: Object.keys(parameters),
+        parameterTypes: Object.fromEntries(
+          Object.entries(parameters).map(([key, value]) => [key, typeof value])
+        ),
+        // smart_edit_fileツール固有の要約情報のみ
+        ...(this.metadata.name === 'smart_edit_file' && {
+          hasNewText: 'new_text' in parameters,
+          newTextType: typeof parameters.new_text,
+          newTextLength: typeof parameters.new_text === 'string' ? (parameters.new_text as string).length : 'N/A'
+        })
+      });
+    }
 
     try {
       return this.schema.parse(parameters);

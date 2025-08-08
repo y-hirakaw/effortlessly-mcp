@@ -146,18 +146,15 @@ export class SmartEditFileTool extends BaseTool {
       );
     }
 
-    // パラメータ情報をデバッグログに記録
-    Logger.getInstance().info('smart_edit_file execution started with parameters', {
-      file_path: params.file_path,
-      old_text_length: params.old_text.length,
-      new_text_length: params.new_text.length,
-      preview_mode: params.preview_mode,
-      case_sensitive: params.case_sensitive,
-      replace_all: params.replace_all,
-      has_special_chars: /[`"'\\]/.test(params.old_text) || /[`"'\\]/.test(params.new_text),
-      old_text_preview: params.old_text.substring(0, 100) + (params.old_text.length > 100 ? '...' : ''),
-      new_text_preview: params.new_text.substring(0, 100) + (params.new_text.length > 100 ? '...' : '')
-    });
+    // パフォーマンス向上のため、詳細ログを条件付きで出力
+    if (process.env.MCP_DEBUG === 'true' || process.env.NODE_ENV === 'development') {
+      Logger.getInstance().debug('smart_edit_file execution started', {
+        file_path: params.file_path,
+        old_text_length: params.old_text.length,
+        new_text_length: params.new_text.length,
+        preview_mode: params.preview_mode
+      });
+    }
 
     try {
       // FileSystemServiceのインスタンスを取得
@@ -312,12 +309,14 @@ export class SmartEditFileTool extends BaseTool {
         is_new_file: isNewFile
       };
 
-      Logger.getInstance().info('Smart edit completed', {
-        file_path: params.file_path,
-        replacement_count: editResult.matches.length,
-        backup_created: !!backupPath,
-        is_new_file: isNewFile
-      });
+      // 成功時のログも条件付きで出力
+      if (process.env.MCP_DEBUG === 'true' || process.env.NODE_ENV === 'development') {
+        Logger.getInstance().debug('Smart edit completed', {
+          file_path: params.file_path,
+          replacement_count: editResult.matches.length,
+          is_new_file: isNewFile
+        });
+      }
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 
