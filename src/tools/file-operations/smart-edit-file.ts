@@ -419,6 +419,17 @@ export class SmartEditFileTool extends BaseTool {
           });
           continue;
         }
+
+        // コンテキスト境界の安全性チェック
+        if (!this.validateContextBoundary(newContent, absoluteStart, absoluteEnd, oldText, newText)) {
+          Logger.getInstance().warn('Context boundary validation failed, skipping replacement', {
+            position: absoluteStart,
+            line: match.line_number,
+            oldText: oldText.substring(0, 50) + (oldText.length > 50 ? '...' : ''),
+            surroundingContext: this.getSurroundingContext(newContent, absoluteStart, absoluteEnd)
+          });
+          continue;
+        }
         
         // 安全な置換実行
         newContent = newContent.substring(0, absoluteStart) + 
@@ -432,7 +443,7 @@ export class SmartEditFileTool extends BaseTool {
 
 
   /**
-   * 置換結果の整合性チェック
+   * 置換結果の整合性チェック（拡張版）
    */
   private validateReplacement(original: string, result: string, expectedChanges: number): boolean {
     // 基本的な整合性チェック
@@ -453,6 +464,26 @@ export class SmartEditFileTool extends BaseTool {
         return false;
       }
     }
+
+    // 最小限の構文チェックのみ
+    const basicPatterns = [
+      { name: 'export statements', pattern: /export\s+/g },
+      { name: 'import statements', pattern: /import\s+/g }
+    ];
+    
+    for (const { name, pattern } of basicPatterns) {
+      const originalMatches = (original.match(pattern) || []).length;
+      const resultMatches = (result.match(pattern) || []).length;
+      
+      // 大幅な減少のみチェック
+      if (originalMatches > 0 && resultMatches === 0) {
+        Logger.getInstance().warn(`All ${name} removed during replacement`, {
+          original: originalMatches,
+          result: resultMatches
+        });
+        return false;
+      }
+    }
     
     return true;
   }
@@ -469,6 +500,53 @@ export class SmartEditFileTool extends BaseTool {
     
     return backupPath;
   }
+
+  /**
+   * コンテキスト境界の安全性を検証（最小限）
+   */
+  private validateContextBoundary(
+    content: string, 
+    startPos: number, 
+    endPos: number, 
+    oldText: string, 
+    newText: string
+  ): boolean {
+    // 基本的な範囲チェックのみ
+    if (startPos < 0 || endPos > content.length || startPos >= endPos) {
+      return false;
+    }
+    
+    // 非常に大きな置換は注意
+    if (oldText.length > 10000 || newText.length > 10000) {
+      Logger.getInstance().warn('Large text replacement detected', {
+        oldTextLength: oldText.length,
+        newTextLength: newText.length
+      });
+    }
+    
+    return true;
+  }
+
+  /**
+   * 周囲のコンテキストを取得（デバッグ用）
+   */
+  private getSurroundingContext(content: string, startPos: number, endPos: number): string {
+    const contextStart = Math.max(0, startPos - 100);
+    const contextEnd = Math.min(content.length, endPos + 100);
+    const context = content.substring(contextStart, contextEnd);
+    
+    // 置換位置をマークして返す
+    const relativeStart = startPos - contextStart;
+    const relativeEnd = endPos - contextStart;
+    
+    return context.substring(0, relativeStart) + 
+           '【REPLACE_START】' + 
+           context.substring(relativeStart, relativeEnd) + 
+           '【REPLACE_END】' + 
+           context.substring(relativeEnd);
+  }
+
+
 
   /**
    * エラーの可能性のある原因を分析

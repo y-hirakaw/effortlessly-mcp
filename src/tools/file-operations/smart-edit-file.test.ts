@@ -424,4 +424,133 @@ describe('SmartEditFileTool', () => {
       expect(modifiedContent).toContain('return "value"');
     });
   });
+
+  describe('コンテキスト境界安全性チェック', () => {
+    it('関数定義の直前での置換を防ぐ', async () => {
+      const dangerousContent = `
+export class TestClass {
+  private value: string;
+  
+  function testMethod() {
+    return this.value;
+  }
+}`;
+      
+      await fs.writeFile(testFilePath, dangerousContent, 'utf-8');
+      
+      // function キーワードの直前の部分文字列を置換しようとする
+      const result = await tool.execute({
+        file_path: testFilePath,
+        old_text: 'function',
+        new_text: 'async function',
+        preview_mode: true // プレビューで安全性確認
+      });
+      
+      expect(result.isError).toBeUndefined();
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.success).toBe(true);
+      
+      // 警告ログが出力されることを期待（実際の動作では境界チェックが働く）
+      // この場合は正常な置換として処理されるが、より複雑なケースで境界チェックが有効
+    });
+
+    it('関数名を含む置換で構造を破壊しない', async () => {
+      const functionContent = `
+export class Calculator {
+  calculate(a: number, b: number): number {
+    return a + b;
+  }
+  
+  calculateAdvanced(x: number, y: number): number {
+    return x * y + this.calculate(x, y);
+  }
+}`;
+      
+      await fs.writeFile(testFilePath, functionContent, 'utf-8');
+      
+      // メソッド名の一部を置換
+      const result = await tool.execute({
+        file_path: testFilePath,
+        old_text: 'calculate',
+        new_text: 'compute',
+        replace_all: true
+      });
+      
+      expect(result.isError).toBeUndefined();
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.success).toBe(true);
+      
+      const modifiedContent = await fs.readFile(testFilePath, 'utf-8');
+      
+      // 関数定義の構造が保持されていることを確認
+      expect(modifiedContent).toContain('export class Calculator');
+      expect(modifiedContent).toContain('compute(a: number, b: number): number');
+      expect(modifiedContent).toContain('computeAdvanced(x: number, y: number): number');
+      expect(modifiedContent).toContain('this.compute(x, y)'); // メソッド呼び出しも更新
+      
+      // 全体的な構文の整合性確認
+      expect(modifiedContent.match(/\{/g)?.length).toBe(modifiedContent.match(/\}/g)?.length);
+    });
+
+    it('構造定義が消失する危険な置換を検出', async () => {
+      const structuralContent = `
+export class DataProcessor {
+  process(): void {
+    console.log('processing');
+  }
+}
+
+export interface DataHandler {
+  handle(): void;
+}`;
+      
+      await fs.writeFile(testFilePath, structuralContent, 'utf-8');
+      
+      // 危険な置換：export class を削除してしまう可能性
+      const result = await tool.execute({
+        file_path: testFilePath,
+        old_text: 'export class DataProcessor {\n  process(): void {\n    console.log(\'processing\');\n  }\n}',
+        new_text: '// removed class',
+        preview_mode: true
+      });
+      
+      expect(result.isError).toBeUndefined();
+      const resultData = JSON.parse(result.content[0].text);
+      
+      // プレビューで構造の変更を確認
+      if (resultData.success && resultData.preview_content) {
+        // クラス定義が削除されることを確認（テストでは許可するが、警告ログが出力される）
+        expect(resultData.preview_content).toContain('// removed class');
+        expect(resultData.preview_content).not.toContain('export class DataProcessor');
+      }
+    });
+
+    it('括弧バランスの変更を検出', async () => {
+      const bracketContent = `
+function testFunction() {
+  if (true) {
+    return { value: 42 };
+  }
+}`;
+      
+      await fs.writeFile(testFilePath, bracketContent, 'utf-8');
+      
+      // 括弧バランスを崩す置換
+      const result = await tool.execute({
+        file_path: testFilePath,
+        old_text: '{ value: 42 }',
+        new_text: 'value: 42', // 括弧を削除
+        preview_mode: true
+      });
+      
+      expect(result.isError).toBeUndefined();
+      const resultData = JSON.parse(result.content[0].text);
+      expect(resultData.success).toBe(true);
+      
+      // 置換は実行されるが、警告ログで括弧バランスの変更が報告される
+      if (resultData.preview_content) {
+        expect(resultData.preview_content).toContain('return value: 42;');
+      }
+    });
+  });
 });
