@@ -28,12 +28,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'Line 1\nLine 2\nLine 3\nLine 4';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'Inserted at line 3',
         position_type: 'line_number',
         line_number: 3
       });
+
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
 
       expect(result.success).toBe(true);
       expect(result.text_inserted).toBe(true);
@@ -50,13 +53,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'Original first line\nSecond line';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'New first line',
         position_type: 'line_number',
         line_number: 1
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       const finalContent = await fs.readFile(testFile, 'utf-8');
       const lines = finalContent.split('\n');
@@ -69,13 +74,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'First line\nSecond line';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'Last line',
         position_type: 'line_number',
         line_number: 3
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       const finalContent = await fs.readFile(testFile, 'utf-8');
       const lines = finalContent.split('\n');
@@ -89,13 +96,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'function test() {\n  let x = 1;\n  return x;\n}';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: '  console.log("debug");',
         position_type: 'after_text',
         reference_text: 'let x = 1;'
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       const finalContent = await fs.readFile(testFile, 'utf-8');
       expect(finalContent).toContain('let x = 1;\n  console.log("debug");\n  return x;');
@@ -106,13 +115,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'function test() {\n  return x;\n}';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: '  let x = 1;',
         position_type: 'before_text',
         reference_text: 'return x;'
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       const finalContent = await fs.readFile(testFile, 'utf-8');
       expect(finalContent).toContain('{\n  let x = 1;\n  return x;');
@@ -125,12 +136,14 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'function main() {\n  console.log("Hello");\n}';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: '#!/usr/bin/env node\n"use strict";',
         position_type: 'start'
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       const finalContent = await fs.readFile(testFile, 'utf-8');
       const lines = finalContent.split('\n');
@@ -144,12 +157,14 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'function test() {\n  return true;\n}';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: '\nmodule.exports = { test };',
         position_type: 'end'
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       const finalContent = await fs.readFile(testFile, 'utf-8');
       expect(finalContent.endsWith('}\n\nmodule.exports = { test };')).toBe(true);
@@ -160,12 +175,14 @@ describe('SmartInsertTextTool Integration', () => {
     it('should create new file when file does not exist', async () => {
       const testFile = path.join(testDir, 'new-file.js');
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'console.log("Hello World");',
         position_type: 'start'
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       expect(result.is_new_file).toBe(true);
       expect(result.original_line_count).toBe(1); // Empty file has 1 line
@@ -179,12 +196,14 @@ describe('SmartInsertTextTool Integration', () => {
       const testFile = path.join(testDir, 'multiline-new.js');
       const content = 'function greet(name) {\n  console.log(`Hello, ${name}!`);\n}\n\ngreet("World");';
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: content,
         position_type: 'start'
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       expect(result.is_new_file).toBe(true);
       expect(result.new_line_count).toBe(6); // 5 lines of content + 1 empty line
@@ -200,7 +219,7 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'function test() {\n  if (true) {\n    console.log("start");\n  }\n}';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'console.log("middle");',
         position_type: 'after_text',
@@ -208,6 +227,8 @@ describe('SmartInsertTextTool Integration', () => {
         auto_indent: true
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       const finalContent = await fs.readFile(testFile, 'utf-8');
       expect(finalContent).toContain('    console.log("start");\n    console.log("middle");');
@@ -220,13 +241,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'Original content';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'New line',
         position_type: 'end',
         create_backup: true
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       expect(result.backup_path).toBeDefined();
       
@@ -243,13 +266,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'Original content';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'This should not be inserted',
         position_type: 'end',
         preview_mode: true
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(true);
       expect(result.text_inserted).toBe(false);
 
@@ -264,13 +289,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'Line 1\nLine 2';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'Invalid insertion',
         position_type: 'line_number',
         line_number: 100
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(false);
       expect(result.error).toContain('Line number 100 is beyond file length');
     });
@@ -280,13 +307,15 @@ describe('SmartInsertTextTool Integration', () => {
       const initialContent = 'Some content';
       await fs.writeFile(testFile, initialContent);
 
-      const result = await smartInsertTool.execute({
+      const toolResult = await smartInsertTool.execute({
         file_path: testFile,
         text: 'New text',
         position_type: 'after_text',
         reference_text: 'Non-existent text'
       });
 
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
       expect(result.success).toBe(false);
       expect(result.error).toContain('Reference text not found');
     });

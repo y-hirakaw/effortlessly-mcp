@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { BaseTool } from './base.js';
 import { IToolMetadata, IToolResult } from '../types/common.js';
+import { LogManager } from '../utils/log-manager.js';
 
 const ProjectUpdateWorkflowSchema = z.object({
   task: z.string().optional().describe('更新タスクの種類'),
@@ -95,6 +96,14 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
     if (!workflow) {
       return this.createErrorResult(`不明なタスク: ${params.task}. 利用可能タスクを確認するには task パラメータを省略してください。`);
     }
+
+    // 操作ログ記録
+    const logManager = LogManager.getInstance();
+    await logManager.logOperation(
+      'PROJECT_UPDATE_WORKFLOW',
+      null,
+      `Generated ${params.task || 'catalog'} workflow (${params.scope} scope)${params.focus_areas?.length ? ` focused on: ${params.focus_areas.join(', ')}` : ''}`
+    );
 
     return this.createTextResult(JSON.stringify(workflow, null, 2));
   }

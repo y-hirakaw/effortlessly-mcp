@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { promises as fs } from 'fs';
 
 const CodeReplaceWithRegexSchema = z.object({
@@ -188,6 +189,14 @@ export class CodeReplaceWithRegexTool extends BaseTool {
         replacement_count: matchResult.matches.length,
         syntax_valid: syntaxValidation.valid
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logFileOperation(
+        'REPLACE_WITH_REGEX',
+        params.file_path,
+        `Applied regex pattern "${params.pattern}" → ${matchResult.matches.length} replacements`
+      );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 

@@ -8,6 +8,7 @@ import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 // import { LSPService } from '../../services/lsp/lsp-service.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { promises as fs } from 'fs';
 
 const CodeInsertAtSymbolSchema = z.object({
@@ -158,6 +159,14 @@ export class CodeInsertAtSymbolTool extends BaseTool {
         position: params.position,
         lines_added: insertLines.length
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logFileOperation(
+        'INSERT_AT_SYMBOL',
+        symbolLocation.file_path,
+        `Inserted ${insertLines.length} lines ${params.position} symbol "${params.target_symbol}"`
+      );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 

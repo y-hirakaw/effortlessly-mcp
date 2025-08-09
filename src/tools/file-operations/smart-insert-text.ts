@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import * as path from 'path';
 import { DiffLogger } from '../../utils/diff-logger.js';
@@ -118,7 +119,12 @@ export class SmartInsertTextTool extends BaseTool {
       // 1. パラメータ検証
       const validationError = this.validateSmartInsertParameters(params);
       if (validationError) {
-        return this.createErrorResult(validationError);
+        const errorResult = {
+          success: false,
+          error: validationError,
+          file_path: params.file_path
+        };
+        return this.createTextResult(JSON.stringify(errorResult, null, 2));
       }
 
       // FileSystemServiceのインスタンスを取得
@@ -134,14 +140,22 @@ export class SmartInsertTextTool extends BaseTool {
         
         // 3. ファイルサイズチェック
         if (fileStats.size > params.max_file_size) {
-          return this.createErrorResult(
-            `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`
-          );
+          const errorResult = {
+            success: false,
+            error: `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`,
+            file_path: params.file_path
+          };
+          return this.createTextResult(JSON.stringify(errorResult, null, 2));
         }
 
         // 4. ディレクトリではないことを確認
         if (fileStats.isDirectory()) {
-          return this.createErrorResult(`指定されたパスはディレクトリです: ${params.file_path}`);
+          const errorResult = {
+            success: false,
+            error: `指定されたパスはディレクトリです: ${params.file_path}`,
+            file_path: params.file_path
+          };
+          return this.createTextResult(JSON.stringify(errorResult, null, 2));
         }
 
         // 5. ファイル内容読み取り
@@ -166,14 +180,22 @@ export class SmartInsertTextTool extends BaseTool {
               await fsService.mkdir(dir, { recursive: true });
               Logger.getInstance().info(`Creating new file with directories: ${params.file_path}`);
             } else {
-              return this.createErrorResult(
-                `ファイルまたは親ディレクトリが存在しません: ${params.file_path}. ` +
-                `ディレクトリも作成する場合は create_new_file=true を指定してください。`
-              );
+              const errorResult = {
+                success: false,
+                error: `ファイルまたは親ディレクトリが存在しません: ${params.file_path}. ` +
+                      `ディレクトリも作成する場合は create_new_file=true を指定してください。`,
+                file_path: params.file_path
+              };
+              return this.createTextResult(JSON.stringify(errorResult, null, 2));
             }
           }
         } else {
-          return this.createErrorResult(`ファイルアクセスエラー: ${error.message}`);
+          const errorResult = {
+            success: false,
+            error: `ファイルアクセスエラー: ${error.message}`,
+            file_path: params.file_path
+          };
+          return this.createTextResult(JSON.stringify(errorResult, null, 2));
         }
       }
 
@@ -182,7 +204,12 @@ export class SmartInsertTextTool extends BaseTool {
       // 6. 挿入位置の計算
       const insertPosition = this.calculateInsertPosition(lines, params);
       if (!insertPosition.success) {
-        return this.createErrorResult(insertPosition.error!);
+        const errorResult = {
+          success: false,
+          error: insertPosition.error!,
+          file_path: params.file_path
+        };
+        return this.createTextResult(JSON.stringify(errorResult, null, 2));
       }
 
       // 7. テキスト挿入の実行
@@ -202,7 +229,7 @@ export class SmartInsertTextTool extends BaseTool {
           success: true,
           file_path: params.file_path,
           preview_mode: true,
-          text_inserted: true,
+          text_inserted: false,  // プレビューモードでは実際にはテキストが挿入されない
           insert_position: {
             line_number: insertPosition.lineIndex! + 1,
             column: insertPosition.column!
@@ -268,11 +295,24 @@ export class SmartInsertTextTool extends BaseTool {
         is_new_file: isNewFile
       });
 
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logFileOperation(
+        'SMART_INSERT_TEXT',
+        params.file_path,
+        `Inserted text at ${params.position_type} position (${lines.length} → ${insertResult.lines.length} lines)${isNewFile ? ' [NEW FILE]' : ''}`
+      );
+
       return this.createTextResult(JSON.stringify(result, null, 2));
 
     } catch (error: any) {
       Logger.getInstance().error('Failed to perform smart insert', error.message);
-      return this.createErrorResult(`テキスト挿入エラー: ${error.message}`);
+      const errorResult = {
+        success: false,
+        error: `テキスト挿入エラー: ${error.message}`,
+        file_path: params.file_path || 'unknown'
+      };
+      return this.createTextResult(JSON.stringify(errorResult, null, 2));
     }
   }
 
@@ -314,7 +354,7 @@ export class SmartInsertTextTool extends BaseTool {
       case 'line_number': {
         const lineIndex = params.line_number! - 1;
         if (lineIndex > lines.length) {
-          return { success: false, error: `指定された行番号がファイルの行数を超えています: ${params.line_number} > ${lines.length}` };
+          return { success: false, error: `Line number ${params.line_number} is beyond file length` };
         }
         return { success: true, lineIndex, column: 0 };
       }
@@ -331,7 +371,7 @@ export class SmartInsertTextTool extends BaseTool {
             return { success: true, lineIndex: i + 1, column: 0 };
           }
         }
-        return { success: false, error: `参照テキストが見つかりません: ${params.reference_text}` };
+        return { success: false, error: `Reference text not found` };
 
       case 'before_text':
         for (let i = 0; i < lines.length; i++) {
@@ -339,7 +379,7 @@ export class SmartInsertTextTool extends BaseTool {
             return { success: true, lineIndex: i, column: 0 };
           }
         }
-        return { success: false, error: `参照テキストが見つかりません: ${params.reference_text}` };
+        return { success: false, error: `Reference text not found` };
 
       default:
         return { success: false, error: `未知のposition_type: ${params.position_type}` };
@@ -361,7 +401,11 @@ export class SmartInsertTextTool extends BaseTool {
       const referenceIndent = this.detectIndent(lines[lineIndex - 1] || '');
       for (let i = 0; i < insertLines.length; i++) {
         if (insertLines[i].trim() !== '') {
-          insertLines[i] = referenceIndent + insertLines[i];
+          const currentIndent = this.detectIndent(insertLines[i]);
+          // 挿入テキストが既にインデントを持っている場合は追加しない
+          if (currentIndent.length === 0) {
+            insertLines[i] = referenceIndent + insertLines[i];
+          }
         }
       }
     }

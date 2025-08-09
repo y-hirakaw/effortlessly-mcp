@@ -8,6 +8,7 @@ import path from 'path';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 
 /**
  * 依存関係分析パラメータスキーマ
@@ -155,6 +156,15 @@ export const codeAnalyzeDependenciesTool = {
       };
 
       logger.info(`Dependency analysis completed: ${stats.total_files} files, ${stats.total_dependencies} dependencies`);
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logLSPOperation(
+        'ANALYZE_DEPENDENCIES',
+        path.basename(absoluteFilePath),
+        absoluteFilePath,
+        stats.total_dependencies
+      );
 
       return {
         dependency_graph: dependencyGraph,

@@ -57,12 +57,31 @@ export class HighQualityDiff {
     };
 
     try {
-      const configPath = path.resolve('.claude/workspace/effortlessly/config.yaml');
+      // 2つの設定ファイルパスを試行（テスト環境と実環境に対応）
+      const configPaths = [
+        path.resolve('.claude/workspace/effortlessly/config/diff-display.yaml'), // テスト環境用
+        path.resolve('.claude/workspace/effortlessly/config.yaml') // 実環境用
+      ];
       
-      if (fs.existsSync(configPath)) {
-        const configFile = fs.readFileSync(configPath, 'utf-8');
-        const fullConfig = yaml.load(configFile) as any;
-        const userConfig = fullConfig?.logging?.diff as Partial<DiffConfig>;
+      let userConfig: Partial<DiffConfig> | undefined;
+      
+      for (const configPath of configPaths) {
+        if (fs.existsSync(configPath)) {
+          const configFile = fs.readFileSync(configPath, 'utf-8');
+          const configData = yaml.load(configFile) as any;
+          
+          // diff-display.yamlの場合は直接DiffConfigとして読み込み
+          if (configPath.includes('diff-display.yaml')) {
+            userConfig = configData as Partial<DiffConfig>;
+          } else {
+            // config.yamlの場合はlogging.diffセクションから読み込み
+            userConfig = configData?.logging?.diff as Partial<DiffConfig>;
+          }
+          break; // 最初に見つかった設定ファイルを使用
+        }
+      }
+      
+      if (userConfig) {
         
         // デフォルト設定とユーザー設定をマージ
         this.config = {
@@ -98,9 +117,18 @@ export class HighQualityDiff {
       return '';
     }
     const { 
-      contextLines = config.display_options.default_context_lines
+      contextLines = config.display_options.default_context_lines,
+      useColors = true
     } = options;
-    const colors = this.COLORS; // 常にカラーコードを使用
+    
+    // テスト環境またはuseColors=falseの場合は色を無効化
+    const shouldUseColors = useColors && 
+      process.env.NODE_ENV !== 'test' && 
+      process.env.VITEST !== 'true';
+    
+    const colors = shouldUseColors ? this.COLORS : {
+      RED: '', GREEN: '', CYAN: '', YELLOW: '', RESET: ''
+    };
     
     // 内容が同じ場合は何も出力しない
     if (oldContent === newContent) {
@@ -196,15 +224,15 @@ export class HighQualityDiff {
     const config = this.loadConfig();
     
     // 実際のdiff変化量を計算
-    
-    // 実際のdiff変化量を計算
     const diff = diffLines(oldContent, newContent);
     let totalChangedLines = 0;
     
     diff.forEach(part => {
       if (part.added || part.removed) {
-        // 追加または削除された行数をカウント
-        totalChangedLines += part.value.split('\n').length - 1;
+        // 追加または削除された行数をカウント（最後の空行を除く）
+        const lines = part.value.split('\n');
+        const actualLines = lines[lines.length - 1] === '' ? lines.length - 1 : lines.length;
+        totalChangedLines += actualLines;
       }
     });
     

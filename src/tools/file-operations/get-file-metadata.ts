@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Stats } from 'node:fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
@@ -109,6 +110,14 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
         type: fileType,
         size: stats.size,
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logFileOperation(
+        'GET_FILE_METADATA',
+        filePath,
+        `Retrieved metadata for ${fileType} (${stats.size} bytes)`
+      );
 
       return {
         path: filePath,

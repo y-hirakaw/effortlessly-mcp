@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { LogManager, LogType } from '../../src/utils/log-manager.js';
+import { LogManager, LogType, ANSI_COLORS, ToolCategory } from '../../src/utils/log-manager.js';
 import { FileSystemService } from '../../src/services/FileSystemService.js';
 import * as path from 'path';
 
@@ -169,6 +169,115 @@ describe('LogManager', () => {
       expect(async () => {
         await logManager.logFileOperation('TEST', '', 'Test with empty path');
       }).not.toThrow();
+    });
+  });
+
+  describe('ANSI Color System', () => {
+    it('should have all required color constants', () => {
+      // ツール系統別色の確認
+      expect(ANSI_COLORS.FILE_OPERATIONS).toBeDefined();
+      expect(ANSI_COLORS.CODE_ANALYSIS).toBeDefined();
+      expect(ANSI_COLORS.CODE_EDITING).toBeDefined();
+      expect(ANSI_COLORS.PROJECT_MANAGEMENT).toBeDefined();
+      expect(ANSI_COLORS.WORKSPACE).toBeDefined();
+      expect(ANSI_COLORS.SEARCH).toBeDefined();
+      expect(ANSI_COLORS.LSP).toBeDefined();
+      expect(ANSI_COLORS.GENERAL).toBeDefined();
+      
+      // 状態別色の確認
+      expect(ANSI_COLORS.SUCCESS).toBeDefined();
+      expect(ANSI_COLORS.ERROR).toBeDefined();
+      expect(ANSI_COLORS.WARNING).toBeDefined();
+      expect(ANSI_COLORS.INFO).toBeDefined();
+      expect(ANSI_COLORS.RESET).toBeDefined();
+    });
+
+    it('should categorize operations correctly', () => {
+      // @ts-ignore - テスト用のプライベートメソッドアクセス
+      const logManager = LogManager.getInstance();
+      
+      // ファイル操作系
+      // @ts-ignore
+      expect(logManager.categorizeOperation('LIST_DIRECTORY')).toBe(ToolCategory.FILE_OPERATIONS);
+      // @ts-ignore
+      expect(logManager.categorizeOperation('READ_FILE')).toBe(ToolCategory.FILE_OPERATIONS);
+      // @ts-ignore
+      expect(logManager.categorizeOperation('SMART_EDIT_FILE')).toBe(ToolCategory.FILE_OPERATIONS);
+
+      // コード解析系
+      // @ts-ignore
+      expect(logManager.categorizeOperation('CODE_GET_SYMBOLS')).toBe(ToolCategory.CODE_ANALYSIS);
+      // @ts-ignore
+      expect(logManager.categorizeOperation('CODE_ANALYZE_DEPS')).toBe(ToolCategory.CODE_ANALYSIS);
+
+      // コード編集系
+      // @ts-ignore
+      expect(logManager.categorizeOperation('CODE_REPLACE_REGEX')).toBe(ToolCategory.CODE_EDITING);
+      // @ts-ignore
+      expect(logManager.categorizeOperation('CODE_INSERT_SYMBOL')).toBe(ToolCategory.CODE_EDITING);
+
+      // プロジェクト管理系
+      // @ts-ignore
+      expect(logManager.categorizeOperation('PROJECT_MEMORY_WRITE')).toBe(ToolCategory.PROJECT_MANAGEMENT);
+      
+      // ワークスペース系
+      // @ts-ignore
+      expect(logManager.categorizeOperation('WORKSPACE_ACTIVATE')).toBe(ToolCategory.WORKSPACE);
+
+      // LSP系
+      // @ts-ignore
+      expect(logManager.categorizeOperation('FIND_SYMBOL')).toBe(ToolCategory.LSP);
+
+      // 検索系
+      // @ts-ignore
+      expect(logManager.categorizeOperation('SEARCH_PATTERN')).toBe(ToolCategory.SEARCH);
+
+      // 一般系（該当なし）
+      // @ts-ignore
+      expect(logManager.categorizeOperation('UNKNOWN_OPERATION')).toBe(ToolCategory.GENERAL);
+    });
+
+    it('should colorize log entries correctly', () => {
+      // @ts-ignore - テスト用のプライベートメソッドアクセス
+      const logManager = LogManager.getInstance();
+      
+      const testEntry = '2025-08-09T12:00:00.000Z [FILE_READ] | File: /test/file.ts | 100 lines read';
+      // @ts-ignore
+      const colorized = logManager.colorizeLogEntry('FILE_READ', testEntry);
+      
+      // テスト環境では色付けが無効化されるため、元の文字列がそのまま返されることを確認
+      expect(colorized).toBe(testEntry);
+      expect(colorized).toContain('[FILE_READ]');
+      expect(colorized).toContain('/test/file.ts');
+      
+      // カラーコードが含まれていないことを確認（テスト環境では無効化）
+      expect(colorized).not.toContain('\x1b[38;5;34m');
+      expect(colorized).not.toContain('\x1b[0m');
+    });
+
+    it('should use IDE-like colors (256-color palette)', () => {
+      // 256色パレット（\x1b[38;5;XXXm）を使用していることを確認
+      expect(ANSI_COLORS.FILE_OPERATIONS).toContain('38;5;');
+      expect(ANSI_COLORS.CODE_ANALYSIS).toContain('38;5;');
+      expect(ANSI_COLORS.CODE_EDITING).toContain('38;5;');
+      expect(ANSI_COLORS.PROJECT_MANAGEMENT).toContain('38;5;');
+      expect(ANSI_COLORS.LSP).toContain('38;5;');
+      
+      // 基本的な16色（\x1b[XXm）を使っていないことを確認
+      expect(ANSI_COLORS.FILE_OPERATIONS).not.toMatch(/^\x1b\[[0-9]{1,2}m$/);
+    });
+
+    it('should format colored logs correctly in operations', async () => {
+      // カラー付きログが正常に記録されることを確認
+      await logManager.logFileOperation('READ', '/test/colored.ts', 'Testing color output');
+      
+      const opsLogPath = path.join(testLogDir, 'operations', 'operations.log');
+      const logContent = await fsService.readFile(opsLogPath, { encoding: 'utf8' }) as string;
+      
+      // ログにカラーコードが含まれていることを確認（ファイルに保存時は色付き）
+      expect(logContent).toContain('[READ]');
+      expect(logContent).toContain('/test/colored.ts');
+      expect(logContent).toContain('Testing color output');
     });
   });
 

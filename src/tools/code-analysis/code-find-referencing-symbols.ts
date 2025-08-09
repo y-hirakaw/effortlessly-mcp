@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 // import { HttpLSPClient } from '../../services/lsp-proxy/http-lsp-client.js';
 
@@ -160,6 +161,15 @@ export const codeFindReferencingSymbolsTool: MdcToolImplementation<CodeFindRefer
         filesScanned: searchContext.filesScanned,
         executionTimeMs: executionTime,
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logLSPOperation(
+        'FIND_REFERENCING_SYMBOLS',
+        params.target_symbol,
+        undefined,
+        totalReferences
+      );
 
       return {
         target_symbol: params.target_symbol,

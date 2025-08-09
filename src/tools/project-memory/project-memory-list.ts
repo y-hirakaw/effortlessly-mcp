@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { ProjectMemoryService } from '../../services/project-memory.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 
 const ProjectMemoryListSchema = z.object({
@@ -116,6 +117,14 @@ export class ProjectMemoryListTool extends BaseTool {
         tag_distribution: statistics.tagDistribution
       };
     }
+
+    // 操作ログ記録
+    const logManager = LogManager.getInstance();
+    await logManager.logOperation(
+      'PROJECT_MEMORY_LIST',
+      null,
+      `Listed ${listResult.filteredCount} project memories${params.filter_tags?.length ? ` (filtered by tags: ${params.filter_tags.join(', ')})` : ''}`
+    );
 
     return this.createTextResult(JSON.stringify(response, null, 2));
   }

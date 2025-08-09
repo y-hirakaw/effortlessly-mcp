@@ -16,6 +16,44 @@ export enum LogType {
   OPERATIONS = 'operations'
 }
 
+// ツール系統の定義
+export enum ToolCategory {
+  FILE_OPERATIONS = 'file-operations',
+  CODE_ANALYSIS = 'code-analysis',
+  CODE_EDITING = 'code-editing',
+  PROJECT_MANAGEMENT = 'project-management',
+  WORKSPACE = 'workspace',
+  SEARCH = 'search',
+  LSP = 'lsp',
+  GENERAL = 'general'
+}
+
+// ANSIカラーコード - IDE風の落ち着いた色合い
+export const ANSI_COLORS = {
+  // ツール系統別の色定義（IDEライクな落ち着いた色）
+  FILE_OPERATIONS: '\x1b[38;5;34m',    // 落ち着いた緑 (ファイル操作)
+  CODE_ANALYSIS: '\x1b[38;5;75m',      // 落ち着いた青 (コード解析)  
+  CODE_EDITING: '\x1b[38;5;172m',      // 落ち着いたオレンジ (コード編集)
+  PROJECT_MANAGEMENT: '\x1b[38;5;141m', // 落ち着いたマゼンタ (プロジェクト管理)
+  WORKSPACE: '\x1b[38;5;73m',          // 落ち着いたシアン (ワークスペース)
+  SEARCH: '\x1b[38;5;249m',            // 明るいグレー (検索)
+  LSP: '\x1b[38;5;167m',               // 落ち着いた赤 (LSP操作)
+  GENERAL: '\x1b[38;5;244m',           // ダークグレー (一般)
+  
+  // 状態別の色（IDEライク）
+  SUCCESS: '\x1b[38;5;46m',            // 明るい緑
+  ERROR: '\x1b[38;5;196m',             // 鮮やかな赤
+  WARNING: '\x1b[38;5;214m',           // 温かいオレンジ
+  INFO: '\x1b[38;5;117m',              // ソフトブルー
+  
+  // リセット
+  RESET: '\x1b[0m',
+  
+  // スタイル
+  BOLD: '\x1b[1m',
+  DIM: '\x1b[2m'
+} as const;
+
 interface LogConfig {
   operations?: {
     enabled?: boolean;
@@ -59,6 +97,7 @@ export class LogManager {
   private getCurrentDateString(): string {
     return new Date().toISOString().split('T')[0];
   }
+
 
   /**
    * 設定ファイルを読み込み
@@ -221,7 +260,8 @@ ${diffContent}
       const fileInfo = filePath ? ` | File: ${filePath}` : '';
       const metadataStr = metadata ? ` | Metadata: ${JSON.stringify(metadata)}` : '';
       
-      const logEntry = `${timestamp} [${operation.toUpperCase()}]${fileInfo} | ${details}${metadataStr}\n`;
+      const baseLogEntry = `${timestamp} [${operation.toUpperCase()}]${fileInfo} | ${details}${metadataStr}\n`;
+      const logEntry = this.colorizeLogEntry(operation.toUpperCase(), baseLogEntry);
 
       await fsService.appendFile(logFile, logEntry, { encoding: 'utf8' });
     } catch (error) {
@@ -277,6 +317,107 @@ ${diffContent}
    */
   public async forceRotate(logType: LogType): Promise<void> {
     await this.rotateLog(logType, this.currentDate);
+  }
+
+  /**
+   * 操作名を基にツール系統を分類
+   */
+  private categorizeOperation(operation: string): ToolCategory {
+    const op = operation.toUpperCase();
+    
+    // 具体的なパターンから優先的にマッチ（より具体的なものを先に）
+    
+    // プロジェクト管理系（PROJECT_MEMORY_WRITEなど、WRITEを含むが特殊なもの）
+    if (op.includes('PROJECT') || op.includes('MEMORY') || op.includes('WORKFLOW')) {
+      return ToolCategory.PROJECT_MANAGEMENT;
+    }
+    
+    // ワークスペース系
+    if (op.includes('WORKSPACE')) {
+      return ToolCategory.WORKSPACE;
+    }
+    
+    // コード解析系
+    if (op.includes('CODE_GET') || op.includes('CODE_ANALYZE') || 
+        op.includes('SYMBOLS') || op.includes('HIERARCHY') || op.includes('DEPENDENCIES')) {
+      return ToolCategory.CODE_ANALYSIS;
+    }
+    
+    // コード編集系
+    if (op.includes('CODE_REPLACE') || op.includes('CODE_INSERT') || 
+        op.includes('REGEX') || op.includes('SYMBOL_BODY')) {
+      return ToolCategory.CODE_EDITING;
+    }
+    
+    // LSP系
+    if (op.includes('FIND_SYMBOL') || op.includes('FIND_REFERENCES') || 
+        op.includes('LSP') || op.includes('REFERENCING')) {
+      return ToolCategory.LSP;
+    }
+    
+    // 検索系
+    if (op.includes('SEARCH') || op.includes('PATTERN')) {
+      return ToolCategory.SEARCH;
+    }
+    
+    // ファイル操作系（汎用的なキーワードなので最後の方）
+    if (op.includes('READ') || op.includes('WRITE') || op.includes('LIST') || 
+        op.includes('FILE') || op.includes('DIRECTORY') || op.includes('METADATA') ||
+        op.includes('INSERT_TEXT') || op.includes('SMART_EDIT')) {
+      return ToolCategory.FILE_OPERATIONS;
+    }
+    
+    // デフォルトは一般
+    return ToolCategory.GENERAL;
+  }
+
+  /**
+   * ログエントリをANSIカラーで装飾
+   */
+  private colorizeLogEntry(operation: string, logEntry: string): string {
+    // テスト環境では色付けを無効化
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true') {
+      return logEntry;
+    }
+
+    const category = this.categorizeOperation(operation);
+    
+    let color: string;
+    switch (category) {
+      case ToolCategory.FILE_OPERATIONS:
+        color = ANSI_COLORS.FILE_OPERATIONS;
+        break;
+      case ToolCategory.CODE_ANALYSIS:
+        color = ANSI_COLORS.CODE_ANALYSIS;
+        break;
+      case ToolCategory.CODE_EDITING:
+        color = ANSI_COLORS.CODE_EDITING;
+        break;
+      case ToolCategory.PROJECT_MANAGEMENT:
+        color = ANSI_COLORS.PROJECT_MANAGEMENT;
+        break;
+      case ToolCategory.WORKSPACE:
+        color = ANSI_COLORS.WORKSPACE;
+        break;
+      case ToolCategory.SEARCH:
+        color = ANSI_COLORS.SEARCH;
+        break;
+      case ToolCategory.LSP:
+        color = ANSI_COLORS.LSP;
+        break;
+      case ToolCategory.GENERAL:
+      default:
+        color = ANSI_COLORS.GENERAL;
+        break;
+    }
+    
+    // 操作名部分（[OPERATION]）に色を適用
+    const colorizedEntry = logEntry.replace(
+      /\[([^\]]+)\]/,
+      `${color}[$1]${ANSI_COLORS.RESET}`
+    );
+    
+    return colorizedEntry;
   }
 
   /**

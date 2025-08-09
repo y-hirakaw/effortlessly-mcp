@@ -1,4 +1,5 @@
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { ToolExecutionError } from '../../types/errors.js';
 import { WorkspaceManager } from './workspace-manager.js';
 import { WorkspaceListItem } from './types.js';
@@ -61,6 +62,14 @@ export const workspaceListAllTool = {
       } else {
         message = `${workspaces.length}個のワークスペースが登録されています`;
       }
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logOperation(
+        'WORKSPACE_LIST_ALL',
+        null,
+        `Listed ${workspaces.length} workspaces${activeWorkspace ? ` (active: ${activeWorkspace})` : ''}`
+      );
 
       return {
         workspaces,

@@ -1,4 +1,5 @@
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { ToolExecutionError } from '../../types/errors.js';
 import { WorkspaceManager } from './workspace-manager.js';
 import { WorkspaceInfo } from './types.js';
@@ -52,6 +53,14 @@ export const workspaceGetInfoTool = {
         status: workspace.status,
         file_count: workspace.file_count,
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logOperation(
+        'WORKSPACE_GET_INFO',
+        workspace.root_path,
+        `Retrieved info for workspace "${workspace.name}" (${workspace.file_count} files)`
+      );
 
       return {
         hasActiveWorkspace: true,

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Stats } from 'node:fs';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
@@ -112,6 +113,14 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
         recursive: params.recursive,
         pattern: params.pattern,
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logFileOperation(
+        'LIST_DIRECTORY',
+        dirPath,
+        `Listed ${limitedEntries.length}/${entries.length} entries${params.recursive ? ' (recursive)' : ''}${params.pattern ? ` with pattern "${params.pattern}"` : ''}`
+      );
 
       return {
         entries: limitedEntries,

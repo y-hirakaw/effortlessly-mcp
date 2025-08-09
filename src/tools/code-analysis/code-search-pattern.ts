@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
@@ -156,6 +157,15 @@ export const codeSearchPatternTool: MdcToolImplementation<CodeSearchPatternParam
         filesScanned: searchContext.filesScanned,
         executionTimeMs: executionTime,
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logSearchOperation(
+        'CODE_SEARCH_PATTERN',
+        params.pattern,
+        totalMatches,
+        params.workspace_path || 'workspace'
+      );
 
       return {
         total_found: results.length,

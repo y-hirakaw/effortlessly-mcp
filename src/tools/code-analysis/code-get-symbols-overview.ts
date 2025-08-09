@@ -10,6 +10,7 @@ import type { SymbolKind } from 'vscode-languageserver-protocol';
 import { TypeScriptLSP, SwiftLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { symbolKindToString } from './types.js';
 
 /**
@@ -195,6 +196,15 @@ export const codeGetSymbolsOverviewTool = {
       };
 
       logger.info(`Symbols overview completed: ${files.length} files, ${totalSymbols} symbols`);
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logLSPOperation(
+        'GET_SYMBOLS_OVERVIEW',
+        params.relative_path,
+        undefined,
+        totalSymbols
+      );
 
       return {
         files: files.sort((a, b) => a.relative_path.localeCompare(b.relative_path)),

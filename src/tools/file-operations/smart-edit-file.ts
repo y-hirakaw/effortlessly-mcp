@@ -268,7 +268,7 @@ export class SmartEditFileTool extends BaseTool {
 
       // 6. プレビューモードの場合
       if (params.preview_mode) {
-        // プレビュー用diff生成
+        // プレビュー用diff生成（カラーを無効化）
         const { highQualityDiff } = await import('../../utils/high-quality-diff.js');
         const previewDiff = highQualityDiff.generateDiff(originalContent, editResult.newContent, params.file_path, {
           contextLines: 3,
@@ -288,13 +288,8 @@ export class SmartEditFileTool extends BaseTool {
           diff_output: previewDiff
         };
 
-        // プレビューdiff表示を含む結果出力
-        let previewOutput = JSON.stringify(result, null, 2);
-        if (previewDiff && previewDiff.trim()) {
-          previewOutput += `\n\n${previewDiff}`;
-        }
-        
-        return this.createTextResult(previewOutput);
+        // プレビュー結果はJSONのみで返す（diffは結果内に含む）
+        return this.createTextResult(JSON.stringify(result, null, 2));
       }
 
       // 7. 置換結果の整合性チェック（既存ファイルのみ）
@@ -311,7 +306,7 @@ export class SmartEditFileTool extends BaseTool {
         backupPath = await this.createBackup(params.file_path, originalContent);
       }
 
-      // 9. diff生成（コンソール出力用）
+      // 9. diff生成（コンソール出力用、テスト環境では色なし）
       const { highQualityDiff } = await import('../../utils/high-quality-diff.js');
       const diffOutput = highQualityDiff.generateDiff(originalContent, editResult.newContent, params.file_path, {
         contextLines: 3,

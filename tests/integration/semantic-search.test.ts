@@ -10,7 +10,7 @@ import { codeAnalyzeDependenciesTool } from '../../build/tools/code-analysis/cod
 import { WorkspaceManager } from '../../build/tools/project-management/workspace-manager.js';
 import { Logger } from '../../build/services/logger.js';
 
-const testProjectPath = path.join(process.cwd(), 'test-semantic-search-project');
+const testProjectPath = path.join(process.cwd(), 'test-semantic-search-project-ts');
 const logger = Logger.getInstance();
 
 describe('Semantic Search Tools Integration Tests', () => {
