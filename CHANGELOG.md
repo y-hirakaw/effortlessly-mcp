@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2025-08-09
+
+### Added
+- 🎯 **LSP設定システム改善**
+  - 新しい `enabled_languages` リスト形式による直感的な言語サーバー選択
+  - 各言語サーバーの詳細設定を `language_configurations` セクションに分離
+  - コメントアウト（`# - python`）による簡単な有効/無効切り替え
+  - 利用可能言語とセットアップ要件の包括的なドキュメント化
+- 🚀 **LSP自動起動機能統合**
+  - AutoWorkspaceManagerにLSP自動初期化機能を追加
+  - LSPManager、LSPAutoLauncher、LSPDependencyManager の統合
+  - ワークスペースアクティベーション時のLSPサーバー自動起動
+  - 依存関係の自動検出・インストール機能
+
+### Changed
+- 📖 **設定構造の大幅改善**
+  - 従来の複雑な階層構造（`lsp_servers.supported_languages.{language}.enabled`）を簡素化
+  - 設定の可視性向上：有効な言語が一目で確認可能
+  - 保守性向上：新しい言語の追加が容易
+  - エラーの削減：YAML構造エラーのリスク最小化
+- 🔧 **ドキュメント更新**
+  - `docs/RDD/RDD_lsp.md` を最新の設定構造で更新
+  - 設定改善の利点を詳細に説明
+  - `docs/RDD/RDD_ts_lsp.md` を統合・再構成
+
+### Fixed
+- ⚡ **LSP動作検証**
+  - Claude Code再起動後のLSP自動起動動作確認完了
+  - TypeScript Language Server（PID: 66330）とSwift SourceKit-LSP（PID: 66515）の正常動作確認
+  - LSPプロキシサーバー（ポート3001）の安定動作確認
+
+### Technical Details
+- Package version: 1.0.7 → 1.0.8
+- 12ファイル変更、2379行追加、535行削除
+- 新規ファイル：4つのLSP関連コンポーネント
+- テストファイル追加：LSP自動起動機能の統合テスト
+
+## [1.0.7] - 2025-08-09
+
+### Added
+- 🚀 **LSP自動起動とワークスペース管理統合システム**
+  - AutoWorkspaceManagerによる自動ワークスペース検出・アクティベーション
+  - プロジェクトタイプ自動判定とLSPサーバー自動選択
+  - LSPサーバー自動起動機能の基盤実装
+- 📦 **新規ファイル作成時のdiff表示機能**
+  - 新規ファイル作成時の視覚的フィードバック強化
+  - 作成前/作成後の差分表示でファイル内容確認可能
+
+### Enhanced
+- ⚡ **workspace_activate大幅高速化**
+  - LSP/インデックス自動起動対応
+  - プロジェクト設定の自動検出と適用
+- 🔧 **全10のコード解析ツールでLSP自動起動対応**
+  - LSPサーバーが起動していない場合の自動起動
+  - シンボル検索、参照検索、階層取得等の信頼性向上
+
+### Technical Infrastructure
+- LSPAutoLauncher, LSPDependencyManager基盤コンポーネント追加
+- AutoWorkspaceConfigManager実装
+- 統合テストスイート拡充
+
 ## [1.0.6] - 2025-08-09
 
 ### Added
