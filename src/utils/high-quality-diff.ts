@@ -1,14 +1,26 @@
 /**
  * 高品質なdiff生成ユーティリティ
  * diffパッケージを使用してgit diffライクな出力を生成
+ * 設定ファイルによる閾値カスタマイズ対応
  */
 
 import { createPatch, diffLines } from 'diff';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 export interface DiffOptions {
   contextLines?: number;
   useColors?: boolean;
   showLineNumbers?: boolean;
+}
+
+interface DiffConfig {
+  max_lines_for_detailed_diff: number;
+  display_options: {
+    default_context_lines: number;
+    use_colors: boolean;
+  };
 }
 
 export class HighQualityDiff {
@@ -20,11 +32,68 @@ export class HighQualityDiff {
     RESET: '\x1b[0m'    // リセット
   };
 
+  private config: DiffConfig | null = null;
+  private configLoadTime: number = 0;
+  private readonly CONFIG_CACHE_DURATION = 60000; // 1分間キャッシュ
+
+  /**
+   * 設定ファイルをロード（キャッシュ付き）
+   */
+  public loadConfig(): DiffConfig {
+    const now = Date.now();
+    
+    // キャッシュが有効な場合は既存の設定を返す
+    if (this.config && (now - this.configLoadTime) < this.CONFIG_CACHE_DURATION) {
+      return this.config;
+    }
+
+    // デフォルト設定
+    const defaultConfig: DiffConfig = {
+      max_lines_for_detailed_diff: 500,
+      display_options: {
+        default_context_lines: 3,
+        use_colors: false
+      }
+    };
+
+    try {
+      const configPath = path.resolve('.claude/workspace/effortlessly/config/diff-display.yaml');
+      
+      if (fs.existsSync(configPath)) {
+        const configFile = fs.readFileSync(configPath, 'utf-8');
+        const userConfig = yaml.load(configFile) as Partial<DiffConfig>;
+        
+        // デフォルト設定とユーザー設定をマージ
+        this.config = {
+          max_lines_for_detailed_diff: userConfig.max_lines_for_detailed_diff ?? defaultConfig.max_lines_for_detailed_diff,
+          display_options: {
+            ...defaultConfig.display_options,
+            ...userConfig.display_options
+          }
+        };
+      } else {
+        // 設定ファイルが存在しない場合はデフォルト設定を使用
+        this.config = defaultConfig;
+      }
+    } catch (error) {
+      // 設定ファイル読み込みに失敗した場合はデフォルト設定を使用
+      console.warn('Failed to load diff config, using defaults:', error);
+      this.config = defaultConfig;
+    }
+
+    this.configLoadTime = now;
+    return this.config;
+  }
+
   /**
    * 2つのファイル内容からdiffを生成
    */
   generateDiff(oldContent: string, newContent: string, filePath: string, options: DiffOptions = {}): string {
-    const { contextLines = 3, useColors = true } = options;
+    const config = this.loadConfig();
+    const { 
+      contextLines = config.display_options.default_context_lines, 
+      useColors = config.display_options.use_colors 
+    } = options;
     const colors = useColors ? this.COLORS : { RED: '', GREEN: '', CYAN: '', YELLOW: '', RESET: '' };
     
     // 内容が同じ場合は何も出力しない
@@ -114,116 +183,37 @@ export class HighQualityDiff {
   }
 
   /**
-   * 大規模変更かどうかを判定
+   * 大規模変更かどうかを判定（設定ベース）
    */
   private isLargeChange(oldContent: string, newContent: string): boolean {
+    const config = this.loadConfig();
+    
     const oldLines = oldContent.split('\n');
     const newLines = newContent.split('\n');
     
-    // 行数の変化が大きい場合
-    const lineDiff = Math.abs(oldLines.length - newLines.length);
-    if (lineDiff > 5) return true;
-    
-    // ファイル自体が大きい場合
+    // ファイルの最大行数が閾値を超える場合はサマリー表示
     const maxLines = Math.max(oldLines.length, newLines.length);
-    if (maxLines > 20) return true;
-    
-    // ファイルサイズが大きい場合
-    const totalSize = oldContent.length + newContent.length;
-    if (totalSize > 2000) return true;
-    
-    return false;
+    return maxLines > config.max_lines_for_detailed_diff;
   }
 
   /**
-   * 最適化されたdiff生成（git diff風の軽量表示）
+   * 最適化されたdiff生成（git diff風の詳細表示）
    */
   private generateOptimizedDiff(oldContent: string, newContent: string, filePath: string, colors: any, contextLines: number): string {
-    // まず変更箇所を分析
-    const changeAnalysis = this.analyzeChanges(oldContent, newContent);
-    
-    // 大規模変更の場合はサマリー表示
+    // 大規模変更の場合のみサマリー表示
     if (this.isLargeChange(oldContent, newContent)) {
       return this.generateSmartSummary(oldContent, newContent, filePath, colors);
     }
     
-    // 軽量diff（変更箇所のみ表示）
-    if (changeAnalysis.isMinorChange) {
-      return this.generateLightweightDiff(oldContent, newContent, filePath, colors, contextLines);
-    }
-    
-    // 通常のdiffパッチ生成
+    // 通常のdiffパッチ生成（詳細表示を優先）
     const patch = createPatch(filePath, oldContent, newContent, '', '', {
-      context: Math.min(contextLines, 2)  // 最大2行のコンテキスト
+      context: contextLines  // フルコンテキスト使用
     });
     
     return this.colorizeUnifiedDiff(patch, colors);
   }
   
-  /**
-   * 変更箇所の分析
-   */
-  private analyzeChanges(oldContent: string, newContent: string): { isMinorChange: boolean; changedLinesCount: number } {
-    const diff = diffLines(oldContent, newContent);
-    let changedLines = 0;
-    
-    diff.forEach(part => {
-      if (part.added || part.removed) {
-        changedLines += (part.value.split('\n').length - 1);
-      }
-    });
-    
-    const totalOldLines = oldContent.split('\n').length;
-    const changeRatio = changedLines / totalOldLines;
-    
-    return {
-      isMinorChange: changedLines <= 8 && changeRatio <= 0.8 && totalOldLines <= 10,
-      changedLinesCount: changedLines
-    };
-  }
 
-  /**
-   * 軽量diff生成（変更箇所のみ表示）
-   */
-  private generateLightweightDiff(oldContent: string, newContent: string, filePath: string, colors: any, contextLines: number): string {
-    const diff = diffLines(oldContent, newContent);
-    
-    let result = `${colors.CYAN}--- ${filePath}${colors.RESET}\n`;
-    result += `${colors.CYAN}+++ ${filePath}${colors.RESET}\n`;
-    
-    let outputLines: string[] = [];
-    
-    diff.forEach(part => {
-      if (part.added || part.removed) {
-        const lines = part.value.split('\n');
-        lines.forEach((line, index) => {
-          if (index === lines.length - 1 && line === '') return;
-          
-          const prefix = part.added ? '+' : part.removed ? '-' : ' ';
-          const color = part.added ? colors.GREEN : part.removed ? colors.RED : '';
-          outputLines.push(`${color}${prefix}${line}${colors.RESET}`);
-        });
-      } else {
-        // コンテキスト行（変更されていない行）
-        const lines = part.value.split('\n');
-        const contextStart = Math.max(0, lines.length - contextLines);
-        const contextEnd = Math.min(lines.length - 1, contextLines);
-        
-        for (let i = contextStart; i < contextEnd; i++) {
-          if (i < lines.length - 1) {
-            outputLines.push(` ${lines[i]}`);
-          }
-        }
-      }
-    });
-    
-    if (outputLines.length > 0) {
-      result += `${colors.YELLOW}@@ Changes detected @@${colors.RESET}\n`;
-      result += outputLines.join('\n');
-    }
-    
-    return result;
-  }
 
   /**
    * スマートサマリー生成（大規模変更用）

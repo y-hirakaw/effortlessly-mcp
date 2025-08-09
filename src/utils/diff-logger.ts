@@ -39,9 +39,9 @@ export class DiffLogger {
       // ログディレクトリが存在しない場合は作成
       await fsService.mkdir(logDir, { recursive: true });
       
-      // 精密なdiff生成：実際の変更データのみ
+      // 精密なdiff生成：詳細コンテキスト表示
       const diff = highQualityDiff.generateDiff(originalContent, newContent, filePath, {
-        contextLines: 1,  // 最小コンテキスト
+        contextLines: 3,  // デフォルトコンテキスト
         useColors: true
       });
       

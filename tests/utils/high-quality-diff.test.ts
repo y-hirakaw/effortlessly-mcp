@@ -73,8 +73,8 @@ describe('HighQualityDiff', () => {
     });
 
     it('should handle large changes with summary', () => {
-      const oldContent = 'line\n'.repeat(30);
-      const newContent = 'new line\n'.repeat(40);
+      const oldContent = 'line\n'.repeat(1000);
+      const newContent = 'new line\n'.repeat(1200);
 
       const result = diffInstance.generateDiff(
         oldContent,

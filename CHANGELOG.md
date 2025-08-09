@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2025-08-09
+
+### Added
+- 🎯 **設定可能なdiff表示システム**
+  - YAML設定ファイル (`diff-display.yaml`) による大規模ファイル判定閾値のカスタマイズ
+  - `max_lines_for_detailed_diff` パラメータで詳細diff vs サマリー表示の切り替え
+  - `default_context_lines` でdiff表示時のコンテキスト行数を調整可能
+  - `use_colors` でANSI色コードの有効/無効を制御
+- ⚙️ **設定システムの堅牢性**
+  - 1分間の設定キャッシュ機能
+  - 無効YAML/設定未存在時の安全なフォールバック
+  - 部分設定でのデフォルト値マージ機能
+- 🧪 **包括的テスト追加**
+  - `high-quality-diff-config.test.ts` - 7つの設定機能テスト
+  - デフォルト設定、カスタム閾値、表示オプション、エラーハンドリングのテスト
+  - 既存テストの設定変更対応修正
+
+### Changed  
+- `HighQualityDiff.loadConfig()` メソッドをpublicに変更
+- `DiffLogger` でハードコードされた値を設定ファイル準拠に変更
+
+### Documentation
+- 📚 **新規ドキュメント作成**
+  - `docs/DIFF-CONFIGURATION.md` - 詳細な設定ガイド
+- 📝 **既存ドキュメント更新**
+  - `README.md` - v1.0.5機能追加、ワークスペース構造更新
+  - `docs/USAGE.md` - 設定セクション追加、関連ドキュメントリンク更新
+
 ## [1.0.4] - 2025-08-08
 
 ### Added

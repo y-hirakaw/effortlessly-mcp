@@ -85,7 +85,7 @@ describe('DiffLogger', () => {
         'old line\n',
         'new line\n',
         'test.txt',
-        { contextLines: 1, useColors: true }
+        { contextLines: 3, useColors: true }
       );
     });
 
@@ -107,7 +107,7 @@ describe('DiffLogger', () => {
         'same content',
         'same content',
         'test.txt',
-        { contextLines: 1, useColors: true }
+        { contextLines: 3, useColors: true }
       );
     });
 
