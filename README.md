@@ -4,8 +4,9 @@
 
 **主要な特徴**：
 - 🔥 **21のMCPツール** - ファイル操作からLSP統合まで包括的サポート
-- ⚡ **高性能LSP統合** - TypeScript/Swift対応
+- ⚡ **高性能LSP統合** - TypeScript/Swift対応、**LSP自動起動機能**
 　- 今後の対応予定: Java, Kotlin, Go, Python
+- 🚀 **統合ワークスペース管理** - 統合設定システムと自動インデックス
 - 🛡️ **エンタープライズセキュリティ(開発中)** - 包括的なアクセス制御とログ監査
 - 🧪 **フォールバック機能** - LSP障害時のテキストベース検索
 
@@ -23,13 +24,16 @@
 - `smart_insert_text` - 柔軟な位置指定テキスト挿入（v1.0.4でdiff機能大幅強化）
 - `echo` - 接続テスト用
 
-> **✨ v1.0.6**: **設定ファイル統合化**
-> - 設定を `.claude/workspace/effortlessly/config.yaml` に統合
-> - `logging.operations.enabled` でoperationsログ制御
-> - `logging.diff` でdiff表示設定を一元管理
-> - 常にカラーコード使用でログファイル視認性向上
+> **🚀 v1.0.7 NEW**: **LSP自動起動とワークスペース統合システム**
+> - **ConfigManager**: 統合config.yaml設定管理システム
+> - **LSPServerManager**: LSPプロキシサーバー自動起動・管理
+> - **IndexService**: SQLiteベースシンボル・ファイルインデックス
+> - **LSP自動起動**: 主要コード解析ツールでLSP自動起動対応
+> - **高速化**: workspace_activate実行時間を大幅短縮（バックグラウンド処理）
 
-#### 🔍 **LSPを利用前提のもの** (10ツール)
+#### 🔍 **LSPを利用前提のもの** (10ツール) 
+> **⚡ v1.0.7**: 全ツールでLSP自動起動対応 - LSPサーバーが起動していない場合は自動で起動
+
 - `code_find_symbol` - シンボル検索（関数、クラス、変数等）
 - `code_find_references` - 参照検索とコード解析
 - `code_get_symbol_hierarchy` - シンボル階層構造取得
@@ -42,7 +46,9 @@
 - `code_replace_with_regex` - 正規表現によるコード置換
 
 #### 🗃️ **プロジェクトメモリ化関連** (7ツール)
-- `workspace_activate` - プロジェクトワークスペース活性化
+> **🚀 v1.0.7**: workspace_activate大幅高速化とLSP/インデックス自動起動対応
+
+- `workspace_activate` - プロジェクトワークスペース活性化（**LSP自動起動・インデックス自動作成**）
 - `workspace_get_info` - 現在のワークスペース情報取得
 - `workspace_list_all` - 登録済みワークスペース一覧
 - `project_memory_write` - プロジェクト固有知識の永続化（**固定ファイル名対応**）
@@ -125,24 +131,27 @@ LSP Proxy Server (localhost:3001)
 TypeScript/Go/Java/C++ LSP Servers
 ```
 
-### 📁 ワークスペース構造
+### 📁 ワークスペース構造 (v1.0.7統合設計)
 
 ```
 .claude/workspace/effortlessly/
-├── config/
-│   ├── workspace.yaml      # ワークスペース設定
-│   ├── security.yaml       # セキュリティ設定
-│   ├── whitelist.yaml      # アクセス制御
-│   └── diff-display.yaml   # diff表示設定（v1.0.5新機能）
+├── config.yaml            # 🚀 NEW: 統合設定ファイル（全設定を一元管理）
 ├── logs/
 │   ├── audit/             # 監査ログ
 │   ├── error/             # エラーログ
 │   └── debug/             # デバッグ情報
 ├── index/
-│   ├── symbols.db         # シンボルインデックス
+│   ├── symbols.db         # 🚀 NEW: SQLiteシンボルインデックス
 │   └── files.db           # ファイルインデックス
+├── memory/                # プロジェクトメモリ
+│   ├── project_structure_index.md
+│   ├── architecture_overview.md
+│   └── [その他の固定インデックス...]
+├── backups/               # 自動バックアップ
 └── temp/                  # 一時ファイル
 ```
+
+> **v1.0.7 統合設計**: 個別設定ファイル（workspace.yaml, security.yaml等）を`config.yaml`に統合し、管理を簡素化
 
 ## 技術仕様
 
