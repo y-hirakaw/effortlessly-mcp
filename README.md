@@ -46,15 +46,15 @@
 - `code_replace_with_regex` - 正規表現によるコード置換
 
 #### 🗃️ **プロジェクトメモリ化関連** (7ツール)
-> **🚀 v1.0.7**: workspace_activate大幅高速化とLSP/インデックス自動起動対応
+> **🚀 v1.0.9**: プロジェクトメモリ管理システム改善・分類システム導入
 
 - `workspace_activate` - プロジェクトワークスペース活性化（**LSP自動起動・インデックス自動作成**）
 - `workspace_get_info` - 現在のワークスペース情報取得
 - `workspace_list_all` - 登録済みワークスペース一覧
-- `project_memory_write` - プロジェクト固有知識の永続化（**固定ファイル名対応**）
-- `project_memory_read` - 保存された知識の取得（**5つの特化インデックス**）
-- `project_memory_list` - 利用可能メモリ一覧
-- `project_update_workflow` - プロジェクト更新ワークフロー生成
+- `project_memory_write` - プロジェクト固有知識の永続化（**分類システム対応**）
+- `project_memory_read` - 保存された知識の取得（**分類別アクセス**）
+- `project_memory_list` - 利用可能メモリ一覧（**カテゴリ別表示**）
+- `project_memory_update_workflow` - プロジェクトメモリ更新ワークフロー生成（**分類対応プロンプト**）
 
 > **✨ v1.0.2 新機能**: 特化プロジェクトインデックスシステム
 > - 固定ファイル名構造で常に最新情報にアクセス
@@ -147,7 +147,10 @@ TypeScript/Go/Java/C++ LSP Servers
 ├── index/
 │   ├── symbols.db         # 🚀 NEW: SQLiteシンボルインデックス
 │   └── files.db           # ファイルインデックス
-├── memory/                # プロジェクトメモリ
+├── memory/                # プロジェクトメモリ（分類システム対応）
+│   ├── generic/           # 🆕 汎用・再利用可能な知識
+│   ├── project_specific/  # 🆕 effortlessly-mcp固有情報
+│   ├── templates/         # 🆕 新規プロジェクト用テンプレート
 │   ├── project_structure_index.md
 │   ├── architecture_overview.md
 │   └── [その他の固定インデックス...]
@@ -162,7 +165,7 @@ TypeScript/Go/Java/C++ LSP Servers
 - **言語**: TypeScript (ES2022)
 - **ランタイム**: Node.js 20+
 - **MCP SDK**: @modelcontextprotocol/sdk
-- **テストフレームワーク**: Vitest（282テスト、100%成功）
+- **テストフレームワーク**: Vitest（**551テスト、100%成功**）
 - **リンター**: ESLint v9 + TypeScript strict mode
 - **設定形式**: YAML
 - **データベース**: SQLite（シンボル・ファイルインデックス）
@@ -192,7 +195,7 @@ TypeScript/Go/Java/C++ LSP Servers
 ## ステータス
 
 - ✅ **開発完了**: 全5フェーズ完了（FileSystemService Phase2A統合）
-- ✅ **テスト検証**: 282テスト、100%成功（v1.0.4で包括テスト追加）
+- ✅ **テスト検証**: **551テスト、100%成功**（v1.0.9でテスト品質大幅向上）
 - ✅ **Claude Code互換性**: ログ出力最適化により安定動作
 - 🧪 **Claude Code自動起動**: 検証中
 
@@ -200,11 +203,12 @@ TypeScript/Go/Java/C++ LSP Servers
 
 最新の変更内容や機能追加については、[CHANGELOG.md](CHANGELOG.md)をご確認ください。
 
-**最新リリース**: v1.0.8 (2025-08-09)
-- 🎯 **LSP設定システム改善** - 直感的な言語サーバー選択（`enabled_languages`リスト形式）
-- 💡 **設定の簡素化** - コメントアウトによる簡単な有効/無効切り替え
-- 📖 **設定ドキュメント強化** - 利用可能言語とセットアップ要件の明記
-- 🚀 **LSP自動起動検証** - Claude Code再起動後の動作確認完了
+**最新リリース**: v1.0.9 (2025-08-09)
+- 🚀 **プロジェクトメモリ管理システム改善** - `project_update_workflow` → `project_memory_update_workflow` に改名
+- 📂 **メモリ分類システム導入** - generic/project_specific/template の3カテゴリでナレッジ管理
+- 🎯 **分類対応プロンプト生成** - 各カテゴリに特化した適切なプロンプト自動生成
+- ⚡ **Swift LSP パフォーマンス向上** - タイムアウト時間最適化により安定性向上
+- ✅ **テスト品質向上** - **551テスト全成功**、DiffLogger修正によりテスト信頼性向上
 
 **v1.0.6 (2025-08-09)**
 - 🎛️ **設定ファイル統合化** - 設定を `.claude/workspace/effortlessly/config.yaml` に統合
