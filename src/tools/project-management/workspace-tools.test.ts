@@ -218,43 +218,55 @@ workspace:
       });
 
       it('複数のワークスペースを含む一覧を返す', async () => {
-        // 複数のワークスペースを設定
-        mockFs.readdir.mockImplementation((dirPath) => {
-          if (dirPath.toString().includes('config')) {
-            return Promise.resolve(['workspace1.yaml', 'workspace2.yaml'] as any);
-          }
-          return Promise.resolve([] as any);
-        });
-
+        // 統合config.yamlファイルをモック
         mockFs.readFile.mockImplementation((filePath) => {
-          if (filePath.toString().includes('workspace1.yaml')) {
+          if (filePath.toString().includes('config.yaml')) {
             return Promise.resolve(`
-workspace:
-  name: workspace1
-  root_path: /path/to/workspace1
-  created_at: "2024-01-01T00:00:00.000Z"
-  last_accessed: "2024-01-01T00:00:00.000Z"
-  settings:
-    index_enabled: true
-    lsp_servers: []
-    auto_save_logs: true
-    log_retention_days: 30
-    follow_symlinks: false
-`);
-          }
-          if (filePath.toString().includes('workspace2.yaml')) {
-            return Promise.resolve(`
-workspace:
-  name: workspace2
-  root_path: /path/to/workspace2
-  created_at: "2024-01-02T00:00:00.000Z"
-  last_accessed: "2024-01-02T00:00:00.000Z"
-  settings:
-    index_enabled: true
-    lsp_servers: []
-    auto_save_logs: true
-    log_retention_days: 30
-    follow_symlinks: false
+workspaces:
+  current: null
+  configurations:
+    workspace1:
+      root_path: /path/to/workspace1
+      name: workspace1
+      created_at: "2024-01-01T00:00:00.000Z"
+      last_accessed: "2024-01-01T00:00:00.000Z"
+      status: inactive
+      file_count: 100
+    workspace2:
+      root_path: /path/to/workspace2
+      name: workspace2
+      created_at: "2024-01-02T00:00:00.000Z"
+      last_accessed: "2024-01-02T00:00:00.000Z"
+      status: inactive
+      file_count: 150
+
+lsp_servers:
+  proxy_server:
+    enabled: true
+    host: localhost
+    port: 3001
+    auto_start: true
+
+indexing:
+  enabled: true
+  database_path: ".claude/workspace/effortlessly/index/symbols.db"
+
+logging:
+  audit:
+    enabled: true
+    level: info
+    retention_days: 30
+    max_file_size: "10MB"
+  error:
+    enabled: true
+    level: error
+    retention_days: 7
+    max_file_size: "5MB"
+  debug:
+    enabled: false
+    level: debug
+    retention_days: 3
+    max_file_size: "2MB"
 `);
           }
           return Promise.reject(new Error('File not found'));
@@ -277,32 +289,56 @@ workspace:
           isDirectory: () => true,
         } as any);
 
-        // 設定ファイル読み込みのモック（activateWorkspace用）
-        mockFs.readFile.mockResolvedValue(`
-workspace:
-  name: active-workspace
-  root_path: ${mockProjectPath}
-  created_at: "2024-01-01T00:00:00.000Z"
-  last_accessed: "2024-01-01T00:00:00.000Z"
-  settings:
-    index_enabled: true
-    lsp_servers: []
-    auto_save_logs: true
-    log_retention_days: 30
-    follow_symlinks: false
+        // 統合config.yamlファイルのモック設定（activateWorkspace用）
+        mockFs.readFile.mockImplementation((filePath) => {
+          if (filePath.toString().includes('config.yaml')) {
+            return Promise.resolve(`
+workspaces:
+  current: active-workspace
+  configurations:
+    active-workspace:
+      root_path: ${mockProjectPath}
+      name: active-workspace
+      created_at: "2024-01-01T00:00:00.000Z"
+      last_accessed: "2024-01-01T00:00:00.000Z"
+      status: active
+      file_count: 100
+
+lsp_servers:
+  proxy_server:
+    enabled: true
+    host: localhost
+    port: 3001
+    auto_start: true
+
+indexing:
+  enabled: true
+  database_path: ".claude/workspace/effortlessly/index/symbols.db"
+
+logging:
+  audit:
+    enabled: true
+    level: info
+    retention_days: 30
+    max_file_size: "10MB"
+  error:
+    enabled: true
+    level: error
+    retention_days: 7
+    max_file_size: "5MB"
+  debug:
+    enabled: false
+    level: debug
+    retention_days: 3
+    max_file_size: "2MB"
 `);
+          }
+          return Promise.reject(new Error('File not found'));
+        });
 
         await workspaceActivateTool.execute({
           workspace_path: mockProjectPath,
           name: 'active-workspace',
-        });
-
-        // 設定ファイルの存在をモック（listWorkspaces用）
-        mockFs.readdir.mockImplementation((dirPath) => {
-          if (dirPath.toString().includes('config')) {
-            return Promise.resolve(['active-workspace.yaml'] as any);
-          }
-          return Promise.resolve([] as any);
         });
 
         const result = await workspaceListAllTool.execute();

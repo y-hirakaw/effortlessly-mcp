@@ -10,6 +10,7 @@ import type { SymbolKind } from 'vscode-languageserver-protocol';
 import { TypeScriptLSP, SwiftLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
+
 import { LogManager } from '../../utils/log-manager.js';
 import { symbolKindToString } from './types.js';
 

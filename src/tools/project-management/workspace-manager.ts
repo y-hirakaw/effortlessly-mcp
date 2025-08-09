@@ -1,8 +1,10 @@
 import * as path from 'path';
 import * as os from 'os';
-import * as yaml from 'js-yaml';
 import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
+import { ConfigManager } from '../../services/ConfigManager.js';
+import { LSPServerManager } from '../../services/LSPServerManager.js';
+import { IndexService } from '../../services/IndexService.js';
 import { ValidationError, FileSystemError } from '../../types/errors.js';
 import { 
   WorkspaceConfig, 
@@ -21,10 +23,18 @@ export class WorkspaceManager {
   private readonly logger = Logger.getInstance();
   private readonly workspaceBaseDir: string;
   private currentWorkspace: WorkspaceInfo | null = null;
+  private configManager: ConfigManager;
+  private static lspServerManager: LSPServerManager;
+  private indexService: IndexService;
 
   private constructor() {
     // ワークスペースのベースディレクトリを.claude/workspace/effortlessly/に設定
     this.workspaceBaseDir = path.join(os.homedir(), '.claude', 'workspace', 'effortlessly');
+    this.configManager = new ConfigManager();
+    if (!WorkspaceManager.lspServerManager) {
+      WorkspaceManager.lspServerManager = new LSPServerManager();
+    }
+    this.indexService = new IndexService();
   }
 
   static getInstance(): WorkspaceManager {
@@ -41,12 +51,7 @@ export class WorkspaceManager {
     return this.workspaceBaseDir;
   }
 
-  /**
-   * ワークスペース設定ファイルのパスを取得
-   */
-  private getWorkspaceConfigPath(workspaceName: string): string {
-    return path.join(this.workspaceBaseDir, 'config', `${workspaceName}.yaml`);
-  }
+
 
   /**
    * ワークスペースディレクトリを初期化
@@ -118,8 +123,34 @@ export class WorkspaceManager {
         settings,
       };
 
-      // 設定ファイルの保存
-      await this.saveWorkspaceConfig(config);
+      // 統合設定への保存
+      await this.configManager.setWorkspaceConfig(validatedName, config);
+
+      // LSP サーバーの自動起動（バックグラウンド）
+      const lspConfig = await this.configManager.getLSPServerConfig();
+      if (lspConfig?.proxy_server?.auto_start && lspConfig.proxy_server.enabled) {
+        this.logger.info('Starting LSP proxy server in background');
+        WorkspaceManager.lspServerManager.startLSPProxy(validatedPath).catch(error => {
+          this.logger.warn('Failed to auto-start LSP proxy server', { error });
+        });
+      }
+
+      // インデックス作成の自動実行
+      const indexConfig = await this.configManager.getIndexingConfig();
+      if (indexConfig?.enabled) {
+        try {
+          this.logger.info('Initializing IndexService and starting workspace indexing');
+          await this.indexService.initialize();
+          
+          // バックグラウンドでインデックス作成を実行（非同期）
+          this.indexService.indexWorkspace(validatedPath).catch(error => {
+            this.logger.warn('Background indexing failed', { error });
+          });
+        } catch (error) {
+          this.logger.warn('Failed to initialize IndexService', { error });
+          // インデックス初期化失敗は非致命的エラーとして継続
+        }
+      }
 
       // 現在のワークスペースを先にセット（loadWorkspaceInfoでstatusが正しく決定されるため）
       this.currentWorkspace = {
@@ -169,8 +200,8 @@ export class WorkspaceManager {
         last_accessed: new Date().toISOString(),
       };
       
-      // 設定ファイルを更新
-      await this.saveWorkspaceConfig(updated);
+      // 統合設定を更新
+      await this.configManager.setWorkspaceConfig(updated.name, updated);
       this.currentWorkspace = updated;
     }
     
@@ -184,27 +215,22 @@ export class WorkspaceManager {
     try {
       await this.ensureWorkspaceStructure();
       
-      const configDir = path.join(this.workspaceBaseDir, 'config');
-      const fsService = FileSystemService.getInstance();
-      const files = await fsService.readdir(configDir) as string[];
-      
+      // 統合設定からワークスペース一覧を取得
+      const config = await this.configManager.loadConfig();
       const workspaces: WorkspaceListItem[] = [];
       
-      for (const file of files) {
-        if (path.extname(file) === '.yaml') {
-          const workspaceName = path.basename(file, '.yaml');
-          try {
-            const info = await this.loadWorkspaceInfo(workspaceName);
-            workspaces.push({
-              name: info.name,
-              root_path: info.root_path,
-              status: info.status,
-              last_accessed: info.last_accessed,
-              file_count: info.file_count,
-            });
-          } catch (error) {
-            this.logger.warn(`Failed to load workspace: ${workspaceName}`, { error });
-          }
+      for (const [workspaceName] of Object.entries(config.workspaces.configurations)) {
+        try {
+          const info = await this.loadWorkspaceInfo(workspaceName);
+          workspaces.push({
+            name: info.name,
+            root_path: info.root_path,
+            status: info.status,
+            last_accessed: info.last_accessed,
+            file_count: info.file_count,
+          });
+        } catch (error) {
+          this.logger.warn(`Failed to load workspace: ${workspaceName}`, { error });
         }
       }
       
@@ -220,34 +246,18 @@ export class WorkspaceManager {
     }
   }
 
-  /**
-   * ワークスペース設定を保存
-   */
-  private async saveWorkspaceConfig(config: WorkspaceConfig): Promise<void> {
-    const configPath = this.getWorkspaceConfigPath(config.name);
-    const yamlContent = yaml.dump({
-      workspace: config,
-    }, {
-      indent: 2,
-      lineWidth: -1,
-    });
-    
-    const fsService = FileSystemService.getInstance();
-    await fsService.writeFile(configPath, yamlContent, { encoding: 'utf8' });
-  }
+
 
   /**
    * ワークスペース情報を読み込み
    */
   private async loadWorkspaceInfo(workspaceName: string): Promise<WorkspaceInfo> {
-    const configPath = this.getWorkspaceConfigPath(workspaceName);
-    
     try {
-      const fsService = FileSystemService.getInstance();
-      const content = await fsService.readFile(configPath, { encoding: 'utf8' }) as string;
-      const data = yaml.load(content) as { workspace: WorkspaceConfig };
-      
-      const config = WorkspaceConfigValidator.validateConfig(data.workspace);
+      // 統合設定からワークスペース設定を取得
+      const config = await this.configManager.getWorkspaceConfig(workspaceName);
+      if (!config) {
+        throw new Error(`Workspace configuration not found: ${workspaceName}`);
+      }
       
       // ディレクトリの存在確認とファイル数の取得
       let fileCount: number | undefined;

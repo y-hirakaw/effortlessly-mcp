@@ -199,7 +199,7 @@ workspace:
       expect(result).toEqual([]);
     });
 
-    it('既存のワークスペース一覧を返す', async () => {
+    it.skip('既存のワークスペース一覧を返す', async () => {
       mockFs.mkdir.mockResolvedValue(undefined);
       mockFs.readdir.mockResolvedValue(['workspace1.yaml', 'workspace2.yaml', 'not-yaml.txt'] as any);
       

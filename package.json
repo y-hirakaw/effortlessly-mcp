@@ -1,6 +1,6 @@
 {
   "name": "effortlessly-mcp",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "An enterprise-grade MCP Server for secure code analysis and semantic search",
   "main": "./build/index.js",
   "type": "module",
