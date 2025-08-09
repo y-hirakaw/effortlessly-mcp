@@ -268,7 +268,7 @@ export class SmartInsertTextTool extends BaseTool {
           params.reference_text
         );
       } else {
-        diffLogger.logNewFileCreation(params.file_path, newContent, 'Smart Insert');
+        await diffLogger.logNewFileCreation(params.file_path, newContent, 'Smart Insert');
       }
 
       // 11. 結果をまとめる

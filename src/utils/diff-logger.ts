@@ -156,13 +156,28 @@ export class DiffLogger {
   /**
    * 新規ファイル作成時のログ出力
    */
-  public logNewFileCreation(filePath: string, content: string, operation: string): void {
-    Logger.getInstance().info(
-      `=== ${new Date().toISOString()} ===\n` +
-      `File: ${filePath} (${operation} - New File)\n` +
-      `[NEW FILE CREATED]\n` +
-      `Content:\n${content}\n` +
-      `========================`
-    );
+  /**
+   * 新規ファイル作成時のdiffログ出力
+   */
+  public async logNewFileCreation(filePath: string, content: string, operation: string): Promise<void> {
+    try {
+      const logManager = LogManager.getInstance();
+      
+      // 新規ファイル作成のdiff生成（空の内容から現在の内容へ）
+      const diff = highQualityDiff.generateDiff('', content, filePath, {
+        contextLines: 3,
+        useColors: true
+      });
+      
+      if (diff.trim() === '') {
+        return; // 空のファイルの場合はスキップ
+      }
+      
+      // LogManagerを使用してdiffログに出力
+      await logManager.logDiff('', content, filePath, `${operation} - New File`, diff);
+    } catch (error) {
+      // ログ出力エラーは無視（主要操作を妨げない）
+      Logger.getInstance().error('Failed to log new file creation diff:', error as Error);
+    }
   }
 }
