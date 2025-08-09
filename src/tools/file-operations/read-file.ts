@@ -2,9 +2,11 @@ import { z } from 'zod';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
+import { LogManager } from '../../utils/log-manager.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
+const logManager = LogManager.getInstance();
 
 // ツールのパラメータスキーマ
 const ReadFileParams = z.object({
@@ -122,6 +124,14 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
         linesRead,
         range
       });
+
+      // 操作ログ記録
+      const rangeInfo = range ? ` (lines ${range.start}-${range.end})` : '';
+      await logManager.logFileOperation(
+        'READ',
+        filePath,
+        `${totalLines} lines read${rangeInfo} | Size: ${stats.size} bytes`
+      );
 
       return {
         content,

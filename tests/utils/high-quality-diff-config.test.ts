@@ -54,8 +54,11 @@ describe('HighQualityDiff設定機能', () => {
       expect(smallDiff).toContain('-Line 2');
       expect(smallDiff).toContain('+Line 2 CHANGED');
 
-      // 大きなファイル（600行）はサマリー表示
-      const largeDiff = highQualityDiff.generateDiff(largeFile, largeFile + '\nNew line', 'large.txt');
+      // 大きなファイルで大きな変更（600行変更）をするとサマリー表示
+      const largeChangedFile = largeFile.split('\n').map((line, i) => 
+        i % 2 === 0 ? `${line} CHANGED` : line
+      ).join('\n'); // 300行変更（> 500行閾値）
+      const largeDiff = highQualityDiff.generateDiff(largeFile, largeChangedFile, 'large.txt');
       expect(largeDiff).toContain('Large change:');
       expect(largeDiff).toContain('Use git diff for detailed view');
     });
@@ -73,14 +76,17 @@ display_options:
 `;
       fs.writeFileSync(testConfigPath, strictConfig);
 
-      const mediumFile = Array(25).fill('line').map((line, i) => `${line} ${i + 1}`).join('\n');
-      const modifiedMedium = mediumFile.replace('line 10', 'line 10 CHANGED');
+      const mediumFile = Array(50).fill('line').map((line, i) => `${line} ${i + 1}`).join('\n');
+      // 25行変更（> 20行閾値）でサマリー表示
+      const modifiedMedium = mediumFile.split('\n').map((line, i) => 
+        i < 25 ? `${line} CHANGED` : line
+      ).join('\n');
 
       const diff = highQualityDiff.generateDiff(mediumFile, modifiedMedium, 'medium.txt');
       
-      // 25行なので20行閾値でサマリー表示になるはず
+      // 25行変更なので20行閾値でサマリー表示になるはず
       expect(diff).toContain('Large change:');
-      expect(diff).toContain('25 → 25 lines');
+      expect(diff).toContain('50 → 50 lines');
     });
 
     it('緩い閾値設定（1000行）で詳細表示', () => {
@@ -176,12 +182,13 @@ display_options:
       fs.writeFileSync(testConfigPath, partialConfig);
 
       const largeFile = Array(600).fill('line').join('\n');
-      const modified = largeFile + '\nNew line';
+      // 600行すべて変更（> 500行閾値）でサマリー表示
+      const modified = largeFile.split('\n').map(line => `${line} CHANGED`).join('\n');
 
       const diff = highQualityDiff.generateDiff(largeFile, modified, 'test.txt');
       
       // max_lines_for_detailed_diffはデフォルト値（500）が使われるため、
-      // 600行のファイルはサマリー表示になるはず
+      // 600行変更でサマリー表示になるはず
       expect(diff).toContain('Large change:');
     });
   });

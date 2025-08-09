@@ -8,6 +8,7 @@ import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 // import { LSPService } from '../../services/lsp/lsp-service.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { promises as fs } from 'fs';
 
 const CodeReplaceSymbolBodySchema = z.object({
@@ -139,6 +140,14 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
         file_path: symbolLocation.file_path,
         backup_created: !!backupPath
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logFileOperation(
+        'CODE_REPLACE_SYMBOL',
+        symbolLocation.file_path,
+        `Symbol "${params.symbol_path}" body replaced | Lines: ${symbolBody.start_line}-${symbolBody.end_line} | Backup: ${!!backupPath}`
+      );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 

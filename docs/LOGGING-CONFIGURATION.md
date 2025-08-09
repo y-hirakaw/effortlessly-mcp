@@ -1,48 +1,62 @@
-# Diff表示設定ガイド
+# ログ・Diff設定ガイド
 
-effortlessly-mcpの設定可能なdiff表示システムの詳細な使用方法と設定オプションです。
+effortlessly-mcpの統合設定システムの詳細な使用方法と設定オプションです。
 
 ## 📋 概要
 
-v1.0.5で追加されたdiff設定機能により、ファイル編集時の差分表示を細かくカスタマイズできます。
+v1.0.6で設定ファイルが統合され、ログとdiff表示を一元管理できるようになりました。
 
 ### 主要機能
-- **diff出力制御**: diff表示の完全な有効/無効切り替え
+- **設定ファイル統合**: 全ての設定を1つのYAMLファイルで管理
+- **operationsログ制御**: 操作ログの有効/無効切り替え
+- **diff表示制御**: diff表示の完全な有効/無効切り替え
 - **大規模ファイル判定閾値**: 詳細diff vs サマリー表示の切り替え
 - **コンテキスト行数**: diff表示時の前後行数の調整
-- **色表示制御**: ANSI色コードの有効/無効
-- **設定ファイル**: YAML形式での柔軟な設定管理
+- **カラーコード常時使用**: ログファイル視認性の向上
 
-## 🔧 設定ファイル
+## 🔧 統合設定ファイル
 
 ### 設定ファイルの場所
 ```
-.claude/workspace/effortlessly/config/diff-display.yaml
+.claude/workspace/effortlessly/config.yaml
 ```
 
 ### デフォルト設定
 ```yaml
-# Diff表示設定
-# effortlessly-mcp用のdiff表示に関するカスタマイズ設定
+# effortlessly-mcp 統合設定ファイル
+# MCP Server effortlessly-mcp用の設定
 
-# diff出力の有効/無効（false設定で diff出力を完全に無効化）
-enabled: true
-
-# 大規模ファイル判定の閾値（この行数を超えるとサマリー表示）
-max_lines_for_detailed_diff: 500
-
-# diff表示オプション
-display_options:
-  # デフォルトコンテキスト行数
-  default_context_lines: 3
+# ===== ログ設定 =====
+logging:
+  # operations ログの有効/無効
+  operations:
+    enabled: true
   
-  # 色付き表示を有効にするか（false推奨：Claude Codeでの表示）
-  use_colors: false
+  # diff ログ・表示設定
+  diff:
+    # diff出力の有効/無効（false設定で diff出力を完全に無効化）
+    enabled: true
+
+    
+    # 大規模ファイル判定の閾値（この行数を超えるとサマリー表示）
+    max_lines_for_detailed_diff: 500
+    
+    # diff表示オプション
+    display_options:
+      # デフォルトコンテキスト行数
+      default_context_lines: 3
 ```
 
 ## ⚙️ 設定オプション詳細
 
-### `enabled`
+### ログ設定 (`logging`)
+
+#### `operations.enabled`
+**型**: ブール値  
+**デフォルト**: `true`  
+**説明**: operationsログの有効/無効を制御します。`false`に設定すると、操作ログの出力が無効化されます。
+
+#### `diff.enabled`
 **型**: ブール値  
 **デフォルト**: `true`  
 **説明**: diff出力の完全な有効/無効を制御します。`false`に設定すると、すべてのdiff出力が無効化されます。

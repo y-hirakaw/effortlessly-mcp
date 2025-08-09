@@ -1,6 +1,7 @@
 import { Logger } from '../../services/logger.js';
 import { ValidationError } from '../../types/errors.js';
 import { WorkspaceManager } from './workspace-manager.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { WorkspaceCreateOptions, WorkspaceActivationResult } from './types.js';
 
 /**
@@ -102,6 +103,14 @@ export const workspaceActivateTool = {
         workspace_name: result.workspace.name,
         workspace_path: result.workspace.root_path,
       });
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logOperation(
+        'WORKSPACE_ACTIVATE',
+        result.workspace.root_path,
+        `Workspace "${result.workspace.name}" activated | Path: ${result.workspace.root_path}`
+      );
 
       return result;
     } catch (error) {

@@ -9,6 +9,7 @@ import { execSync } from 'child_process';
 import type { SymbolKind, SymbolInformation } from 'vscode-languageserver-protocol';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import { getHttpLSPClient } from '../../services/lsp-proxy/http-lsp-client.js';
 import { symbolKindToString } from './types.js';
 
@@ -246,6 +247,15 @@ export const codeFindSymbolTool = {
       };
 
       logger.info(`Found ${results.length} symbols for "${params.symbol_name}"`);
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logLSPOperation(
+        'FIND_SYMBOL',
+        params.symbol_name,
+        undefined,
+        results.length
+      );
 
       return {
         symbols: results,

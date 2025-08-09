@@ -63,9 +63,9 @@ describe('Swift CocoaPods Integration Tests', () => {
       expect(projectConfig.hasPodfile).toBe(true);
       expect(projectConfig.podfilePath).toBeDefined();
       
-      // Package.swiftは存在しないはず（このテストプロジェクトでは）
-      expect(projectConfig.hasPackageSwift).toBe(false);
-      expect(projectConfig.packageSwiftPath).toBeUndefined();
+      // Package.swiftも検出される（このテストプロジェクトはハイブリッド構成）
+      expect(projectConfig.hasPackageSwift).toBe(true);
+      expect(projectConfig.packageSwiftPath).toBeDefined();
       
       logger.info(`📊 Project Type: CocoaPods only (${projectConfig.pods?.length || 0} pods)`);
     });

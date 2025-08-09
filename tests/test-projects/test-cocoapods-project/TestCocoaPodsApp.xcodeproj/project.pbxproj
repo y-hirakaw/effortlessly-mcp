@@ -1,0 +1,50 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1234567890ABCDEF123456789 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890ABCDEF123456788 /* ViewController.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1234567890ABCDEF123456785 /* TestCocoaPodsApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestCocoaPodsApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1234567890ABCDEF123456788 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXProject section */
+		A1234567890ABCDEF123456783 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1400;
+				LastUpgradeCheck = 1400;
+				TargetAttributes = {
+					A1234567890ABCDEF123456784 = {
+						CreatedOnToolsVersion = 14.0;
+					};
+				};
+			};
+			buildConfigurationList = A1234567890ABCDEF123456786 /* Build configuration list for PBXProject "TestCocoaPodsApp" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1234567890ABCDEF123456784;
+			productRefGroup = A1234567890ABCDEF123456786 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1234567890ABCDEF123456784 /* TestCocoaPodsApp */,
+			);
+		};
+/* End PBXProject section */
+
+	};
+	rootObject = A1234567890ABCDEF123456783 /* Project object */;
+}

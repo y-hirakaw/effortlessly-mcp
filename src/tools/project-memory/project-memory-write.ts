@@ -8,6 +8,7 @@ import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { ProjectMemoryService } from '../../services/project-memory.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
+import { LogManager } from '../../utils/log-manager.js';
 
 const ProjectMemoryWriteSchema = z.object({
   memory_name: z.string().min(1).describe('Name of the memory to save'),
@@ -91,6 +92,14 @@ export class ProjectMemoryWriteTool extends BaseTool {
         root_path: currentWorkspace.root_path
       }
     };
+
+    // 操作ログ記録
+    const logManager = LogManager.getInstance();
+    await logManager.logOperation(
+      'PROJECT_MEMORY_WRITE',
+      result.filePath,
+      `Memory "${result.metadata.name}" written | Size: ${result.metadata.size} bytes | Tags: ${result.metadata.tags?.join(', ') || 'none'}`
+    );
 
     return this.createTextResult(JSON.stringify(response, null, 2));
   }

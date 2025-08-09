@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2025-08-09
+
+### Added
+- 🎛️ **設定ファイル統合化**
+  - 設定ファイルを `.claude/workspace/effortlessly/config.yaml` に統合
+  - `logging.operations.enabled` でoperationsログの有効/無効制御
+  - `logging.diff` セクションでdiffログ設定を一元管理
+- ⚙️ **FileSystemService機能拡張** 
+  - `existsSync()` 同期ファイル存在確認メソッド追加
+  - `readFileSync()` 同期ファイル読み込みメソッド追加
+  - 設定ファイル読み込みでの一貫性向上
+- 🎨 **diffログ表示改善**
+  - `use_colors` 設定を削除し、常にANSIカラーコード使用
+  - ログファイルでの視認性向上（Claude Codeでは非表示）
+
+### Changed
+- LogManagerに設定読み込み機能追加
+  - 1分間設定キャッシュでパフォーマンス向上
+  - デフォルト設定との適切なマージ処理
+- 設定構造の階層化: `logging.operations` と `logging.diff` 
+
+### Fixed
+- 設定ファイルパス参照の統一
+- 同期/非同期メソッドの適切な使い分け
+
 ## [1.0.5] - 2025-08-09
 
 ### Added
@@ -30,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - 📚 **新規ドキュメント作成**
-  - `docs/DIFF-CONFIGURATION.md` - 詳細な設定ガイド
+  - `docs/LOGGING-CONFIGURATION.md` - ログとdiff設定の詳細ガイド
 - 📝 **既存ドキュメント更新**
   - `README.md` - v1.0.5機能追加、ワークスペース構造更新
   - `docs/USAGE.md` - 設定セクション追加、関連ドキュメントリンク更新
@@ -120,7 +145,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - セキュリティ機能
 - プロジェクトメモリ機能
 
-[unreleased]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.4...HEAD
+[unreleased]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.5...v1.0.6
+[1.0.5]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/y-hirakaw/effortlessly-mcp/compare/v1.0.1...v1.0.2

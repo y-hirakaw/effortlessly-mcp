@@ -23,10 +23,11 @@
 - `smart_insert_text` - 柔軟な位置指定テキスト挿入（v1.0.4でdiff機能大幅強化）
 - `echo` - 接続テスト用
 
-> **✨ NEW**: **設定可能なdiff表示システム**（v1.0.5）
-> - YAML設定ファイルによる大規模ファイル判定閾値のカスタマイズ
-> - コンテキスト行数と色表示の細かい調整が可能
-> - 設定ファイル: `.claude/workspace/effortlessly/config/diff-display.yaml`
+> **✨ v1.0.6**: **設定ファイル統合化**
+> - 設定を `.claude/workspace/effortlessly/config.yaml` に統合
+> - `logging.operations.enabled` でoperationsログ制御
+> - `logging.diff` でdiff表示設定を一元管理
+> - 常にカラーコード使用でログファイル視認性向上
 
 #### 🔍 **LSPを利用前提のもの** (10ツール)
 - `code_find_symbol` - シンボル検索（関数、クラス、変数等）
@@ -166,7 +167,7 @@ TypeScript/Go/Java/C++ LSP Servers
 ### 📖 技術資料
 - **[ツールリファレンス](docs/TOOLS.md)** - 全21ツールの詳細仕様とAPI
 - **[APIドキュメント](docs/API.md)** - MCP統合とプロトコル詳細
-- **[Diff設定ガイド](docs/DIFF-CONFIGURATION.md)** - diff表示のカスタマイズ（v1.0.5新機能）
+- **[ログ・Diff設定ガイド](docs/LOGGING-CONFIGURATION.md)** - 操作ログとdiff表示の設定（v1.0.6新機能）
 - **[セキュリティガイド](docs/SECURITY.md)** - エンタープライズセキュリティ設定
 
 ### 🛠️ 運用・保守
@@ -186,10 +187,11 @@ TypeScript/Go/Java/C++ LSP Servers
 
 最新の変更内容や機能追加については、[CHANGELOG.md](CHANGELOG.md)をご確認ください。
 
-**最新リリース**: v1.0.5 (2025-08-09)
-- 🎯 **設定可能なdiff表示システム** - YAML設定ファイルによる大規模ファイル判定の閾値カスタマイズ
-- ⚙️ **diff-display.yaml設定** - コンテキスト行数、色表示、サマリー表示閾値の細かい調整
-- 🧪 **包括的テスト追加** - 設定機能に対する27テストを追加、全テスト成功率維持
+**最新リリース**: v1.0.6 (2025-08-09)
+- 🎛️ **設定ファイル統合化** - 設定を `.claude/workspace/effortlessly/config.yaml` に統合
+- ⚙️ **operationsログ制御** - `logging.operations.enabled` で操作ログの有効/無効を制御
+- 🎨 **diffログ表示改善** - 常にカラーコード使用でログファイル視認性向上
+- ⚡ **FileSystemService機能拡張** - 同期メソッド追加で設定読み込み一貫性向上
 
 **v1.0.4 (2025-08-08)**
 - Insert diff機能の大幅強化とテスト拡充

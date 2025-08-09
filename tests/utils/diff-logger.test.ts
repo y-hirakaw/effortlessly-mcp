@@ -100,7 +100,8 @@ describe('DiffLogger', () => {
         'Smart Edit'
       );
 
-      expect(mockFileSystemService.mkdir).toHaveBeenCalled();
+      // mkdirは呼ばれないはず（早期リターンのため）
+      expect(mockFileSystemService.mkdir).not.toHaveBeenCalled();
       // appendFile should not be called for empty diff
       expect(mockFileSystemService.appendFile).not.toHaveBeenCalled();
       expect(mockHighQualityDiff.generateDiff).toHaveBeenCalledWith(
@@ -184,7 +185,7 @@ describe('DiffLogger', () => {
       )).resolves.not.toThrow();
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to log insert diff:',
+        'Failed to log diff',
         expect.any(Error)
       );
     });

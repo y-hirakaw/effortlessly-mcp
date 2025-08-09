@@ -1,12 +1,12 @@
 /**
  * DiffLogger - 差分ログ出力の共通ユーティリティ
  * smart-edit-file と smart-insert-text で共通利用
+ * 新しいLogManagerシステムに統合
  */
 
 import { Logger } from '../services/logger.js';
-import { FileSystemService } from '../services/FileSystemService.js';
+import { LogManager } from './log-manager.js';
 import { highQualityDiff } from './high-quality-diff.js';
-import * as path from 'path';
 
 export class DiffLogger {
   private static instance: DiffLogger;
@@ -30,14 +30,7 @@ export class DiffLogger {
     operation: string
   ): Promise<void> {
     try {
-      const fsService = FileSystemService.getInstance();
-      
-      // FileSystemServiceのdiffログパス設定に合わせる  
-      const logDir = path.resolve('.claude/workspace/effortlessly/logs');
-      const diffLogPath = path.join(logDir, 'diff.log');
-      
-      // ログディレクトリが存在しない場合は作成
-      await fsService.mkdir(logDir, { recursive: true });
+      const logManager = LogManager.getInstance();
       
       // 精密なdiff生成：詳細コンテキスト表示
       const diff = highQualityDiff.generateDiff(originalContent, newContent, filePath, {
@@ -49,10 +42,8 @@ export class DiffLogger {
         return; // 変更なし
       }
       
-      const timestamp = new Date().toISOString();
-      const logEntry = `\n=== ${timestamp} ===\nFile: ${filePath} (${operation})\n${diff}\n========================\n\n`;
-
-      await fsService.appendFile(diffLogPath, logEntry, { encoding: 'utf8' });
+      // LogManagerを使用してdiffログに出力
+      await logManager.logDiff(originalContent, newContent, filePath, operation, diff);
     } catch (error) {
       // ログ出力エラーは無視（主要操作を妨げない）
       Logger.getInstance().error('Failed to log precise diff:', error as Error);
@@ -71,11 +62,7 @@ export class DiffLogger {
     referenceText?: string
   ): Promise<void> {
     try {
-      const fsService = FileSystemService.getInstance();
-      const logDir = path.resolve('.claude/workspace/effortlessly/logs');
-      const diffLogPath = path.join(logDir, 'diff.log');
-      
-      await fsService.mkdir(logDir, { recursive: true });
+      const logManager = LogManager.getInstance();
       
       // Insert専用の詳細diff生成
       const diff = this.generateInsertSpecificDiff(
@@ -91,10 +78,14 @@ export class DiffLogger {
         return;
       }
       
-      const timestamp = new Date().toISOString();
-      const logEntry = `\n=== ${timestamp} ===\nFile: ${filePath} (Smart Insert)\n${diff}\n========================\n\n`;
-
-      await fsService.appendFile(diffLogPath, logEntry, { encoding: 'utf8' });
+      // 一時的にnewContentを生成（LogManagerの引数として必要）
+      const lines = originalContent.split('\n');
+      const insertedLines = insertedText.split('\n');
+      lines.splice(insertPosition.line_number - 1, 0, ...insertedLines);
+      const newContent = lines.join('\n');
+      
+      // LogManagerを使用してdiffログに出力
+      await logManager.logDiff(originalContent, newContent, filePath, 'Smart Insert', diff);
     } catch (error) {
       Logger.getInstance().error('Failed to log insert diff:', error as Error);
     }

@@ -9,6 +9,7 @@ import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import { DiffLogger } from '../../utils/diff-logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 import * as path from 'path';
 
 const SmartEditFileSchema = z.object({
@@ -320,6 +321,14 @@ export class SmartEditFileTool extends BaseTool {
       // 10. 精密なdiffログ出力（実際の変更箇所のみ）
       const diffLogger = DiffLogger.getInstance();
       await diffLogger.logPreciseDiff(originalContent, editResult.newContent, params.file_path, 'Smart Edit');
+
+      // 10.5. 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logFileOperation(
+        'SMART_EDIT',
+        params.file_path,
+        `${editResult.matches.length} replacements made | Lines: ${editResult.newContent.split('\n').length}`
+      );
 
       // 11. ファイル更新
       await fsService.writeFile(params.file_path, editResult.newContent, { encoding: 'utf-8' });

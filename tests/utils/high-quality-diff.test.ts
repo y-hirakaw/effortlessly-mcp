@@ -138,6 +138,72 @@ describe('HighQualityDiff', () => {
     });
   });
 
+  describe('diff threshold logic', () => {
+    const configPath = path.resolve('.claude/workspace/effortlessly/config/diff-display.yaml');
+    const testConfigDir = path.dirname(configPath);
+    let originalConfig: string | null = null;
+
+    beforeEach(() => {
+      // Backup original config if it exists
+      if (fs.existsSync(configPath)) {
+        originalConfig = fs.readFileSync(configPath, 'utf-8');
+      }
+      // Ensure config directory exists
+      fs.mkdirSync(testConfigDir, { recursive: true });
+    });
+
+    afterEach(() => {
+      // Restore original config or remove test config
+      if (originalConfig) {
+        fs.writeFileSync(configPath, originalConfig);
+      } else if (fs.existsSync(configPath)) {
+        fs.unlinkSync(configPath);
+      }
+      originalConfig = null;
+    });
+
+    it('should use diff change amount instead of file size for threshold', () => {
+      // 大きなファイルでも少しの変更ならば詳細diff表示
+      const largeContent = 'line\n'.repeat(1000); // 1000行のファイル
+      const smallChange = largeContent.replace('line', 'modified'); // 1行だけ変更
+
+      const result = diffInstance.generateDiff(
+        largeContent,
+        smallChange,
+        'large.txt'
+      );
+
+      // 変更量が少ないので詳細diff表示されるべき
+      expect(result).toContain('--- large.txt');
+      expect(result).toContain('+++ large.txt');
+      expect(result).toContain('+modified'); // 追加行として表示される
+      expect(result).toContain('-line'); // 削除行として表示される
+    });
+
+    it('should use summary for large changes regardless of file size', () => {
+      const config = `
+# Test configuration
+enabled: true
+max_lines_for_detailed_diff: 10
+`;
+      fs.writeFileSync(configPath, config);
+
+      // 小さなファイルでも大量変更があればサマリー表示
+      const oldContent = 'line1\nline2\nline3\nline4\nline5\n';
+      const newContent = 'newline1\nnewline2\nnewline3\nnewline4\nnewline5\nnewline6\nnewline7\nnewline8\nnewline9\nnewline10\nnewline11\nnewline12\n';
+
+      const result = diffInstance.generateDiff(
+        oldContent,
+        newContent,
+        'small.txt'
+      );
+
+      // 変更量が多いのでサマリー表示されるべき
+      expect(result).toContain('@@ Large change:');
+      expect(result).toContain('[Use git diff for detailed view]');
+    });
+  });
+
   describe('enabled configuration', () => {
     const configPath = path.resolve('.claude/workspace/effortlessly/config/diff-display.yaml');
     const testConfigDir = path.dirname(configPath);

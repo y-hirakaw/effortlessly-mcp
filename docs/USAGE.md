@@ -690,31 +690,35 @@ if (editResult.isError) {
 
 ## 設定とカスタマイズ
 
-### Diff表示設定 (v1.0.5新機能)
+### ログとDiff設定 (v1.0.6新機能)
 
-ファイル編集時の差分表示を細かくカスタマイズできます：
+操作ログとファイル編集時の差分表示を統一設定で管理：
 
 ```yaml
-# .claude/workspace/effortlessly/config/diff-display.yaml
-max_lines_for_detailed_diff: 500
-
-display_options:
-  default_context_lines: 3
-  use_colors: false
+# .claude/workspace/effortlessly/config.yaml
+logging:
+  operations:
+    enabled: true
+  diff:
+    enabled: true
+    max_lines_for_detailed_diff: 500
+    display_options:
+      default_context_lines: 3
 ```
 
 **主要設定オプション**：
+- `operations.enabled`: MCPツール操作ログの有効/無効
+- `diff.enabled`: Diff表示の有効/無効
 - `max_lines_for_detailed_diff`: 詳細diff vs サマリー表示の閾値
-- `default_context_lines`: diff表示時のコンテキスト行数  
-- `use_colors`: ANSI色コードの使用（Claude Code使用時はfalse推奨）
+- `default_context_lines`: diff表示時のコンテキスト行数
 
-詳細は [Diff設定ガイド](./DIFF-CONFIGURATION.md) をご確認ください。
+詳細は [ログ・Diff設定ガイド](./LOGGING-CONFIGURATION.md) をご確認ください。
 
 ## 関連ドキュメント
 
 - [セットアップガイド](./SETUP.md) - インストールと初期設定
 - [APIリファレンス](./API.md) - 全ツールの詳細仕様
-- [Diff設定ガイド](./DIFF-CONFIGURATION.md) - diff表示のカスタマイズ
+- [ログ・Diff設定ガイド](./LOGGING-CONFIGURATION.md) - 操作ログとdiff表示の設定
 - [セキュリティガイド](./SECURITY.md) - セキュリティ設定と監査
 - [トラブルシューティング](./TROUBLESHOOTING.md) - 問題解決ガイド
 

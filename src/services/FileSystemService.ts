@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import * as fsSync from 'fs';
 import { Stats, Dirent } from 'fs';
 import path from 'path';
 import { FileSystemOptions } from '../types/filesystem.js';
@@ -137,6 +138,24 @@ export class FileSystemService {
     const absoluteOldPath = path.resolve(oldPath);
     const absoluteNewPath = path.resolve(newPath);
     await fs.rename(absoluteOldPath, absoluteNewPath);
+  }
+
+  /**
+   * ファイル存在確認（同期版）
+   * 設定ファイル読み込み等で使用
+   */
+  existsSync(filePath: string): boolean {
+    const absolutePath = path.resolve(filePath);
+    return fsSync.existsSync(absolutePath);
+  }
+
+  /**
+   * ファイル読み取り（同期版）
+   * 設定ファイル読み込み等で使用
+   */
+  readFileSync(filePath: string, encoding: BufferEncoding = 'utf-8'): string {
+    const absolutePath = path.resolve(filePath);
+    return fsSync.readFileSync(absolutePath, encoding);
   }
 
   // Phase 2で実装予定の検閲・セキュリティ機能のためのプレースホルダー

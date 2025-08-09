@@ -20,7 +20,6 @@ interface DiffConfig {
   max_lines_for_detailed_diff: number;
   display_options: {
     default_context_lines: number;
-    use_colors: boolean;
   };
 }
 
@@ -53,25 +52,25 @@ export class HighQualityDiff {
       enabled: true,
       max_lines_for_detailed_diff: 500,
       display_options: {
-        default_context_lines: 3,
-        use_colors: false
+        default_context_lines: 3
       }
     };
 
     try {
-      const configPath = path.resolve('.claude/workspace/effortlessly/config/diff-display.yaml');
+      const configPath = path.resolve('.claude/workspace/effortlessly/config.yaml');
       
       if (fs.existsSync(configPath)) {
         const configFile = fs.readFileSync(configPath, 'utf-8');
-        const userConfig = yaml.load(configFile) as Partial<DiffConfig>;
+        const fullConfig = yaml.load(configFile) as any;
+        const userConfig = fullConfig?.logging?.diff as Partial<DiffConfig>;
         
         // デフォルト設定とユーザー設定をマージ
         this.config = {
-          enabled: userConfig.enabled ?? defaultConfig.enabled,
-          max_lines_for_detailed_diff: userConfig.max_lines_for_detailed_diff ?? defaultConfig.max_lines_for_detailed_diff,
+          enabled: userConfig?.enabled ?? defaultConfig.enabled,
+          max_lines_for_detailed_diff: userConfig?.max_lines_for_detailed_diff ?? defaultConfig.max_lines_for_detailed_diff,
           display_options: {
             ...defaultConfig.display_options,
-            ...userConfig.display_options
+            ...userConfig?.display_options
           }
         };
       } else {
@@ -99,10 +98,9 @@ export class HighQualityDiff {
       return '';
     }
     const { 
-      contextLines = config.display_options.default_context_lines, 
-      useColors = config.display_options.use_colors 
+      contextLines = config.display_options.default_context_lines
     } = options;
-    const colors = useColors ? this.COLORS : { RED: '', GREEN: '', CYAN: '', YELLOW: '', RESET: '' };
+    const colors = this.COLORS; // 常にカラーコードを使用
     
     // 内容が同じ場合は何も出力しない
     if (oldContent === newContent) {
@@ -192,16 +190,26 @@ export class HighQualityDiff {
 
   /**
    * 大規模変更かどうかを判定（設定ベース）
+   * diff変化量（追加行+削除行）で判定
    */
   private isLargeChange(oldContent: string, newContent: string): boolean {
     const config = this.loadConfig();
     
-    const oldLines = oldContent.split('\n');
-    const newLines = newContent.split('\n');
+    // 実際のdiff変化量を計算
     
-    // ファイルの最大行数が閾値を超える場合はサマリー表示
-    const maxLines = Math.max(oldLines.length, newLines.length);
-    return maxLines > config.max_lines_for_detailed_diff;
+    // 実際のdiff変化量を計算
+    const diff = diffLines(oldContent, newContent);
+    let totalChangedLines = 0;
+    
+    diff.forEach(part => {
+      if (part.added || part.removed) {
+        // 追加または削除された行数をカウント
+        totalChangedLines += part.value.split('\n').length - 1;
+      }
+    });
+    
+    // diff変化量が閾値を超える場合はサマリー表示
+    return totalChangedLines > config.max_lines_for_detailed_diff;
   }
 
   /**

@@ -9,6 +9,7 @@ import { FileSystemService } from '../../services/FileSystemService.js';
 import { TypeScriptLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
+import { LogManager } from '../../utils/log-manager.js';
 
 /**
  * 参照検索パラメータスキーマ
@@ -138,6 +139,15 @@ export const codeFindReferencesTool = {
       };
 
       logger.info(`Found ${results.length} references in ${Object.keys(fileGroups).length} files`);
+
+      // 操作ログ記録
+      const logManager = LogManager.getInstance();
+      await logManager.logLSPOperation(
+        'FIND_REFERENCES',
+        `${params.line}:${params.column}`,
+        absoluteFilePath,
+        results.length
+      );
 
       return {
         references: results,

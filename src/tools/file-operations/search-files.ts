@@ -2,9 +2,11 @@ import { z } from 'zod';
 import * as path from 'path';
 import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
+import { LogManager } from '../../utils/log-manager.js';
 import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
+const logManager = LogManager.getInstance();
 
 // 検索結果の型
 interface SearchResult {
@@ -127,6 +129,16 @@ export const searchFilesTool: MdcToolImplementation<SearchFilesParamsType, Searc
         filesScanned: searchContext.filesScanned,
         directoriesScanned: searchContext.directoriesScanned,
       });
+
+      // 操作ログ記録
+      const searchType = params.content_pattern ? 'CONTENT_SEARCH' : 'FILE_SEARCH';
+      const pattern = params.content_pattern || params.file_pattern || '*';
+      await logManager.logSearchOperation(
+        searchType,
+        pattern,
+        results.length,
+        directoryPath
+      );
 
       return {
         total_found: results.length,
