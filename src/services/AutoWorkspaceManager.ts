@@ -3,6 +3,7 @@ import * as fs from 'fs/promises'
 import { WorkspaceManager } from '../tools/project-management/workspace-manager.js'
 import { AutoWorkspaceConfigManager } from './AutoWorkspaceConfigManager.js'
 import { AutoWorkspaceConfig } from '../types/auto-workspace-config.js'
+import { LSPManager } from './lsp/index.js'
 
 export class AutoWorkspaceManager {
   private isInitialized = false
@@ -79,12 +80,64 @@ export class AutoWorkspaceManager {
       }
     })
     
+    // LSP自動起動の実行
+    await this.initializeLSPServers(currentDir, lspServers)
+    
     // バナー表示（設定に基づいて）
     if (this.config.display.show_banner) {
       this.showReadyBanner(projectType, lspServers)
     }
   }
   
+  /**
+   * LSPサーバーの自動初期化
+   */
+  private async initializeLSPServers(workspaceRoot: string, lspServers: string[]): Promise<void> {
+    if (!lspServers.length) {
+      this.log('⚠️  No LSP servers configured, skipping auto-initialization')
+      return
+    }
+
+    try {
+      this.log('🚀 Initializing LSP servers...')
+
+      // LSPManagerの初期化
+      const lspManager = LSPManager.getInstance()
+      await lspManager.initialize(workspaceRoot)
+
+      // 設定された言語の自動起動
+      const results = await lspManager.enableMultipleLanguages(lspServers)
+
+      // 結果の集計とログ出力
+      const successful: string[] = []
+      const failed: string[] = []
+      
+      for (const [language, success] of results.entries()) {
+        if (success) {
+          successful.push(language)
+        } else {
+          failed.push(language)
+        }
+      }
+
+      if (successful.length > 0) {
+        this.log(`✅ LSP servers started: ${successful.join(', ')}`)
+      }
+      if (failed.length > 0) {
+        this.log(`⚠️  LSP servers failed: ${failed.join(', ')}`)
+      }
+
+      // 依存関係レポート
+      const depReport = lspManager.getDependencyReport()
+      if (depReport) {
+        this.log(`📦 Dependencies: ${depReport.successful} installed, ${depReport.failed} failed`)
+      }
+
+    } catch (error) {
+      this.log(`❌ LSP initialization error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      // エラーでも続行（LSPなしでも動作可能）
+    }
+  }
   private showReadyBanner(projectType: string, lspServers: string[]) {
     if (!this.config) return
     

@@ -14,6 +14,9 @@ import type {
 // LSPから継承した基本型
 export type { Position, Range, Location, SymbolInformation, DocumentSymbol, SymbolKind };
 
+// LSPClientBaseの再エクスポート（循環参照回避のため）
+export type { LSPClientBase } from './lsp-client.js';
+
 /**
  * シンボル検索結果
  */
@@ -66,6 +69,62 @@ export interface LSPServerConfig {
   fileExtensions: string[];
   /** ワークスペースルート */
   workspaceRoot: string;
+}
+
+/**
+ * LSPサーバー自動起動設定
+ */
+export interface LSPAutoStartConfig {
+  /** 自動起動有効 */
+  enabled: boolean;
+  /** 自動インストール有効 */
+  auto_install: boolean;
+  /** 依存関係 */
+  dependencies?: LSPDependency[];
+  /** 環境変数 */
+  env?: Record<string, string>;
+  /** インストールディレクトリ */
+  install_dir?: string;
+  /** バージョン固定 */
+  version?: string;
+  /** インストール済み確認コマンド */
+  check_command?: string[];
+  /** プリインストールコマンド */
+  pre_install_commands?: string[];
+}
+
+/**
+ * LSP依存関係定義
+ */
+export interface LSPDependency {
+  /** パッケージ名 */
+  name: string;
+  /** バージョン */
+  version?: string;
+  /** インストール方法 */
+  installer: 'npm' | 'pip' | 'cargo' | 'system' | 'binary';
+  /** 必須かオプションか */
+  required: boolean;
+  /** インストール引数 */
+  install_args?: string[];
+}
+
+/**
+ * LSP拡張サーバー設定
+ */
+export interface ExtendedLSPServerConfig extends LSPServerConfig {
+  /** 自動起動設定 */
+  auto_start?: LSPAutoStartConfig;
+  /** 最大再起動回数 */
+  max_restarts?: number;
+  /** 起動タイムアウト（ミリ秒） */
+  startup_timeout?: number;
+  /** ヘルスチェック設定 */
+  health_check?: {
+    enabled: boolean;
+    interval: number;
+    timeout: number;
+  };
 }
 
 /**

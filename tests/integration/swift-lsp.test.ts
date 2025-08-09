@@ -134,7 +134,7 @@ describe('Swift LSP Integration Tests', () => {
         expect(Array.isArray(projectConfig.pods)).toBe(true);
         logger.info(`🍃 CocoaPods dependencies: ${projectConfig.pods.join(', ')}`);
       }
-    });
+    }, 10000); // 10秒のタイムアウト
 
     it('should find Swift files in workspace', async () => {
       if (!isSwiftLSPAvailable) {

@@ -66,14 +66,18 @@
 
 - **Node.js** 20.0.0以上
 - **npm** または **yarn**
-- **LSPサーバー**（使用する言語）:
+- **LSPサーバー**（使用する言語、v1.0.8で設定簡素化）:
   ```bash
-  # TypeScript（推奨）
+  # TypeScript（推奨・自動インストール対応）
   npm install -g typescript-language-server typescript
   
-  # Swift（macOS、オプション）
-  # Xcodeがインストール済みの場合は自動で利用可能
+  # Swift（macOS、Xcodeがインストール済みなら自動利用可能）
+  
+  # Python（オプション）
+  pip install python-lsp-server
   ```
+  
+  > **💡 v1.0.8**: `.claude/workspace/effortlessly/config.yaml`の`enabled_languages`で簡単に言語選択可能
 
 ### インストール
 
@@ -196,11 +200,16 @@ TypeScript/Go/Java/C++ LSP Servers
 
 最新の変更内容や機能追加については、[CHANGELOG.md](CHANGELOG.md)をご確認ください。
 
-**最新リリース**: v1.0.6 (2025-08-09)
+**最新リリース**: v1.0.8 (2025-08-09)
+- 🎯 **LSP設定システム改善** - 直感的な言語サーバー選択（`enabled_languages`リスト形式）
+- 💡 **設定の簡素化** - コメントアウトによる簡単な有効/無効切り替え
+- 📖 **設定ドキュメント強化** - 利用可能言語とセットアップ要件の明記
+- 🚀 **LSP自動起動検証** - Claude Code再起動後の動作確認完了
+
+**v1.0.6 (2025-08-09)**
 - 🎛️ **設定ファイル統合化** - 設定を `.claude/workspace/effortlessly/config.yaml` に統合
 - ⚙️ **operationsログ制御** - `logging.operations.enabled` で操作ログの有効/無効を制御
 - 🎨 **diffログ表示改善** - 常にカラーコード使用でログファイル視認性向上
-- ⚡ **FileSystemService機能拡張** - 同期メソッド追加で設定読み込み一貫性向上
 
 **v1.0.4 (2025-08-08)**
 - Insert diff機能の大幅強化とテスト拡充
