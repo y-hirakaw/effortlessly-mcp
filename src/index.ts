@@ -241,7 +241,7 @@ function registerTools(): void {
         );
         break;
         
-      case 'project_update_workflow':
+      case 'project_memory_update_workflow':
         server.tool(
           name,
           tool.metadata.description,

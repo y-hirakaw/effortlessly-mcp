@@ -1,6 +1,6 @@
 /**
- * プロジェクト情報更新ワークフロー生成ツール
- * プロジェクト情報を最新化するための手順を生成
+ * プロジェクトメモリ更新ワークフロー生成ツール
+ * プロジェクトメモリを最新化するための手順を生成
  */
 
 import { z } from 'zod';
@@ -8,14 +8,15 @@ import { BaseTool } from './base.js';
 import { IToolMetadata, IToolResult } from '../types/common.js';
 import { LogManager } from '../utils/log-manager.js';
 
-const ProjectUpdateWorkflowSchema = z.object({
+const ProjectMemoryUpdateWorkflowSchema = z.object({
   task: z.string().optional().describe('更新タスクの種類'),
   scope: z.enum(['full', 'incremental', 'targeted']).optional().default('full').describe('更新の範囲'),
   focus_areas: z.array(z.string()).optional().describe('特定のフォーカスエリア'),
-  preview: z.boolean().optional().default(false).describe('手順のプレビューのみ表示')
+  preview: z.boolean().optional().default(false).describe('手順のプレビューのみ表示'),
+  classification: z.enum(['generic', 'project_specific', 'template']).optional().describe('メモリの分類')
 });
 
-type ProjectUpdateWorkflowParams = z.infer<typeof ProjectUpdateWorkflowSchema>;
+type ProjectMemoryUpdateWorkflowParams = z.infer<typeof ProjectMemoryUpdateWorkflowSchema>;
 
 interface WorkflowStep {
   step: number;
@@ -44,12 +45,12 @@ interface TaskCatalog {
 }
 
 /**
- * プロジェクト情報更新ワークフロー生成ツール
+ * プロジェクトメモリ更新ワークフロー生成ツール
  */
-export class ProjectUpdateWorkflowTool extends BaseTool {
+export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   readonly metadata: IToolMetadata = {
-    name: 'project_update_workflow',
-    description: 'プロジェクト情報を最新化するための手順を生成します',
+    name: 'project_memory_update_workflow',
+    description: 'プロジェクトメモリを最新化するための手順を生成します',
     parameters: {
       task: {
         type: 'string',
@@ -70,14 +71,19 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         type: 'boolean',
         description: '手順のプレビューのみ表示 (実行用の詳細は含めない)',
         required: false
+      },
+      classification: {
+        type: 'string',
+        description: 'メモリの分類: generic(汎用), project_specific(プロジェクト固有), template(テンプレート)',
+        required: false
       }
     }
   };
 
-  protected readonly schema = ProjectUpdateWorkflowSchema;
+  protected readonly schema = ProjectMemoryUpdateWorkflowSchema;
 
   protected async executeInternal(_validatedParameters: unknown): Promise<IToolResult> {
-    const params = _validatedParameters as ProjectUpdateWorkflowParams;
+    const params = _validatedParameters as ProjectMemoryUpdateWorkflowParams;
 
     // タスクが指定されていない場合は利用可能タスクを表示
     if (!params.task) {
@@ -86,12 +92,12 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         message: "利用可能なプロジェクト更新タスク",
         available_tasks: catalog,
         usage: "特定のタスクを実行するには: task パラメータを指定してください",
-        example: 'project_update_workflow task="structure_index" scope="full"'
+        example: 'project_memory_update_workflow task="structure_index" scope="full"'
       }, null, 2));
     }
 
-    // ワークフローを生成
-    const workflow = this.generateWorkflow(params.task, params.scope, params.focus_areas, params.preview);
+    // ワークフローを生成 (分類を含む)
+    const workflow = this.generateWorkflow(params.task, params.scope, params.focus_areas, params.preview, params.classification);
     
     if (!workflow) {
       return this.createErrorResult(`不明なタスク: ${params.task}. 利用可能タスクを確認するには task パラメータを省略してください。`);
@@ -163,21 +169,22 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
     task: string, 
     scope: string = 'full', 
     focusAreas?: string[], 
-    preview: boolean = false
+    preview: boolean = false,
+    classification?: string
   ): WorkflowPlan | null {
     
     switch (task) {
       case 'structure_index':
-        return this.generateStructureIndexWorkflow(scope, focusAreas, preview);
+        return this.generateStructureIndexWorkflow(scope, focusAreas, preview, classification);
       
       case 'dependencies_map':
-        return this.generateDependenciesMapWorkflow(scope, focusAreas, preview);
+        return this.generateDependenciesMapWorkflow(scope, focusAreas, preview, classification);
       
       case 'tech_stack_inventory':
-        return this.generateTechStackInventoryWorkflow(scope, focusAreas, preview);
+        return this.generateTechStackInventoryWorkflow(scope, focusAreas, preview, classification);
       
       case 'development_context':
-        return this.generateDevelopmentContextWorkflow(scope, focusAreas, preview);
+        return this.generateDevelopmentContextWorkflow(scope, focusAreas, preview, classification);
       
       default:
         return null;
@@ -187,7 +194,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
   /**
    * プロジェクト構造インデックス更新ワークフロー
    */
-  private generateStructureIndexWorkflow(scope: string, focusAreas?: string[], preview: boolean = false): WorkflowPlan {
+  private generateStructureIndexWorkflow(scope: string, focusAreas?: string[], preview: boolean = false, classification?: string): WorkflowPlan {
     const steps: WorkflowStep[] = [];
     let stepCounter = 1;
 
@@ -249,8 +256,8 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         tool: 'project_memory_write',
         params: {
           memory_name: 'project_structure_index',
-          content: '前のステップで収集した情報を統合したMarkdown形式のプロジェクト構造インデックス',
-          tags: ['index', 'structure', 'auto-generated', scope]
+          content: this.generateClassificationPrompt(classification, 'project_structure_index', 'Markdown形式のプロジェクト構造インデックス'),
+          tags: ['index', 'structure', 'auto-generated', scope, ...(classification ? [classification] : [])]
         },
         purpose: 'プロジェクト構造情報をメモリに保存',
         expected_output: 'プロジェクトメモリへの保存完了確認'
@@ -263,8 +270,8 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
       estimated_time: scope === 'full' ? '3-5分' : '2-3分',
       steps,
       next_actions: [
-        '依存関係の詳細が必要な場合: project_update_workflow task="dependencies_map"',
-        '技術スタック情報が必要な場合: project_update_workflow task="tech_stack_inventory"'
+        '依存関係の詳細が必要な場合: project_memory_update_workflow task="dependencies_map"',
+        '技術スタック情報が必要な場合: project_memory_update_workflow task="tech_stack_inventory"'
       ],
       notes: preview ? [
         'これはプレビューです。実際の実行時は各ステップを順番に実行してください。',
@@ -279,7 +286,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
   /**
    * 依存関係マップ更新ワークフロー
    */
-  private generateDependenciesMapWorkflow(scope: string, focusAreas?: string[], preview: boolean = false): WorkflowPlan {
+  private generateDependenciesMapWorkflow(scope: string, focusAreas?: string[], preview: boolean = false, classification?: string): WorkflowPlan {
     const steps: WorkflowStep[] = [];
     let stepCounter = 1;
 
@@ -328,8 +335,8 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         tool: 'project_memory_write',
         params: {
           memory_name: 'dependencies_map',
-          content: '依存関係分析結果をまとめたMarkdown',
-          tags: ['dependencies', 'analysis', 'auto-generated', scope]
+          content: this.generateClassificationPrompt(classification, 'dependencies_map', '依存関係分析結果をまとめたMarkdown'),
+          tags: ['dependencies', 'analysis', 'auto-generated', scope, ...(classification ? [classification] : [])]
         },
         purpose: '依存関係マップをプロジェクトメモリに保存'
       });
@@ -341,7 +348,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
       estimated_time: '3-5分',
       steps,
       next_actions: [
-        '構造情報も必要な場合: project_update_workflow task="structure_index"'
+        '構造情報も必要な場合: project_memory_update_workflow task="structure_index"'
       ]
     };
   }
@@ -349,7 +356,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
   /**
    * 技術スタック棚卸しワークフロー
    */
-  private generateTechStackInventoryWorkflow(_scope: string, _focusAreas?: string[], preview: boolean = false): WorkflowPlan {
+  private generateTechStackInventoryWorkflow(_scope: string, _focusAreas?: string[], preview: boolean = false, _classification?: string): WorkflowPlan {
     const steps: WorkflowStep[] = [];
     let stepCounter = 1;
 
@@ -403,7 +410,7 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
   /**
    * 開発コンテキスト整備ワークフロー
    */
-  private generateDevelopmentContextWorkflow(_scope: string, _focusAreas?: string[], preview: boolean = false): WorkflowPlan {
+  private generateDevelopmentContextWorkflow(_scope: string, _focusAreas?: string[], preview: boolean = false, _classification?: string): WorkflowPlan {
     const steps: WorkflowStep[] = [];
     let stepCounter = 1;
 
@@ -457,6 +464,123 @@ export class ProjectUpdateWorkflowTool extends BaseTool {
         '新規参画者向けの包括的な情報が生成されます',
         '既存の知識と重複する場合は、より新しい情報で更新されます'
       ]
+    };
+  }
+
+  /**
+   * 分類に応じたプロンプトを生成
+   */
+  private generateClassificationPrompt(classification: string | undefined, memoryType: string, taskContext: string): string {
+    const basePrompt = `前のステップで収集した情報を統合した${taskContext}`;
+    
+    if (!classification) {
+      return basePrompt;
+    }
+
+    const prompts = {
+      template: this.getTemplatePrompts(),
+      generic: this.getGenericPrompts(), 
+      project_specific: this.getProjectSpecificPrompts()
+    };
+
+    const promptMap = prompts[classification as keyof typeof prompts];
+    return promptMap[memoryType as keyof typeof promptMap] || basePrompt;
+  }
+
+  /**
+   * テンプレート用プロンプト
+   */
+  private getTemplatePrompts() {
+    return {
+      project_structure_index: `
+テンプレート(.claude/workspace/effortlessly/memory/templates/project_structure_template.md)を使用して、
+このプロジェクトの構造インデックスを作成してください。
+
+以下のプレースホルダーを実際のプロジェクト情報で置換してください：
+- [PROJECT_NAME] → 検出されたプロジェクト名
+- [PROJECT_TYPE] → プロジェクトタイプ（MCP Server等）
+- [TECH_STACK] → 使用技術スタック
+- [PROJECT_DIRECTORY_TREE] → 実際のディレクトリ構造
+- [TOTAL_FILES] → ファイル総数
+- [LANGUAGE_BREAKDOWN] → 言語構成比率
+
+前のステップで収集した実際の情報を基に、具体的で有用なドキュメントを作成してください。
+      `,
+
+      dependencies_map: `
+プロジェクトの依存関係マップをテンプレート形式で作成してください。
+外部ライブラリの選択理由、バージョン情報、セキュリティ評価を含めて
+他のプロジェクトでも参考になる形式で記録してください。
+      `
+    };
+  }
+
+  /**
+   * 汎用プロンプト
+   */
+  private getGenericPrompts() {
+    return {
+      project_structure_index: `
+このプロジェクトの汎用的な構造インデックスをMarkdown形式で作成してください。
+
+含めるべき情報：
+- プロジェクト全体のアーキテクチャ概要
+- 主要ディレクトリとその役割
+- 重要なファイルとその説明
+- 開発・ビルド・テストの手順
+- 他のプロジェクトでも参考になる設計パターン
+
+プロジェクト固有の詳細は最小限に抑え、
+再利用可能な知識として価値のある内容を重視してください。
+      `,
+
+      dependencies_map: `
+汎用的な依存関係分析ドキュメントを作成してください。
+
+分析観点：
+- 各ライブラリの選択基準と理由
+- セキュリティ・ライセンス観点での評価
+- パフォーマンス・保守性への影響
+- 代替ライブラリとの比較検討結果
+- 他プロジェクトでの採用可能性
+
+技術選定のベストプラクティスとして活用できる形式で記録してください。
+      `
+    };
+  }
+
+  /**
+   * プロジェクト固有プロンプト
+   */
+  private getProjectSpecificPrompts() {
+    return {
+      project_structure_index: `
+effortlessly-mcpプロジェクトの実装固有の構造情報を記録してください。
+
+このプロジェクト特有の内容：
+- LSP統合の実装アプローチ
+- セキュリティ機能の実装状況
+- MCP仕様への準拠状況
+- 開発中の機能と未実装箇所
+- プロジェクト固有の設計判断と背景
+- 今後の開発計画と課題
+
+開発者が実装を継続するために必要な
+具体的で実用的な情報を重視してください。
+      `,
+
+      lsp_integration_status: `
+effortlessly-mcpのLSP統合機能について、
+現在の実装状況と今後のタスクを詳細に記録してください。
+
+含める情報：
+- TypeScript/Swift LSPの実装状況
+- symbol-indexerの設計と実装詳細
+- 自動起動システムの開発状況
+- パフォーマンス最適化の進捗
+- 未対応言語の対応計画
+- 発見された技術的課題と解決方法
+      `
     };
   }
 }

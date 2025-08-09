@@ -24,7 +24,7 @@ import {
   ProjectMemoryReadTool,
   ProjectMemoryListTool
 } from './project-memory/index.js';
-import { ProjectUpdateWorkflowTool } from './project-update-workflow.js';
+import { ProjectMemoryUpdateWorkflowTool } from './project-memory-update-workflow.js';
 import {
   CodeReplaceSymbolBodyTool,
   CodeInsertAtSymbolTool,
@@ -87,7 +87,7 @@ export class ToolRegistry {
     this.registerTool(new ProjectMemoryListTool());
     
     // プロジェクト更新ワークフローツール
-    this.registerTool(new ProjectUpdateWorkflowTool());
+    this.registerTool(new ProjectMemoryUpdateWorkflowTool());
     
     // 精密コード編集ツール
     this.registerTool(new CodeReplaceSymbolBodyTool());

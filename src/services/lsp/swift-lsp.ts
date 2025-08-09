@@ -1097,7 +1097,7 @@ export class SwiftLSP extends LSPClientBase {
           setTimeout(() => {
             swiftProcess.kill();
             resolve('unknown');
-          }, 120000); // 2分に延長
+          }, 3000); // 3秒に短縮
         });
         
         result.swiftVersion = version;
