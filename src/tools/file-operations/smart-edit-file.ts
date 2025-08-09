@@ -38,9 +38,11 @@ interface EditResult {
     line_content: string;
     match_start: number;
     match_end: number;
+    absolute_position?: number;
   }>;
   preview_content?: string;
   is_new_file?: boolean;
+  diff_output?: string;
 }
 
 /**
@@ -265,6 +267,13 @@ export class SmartEditFileTool extends BaseTool {
 
       // 6. プレビューモードの場合
       if (params.preview_mode) {
+        // プレビュー用diff生成
+        const { highQualityDiff } = await import('../../utils/high-quality-diff.js');
+        const previewDiff = highQualityDiff.generateDiff(originalContent, editResult.newContent, params.file_path, {
+          contextLines: 3,
+          useColors: false
+        });
+
         const result: EditResult = {
           success: true,
           file_path: params.file_path,
@@ -274,10 +283,17 @@ export class SmartEditFileTool extends BaseTool {
           file_size: fileStats?.size || 0,
           matches_found: editResult.matches,
           preview_content: editResult.newContent,
-          is_new_file: isNewFile
+          is_new_file: isNewFile,
+          diff_output: previewDiff
         };
 
-        return this.createTextResult(JSON.stringify(result, null, 2));
+        // プレビューdiff表示を含む結果出力
+        let previewOutput = JSON.stringify(result, null, 2);
+        if (previewDiff && previewDiff.trim()) {
+          previewOutput += `\n\n${previewDiff}`;
+        }
+        
+        return this.createTextResult(previewOutput);
       }
 
       // 7. 置換結果の整合性チェック（既存ファイルのみ）
@@ -294,14 +310,21 @@ export class SmartEditFileTool extends BaseTool {
         backupPath = await this.createBackup(params.file_path, originalContent);
       }
 
-      // 9. 精密なdiffログ出力（実際の変更箇所のみ）
+      // 9. diff生成（コンソール出力用）
+      const { highQualityDiff } = await import('../../utils/high-quality-diff.js');
+      const diffOutput = highQualityDiff.generateDiff(originalContent, editResult.newContent, params.file_path, {
+        contextLines: 3,
+        useColors: false
+      });
+
+      // 10. 精密なdiffログ出力（実際の変更箇所のみ）
       const diffLogger = DiffLogger.getInstance();
       await diffLogger.logPreciseDiff(originalContent, editResult.newContent, params.file_path, 'Smart Edit');
 
-      // 10. ファイル更新
+      // 11. ファイル更新
       await fsService.writeFile(params.file_path, editResult.newContent, { encoding: 'utf-8' });
 
-      // 11. 結果をまとめる
+      // 12. 結果をまとめる
       const result: EditResult = {
         success: true,
         file_path: params.file_path,
@@ -311,7 +334,8 @@ export class SmartEditFileTool extends BaseTool {
         backup_path: backupPath,
         file_size: Buffer.byteLength(editResult.newContent, 'utf-8'),
         matches_found: editResult.matches,
-        is_new_file: isNewFile
+        is_new_file: isNewFile,
+        diff_output: diffOutput
       };
 
       // 成功時のログも条件付きで出力

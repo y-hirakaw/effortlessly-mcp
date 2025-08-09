@@ -7,6 +7,7 @@ effortlessly-mcpの設定可能なdiff表示システムの詳細な使用方法
 v1.0.5で追加されたdiff設定機能により、ファイル編集時の差分表示を細かくカスタマイズできます。
 
 ### 主要機能
+- **diff出力制御**: diff表示の完全な有効/無効切り替え
 - **大規模ファイル判定閾値**: 詳細diff vs サマリー表示の切り替え
 - **コンテキスト行数**: diff表示時の前後行数の調整
 - **色表示制御**: ANSI色コードの有効/無効
@@ -24,6 +25,9 @@ v1.0.5で追加されたdiff設定機能により、ファイル編集時の差�
 # Diff表示設定
 # effortlessly-mcp用のdiff表示に関するカスタマイズ設定
 
+# diff出力の有効/無効（false設定で diff出力を完全に無効化）
+enabled: true
+
 # 大規模ファイル判定の閾値（この行数を超えるとサマリー表示）
 max_lines_for_detailed_diff: 500
 
@@ -37,6 +41,20 @@ display_options:
 ```
 
 ## ⚙️ 設定オプション詳細
+
+### `enabled`
+**型**: ブール値  
+**デフォルト**: `true`  
+**説明**: diff出力の完全な有効/無効を制御します。`false`に設定すると、すべてのdiff出力が無効化されます。
+
+**例**:
+```yaml
+# diff出力を完全に無効化（パフォーマンス優先）
+enabled: false
+
+# diff出力を有効化（デフォルト）
+enabled: true
+```
 
 ### `max_lines_for_detailed_diff`
 **型**: 数値  
@@ -76,8 +94,13 @@ display_options:
 
 ## 📊 diff表示の動作
 
+### 無効化モード（`enabled: false`）
+diff出力が完全に無効化されている場合、編集操作は正常に実行されますが、diff出力は一切表示されません。
+
 ### 詳細diff表示
 ファイル行数が閾値以下の場合、標準的なUnified Diff形式で表示されます：
+
+![diff表示例](images/diff_sample.png)
 
 ```diff
 --- test.txt
@@ -116,6 +139,18 @@ max_lines_for_detailed_diff: 200
 
 display_options:
   default_context_lines: 1
+  use_colors: false
+```
+
+### diff無効化設定
+```yaml
+# diff出力を完全に無効化してパフォーマンス最大化
+enabled: false
+
+# 他の設定は無視される（diff出力自体が無効のため）
+max_lines_for_detailed_diff: 500
+display_options:
+  default_context_lines: 3
   use_colors: false
 ```
 
@@ -168,6 +203,10 @@ seq 1 600 > test_large.txt
 1. 設定ファイルのパスが正しいか確認
 2. YAML構文が正しいか確認
 3. ファイルの権限を確認
+
+### diff出力が全く表示されない
+1. `enabled: false`が設定されていないか確認
+2. 設定ファイルの構文エラーでデフォルト設定が適用されていないか確認
 
 ### エラーが発生する
 無効な設定値の場合、デフォルト値が使用され、ログにエラーメッセージが記録されます。

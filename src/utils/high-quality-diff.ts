@@ -16,6 +16,7 @@ export interface DiffOptions {
 }
 
 interface DiffConfig {
+  enabled?: boolean;
   max_lines_for_detailed_diff: number;
   display_options: {
     default_context_lines: number;
@@ -49,6 +50,7 @@ export class HighQualityDiff {
 
     // デフォルト設定
     const defaultConfig: DiffConfig = {
+      enabled: true,
       max_lines_for_detailed_diff: 500,
       display_options: {
         default_context_lines: 3,
@@ -65,6 +67,7 @@ export class HighQualityDiff {
         
         // デフォルト設定とユーザー設定をマージ
         this.config = {
+          enabled: userConfig.enabled ?? defaultConfig.enabled,
           max_lines_for_detailed_diff: userConfig.max_lines_for_detailed_diff ?? defaultConfig.max_lines_for_detailed_diff,
           display_options: {
             ...defaultConfig.display_options,
@@ -90,6 +93,11 @@ export class HighQualityDiff {
    */
   generateDiff(oldContent: string, newContent: string, filePath: string, options: DiffOptions = {}): string {
     const config = this.loadConfig();
+    
+    // diff出力が無効化されている場合は空文字を返す
+    if (config.enabled === false) {
+      return '';
+    }
     const { 
       contextLines = config.display_options.default_context_lines, 
       useColors = config.display_options.use_colors 

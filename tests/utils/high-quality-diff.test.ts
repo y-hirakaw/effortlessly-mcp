@@ -1,5 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { HighQualityDiff, highQualityDiff } from '../../src/utils/high-quality-diff';
+import * as fs from 'fs';
+import * as path from 'path';
 
 describe('HighQualityDiff', () => {
   let diffInstance: HighQualityDiff;
@@ -133,6 +135,146 @@ describe('HighQualityDiff', () => {
       );
 
       expect(result).toContain(`+${longLine}`);
+    });
+  });
+
+  describe('enabled configuration', () => {
+    const configPath = path.resolve('.claude/workspace/effortlessly/config/diff-display.yaml');
+    const testConfigDir = path.dirname(configPath);
+    let originalConfig: string | null = null;
+
+    beforeEach(() => {
+      // Backup original config if it exists
+      if (fs.existsSync(configPath)) {
+        originalConfig = fs.readFileSync(configPath, 'utf-8');
+      }
+      // Ensure config directory exists
+      fs.mkdirSync(testConfigDir, { recursive: true });
+    });
+
+    afterEach(() => {
+      // Restore original config or remove test config
+      if (originalConfig) {
+        fs.writeFileSync(configPath, originalConfig);
+      } else if (fs.existsSync(configPath)) {
+        fs.unlinkSync(configPath);
+      }
+      originalConfig = null;
+    });
+
+    it('should generate diff when enabled is true (default)', () => {
+      const config = `
+# Test configuration
+enabled: true
+max_lines_for_detailed_diff: 500
+display_options:
+  default_context_lines: 3
+  use_colors: false
+`;
+      fs.writeFileSync(configPath, config);
+
+      const result = diffInstance.generateDiff(
+        'old content',
+        'new content',
+        'test.txt'
+      );
+
+      expect(result).toContain('--- test.txt');
+      expect(result).toContain('+++ test.txt');
+      expect(result).toContain('-old content');
+      expect(result).toContain('+new content');
+    });
+
+    it('should return empty string when enabled is false', () => {
+      const config = `
+# Test configuration
+enabled: false
+max_lines_for_detailed_diff: 500
+display_options:
+  default_context_lines: 3
+  use_colors: false
+`;
+      fs.writeFileSync(configPath, config);
+
+      const result = diffInstance.generateDiff(
+        'old content',
+        'new content',
+        'test.txt'
+      );
+
+      expect(result).toBe('');
+    });
+
+    it('should generate diff when enabled is not specified (defaults to true)', () => {
+      const config = `
+# Test configuration without enabled field
+max_lines_for_detailed_diff: 500
+display_options:
+  default_context_lines: 3
+  use_colors: false
+`;
+      fs.writeFileSync(configPath, config);
+
+      const result = diffInstance.generateDiff(
+        'old content',
+        'new content',
+        'test.txt'
+      );
+
+      expect(result).toContain('--- test.txt');
+      expect(result).toContain('+++ test.txt');
+      expect(result).toContain('-old content');
+      expect(result).toContain('+new content');
+    });
+
+    it('should work with enabled false even for large files', () => {
+      const config = `
+# Test configuration
+enabled: false
+max_lines_for_detailed_diff: 10
+`;
+      fs.writeFileSync(configPath, config);
+
+      const largeContent = 'line\n'.repeat(100);
+      const result = diffInstance.generateDiff(
+        largeContent,
+        largeContent + 'new line\n',
+        'large.txt'
+      );
+
+      expect(result).toBe('');
+    });
+
+    it('should work with enabled false even for new files', () => {
+      const config = `
+# Test configuration  
+enabled: false
+`;
+      fs.writeFileSync(configPath, config);
+
+      const result = diffInstance.generateDiff(
+        '',
+        'new file content',
+        'new.txt'
+      );
+
+      expect(result).toBe('');
+    });
+
+    it('should work with enabled false even for deleted files', () => {
+      const config = `
+# Test configuration
+enabled: false
+`;
+      fs.writeFileSync(configPath, config);
+
+      const result = diffInstance.generateDiff(
+        'content to delete',
+        '',
+        'deleted.txt'
+      );
+
+      expect(result).toBe('');
     });
   });
 
