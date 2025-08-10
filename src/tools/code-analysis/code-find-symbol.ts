@@ -161,7 +161,7 @@ async function textBasedSymbolSearch(
  */
 export const codeFindSymbolTool = {
   name: 'code_find_symbol',
-  description: 'TypeScript/JavaScriptファイル内のシンボル（関数、クラス、変数など）を検索します。LSPサーバーを使用してセマンティック検索を提供します。',
+  description: 'TypeScript/JavaScript/Java/Swiftファイル内のシンボル（関数、クラス、変数など）を検索します。LSPサーバーを使用してセマンティック検索を提供します。',
   inputSchema: CodeFindSymbolParamsSchema,
 
   async execute(params: CodeFindSymbolParams): Promise<{

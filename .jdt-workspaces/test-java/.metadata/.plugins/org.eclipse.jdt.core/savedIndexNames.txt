@@ -1,0 +1,15 @@
+INDEX VERSION 1.134+/Users/y-hirakawa/git/effortlessly-mcp/.jdt-workspaces/test-java/.metadata/.plugins/org.eclipse.jdt.core
+1333179612.index
+4237179208.index
+2452978388.index
+1451517630.index
+398987807.index
+1773456641.index
+2477023485.index
+3245872551.index
+603474293.index
+1978791340.index
+3043755959.index
+1924484980.index
+965138528.index
+3675208711.index

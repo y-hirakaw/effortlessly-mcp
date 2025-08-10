@@ -188,6 +188,30 @@ export interface SwiftLSPConfig extends LSPServerConfig {
 }
 
 /**
+ * Java固有の設定（Eclipse JDT Language Server）
+ */
+export interface JavaLSPConfig extends LSPServerConfig {
+  /** Javaバージョン */
+  javaVersion?: string;
+  /** JDKのホームパス */
+  javaHome?: string;
+  /** Maven project.xmlのパス */
+  mavenProjectPath?: string;
+  /** Maven対応 */
+  mavenSupported?: boolean;
+  /** Gradle build.gradleのパス */
+  gradleProjectPath?: string;
+  /** Gradle対応 */
+  gradleSupported?: boolean;
+  /** Classpathエントリ */
+  classpathEntries?: string[];
+  /** ソースパス */
+  sourcePaths?: string[];
+  /** JVMオプション */
+  vmOptions?: string[];
+}
+
+/**
  * LSP JSON-RPC メッセージの基本型
  */
 export interface LSPMessage {

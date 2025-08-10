@@ -380,6 +380,17 @@ function registerTools(): void {
           createToolHandler(name, tool)
         );
         break;
+
+      case 'java_lsp_basic_diagnostics':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            detailed: z.boolean().optional().default(false).describe('詳細情報を含めるか')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
         
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);

@@ -34,6 +34,7 @@ import {
   SmartEditFileTool,
   SmartInsertTextTool
 } from './file-operations/index.js';
+import { JavaLSPBasicDiagnosticsTool } from './code-analysis/java-lsp-basic-diagnostics.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -97,6 +98,9 @@ export class ToolRegistry {
     // スマート編集ツール
     this.registerTool(new SmartEditFileTool());
     this.registerTool(new SmartInsertTextTool());
+    
+    // Java LSP基本診断ツール（Phase 2A）
+    this.registerTool(new JavaLSPBasicDiagnosticsTool());
   }
 
   /**

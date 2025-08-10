@@ -3,16 +3,16 @@
 エンタープライズ環境対応のMCP（Model Context Protocol）サーバーです。安全なコード解析とセマンティック検索機能を提供し、Claude Codeとの統合により高度な開発支援を実現します。
 
 **主要な特徴**：
-- 🔥 **21のMCPツール** - ファイル操作からLSP統合まで包括的サポート
-- ⚡ **高性能LSP統合** - TypeScript/Swift対応、**LSP自動起動機能**
-　- 今後の対応予定: Java, Kotlin, Go, Python
+- 🔥 **23のMCPツール** - ファイル操作からLSP統合まで包括的サポート
+- ⚡ **高性能LSP統合** - TypeScript/Swift対応、**LSP自動起動機能**、**Java LSP（検証中）**
+　- 今後の対応予定: Kotlin, Go, Python
 - 🚀 **統合ワークスペース管理** - 統合設定システムと自動インデックス
 - 🛡️ **エンタープライズセキュリティ(開発中)** - 包括的なアクセス制御とログ監査
 - 🧪 **フォールバック機能** - LSP障害時のテキストベース検索
 
 ## 機能
 
-### 🛠️ コア機能（21のMCPツール）
+### 🛠️ コア機能（23のMCPツール）
 
 #### 📁 **ファイル編集関係** (7ツール)
 > **✨ v1.0.3-1.0.4 強化**: FileSystemService Phase2A完全移行により統一ファイル操作プロキシ実現
@@ -31,8 +31,9 @@
 > - **LSP自動起動**: 主要コード解析ツールでLSP自動起動対応
 > - **高速化**: workspace_activate実行時間を大幅短縮（バックグラウンド処理）
 
-#### 🔍 **LSPを利用前提のもの** (10ツール) 
-> **⚡ v1.0.7**: 全ツールでLSP自動起動対応 - LSPサーバーが起動していない場合は自動で起動
+#### 🔍 **LSPを利用前提のもの** (12ツール) 
+> **⚡ v1.0.7**: 全ツールでLSP自動起動対応 - LSPサーバーが起動していない場合は自動で起動  
+> **🚀 v1.0.9**: Java LSP統合（検証中） - Eclipse JDT Language Server統合による基本診断
 
 - `code_find_symbol` - シンボル検索（関数、クラス、変数等）
 - `code_find_references` - 参照検索とコード解析
@@ -44,6 +45,8 @@
 - `code_replace_symbol_body` - シンボル本体置換
 - `code_insert_at_symbol` - シンボル位置コード挿入
 - `code_replace_with_regex` - 正規表現によるコード置換
+- `java_lsp_basic_diagnostics` - **🧪 Java LSP基本診断（検証中）** - 状態確認・エラー統計
+- `java_lsp_diagnostics` - **🧪 Java LSP包括的診断（検証中）** - トラブルシューティング・復旧統計
 
 #### 🗃️ **プロジェクトメモリ化関連** (7ツール)
 > **🚀 v1.0.9**: プロジェクトメモリ管理システム改善・分類システム導入
@@ -72,6 +75,10 @@
   npm install -g typescript-language-server typescript
   
   # Swift（macOS、Xcodeがインストール済みなら自動利用可能）
+  
+  # Java（🧪 検証中・自動インストール対応）
+  # Java 17+ または Java 21が必要（JDT Language Server用）
+  java -version
   
   # Python（オプション）
   pip install python-lsp-server
@@ -180,7 +187,7 @@ TypeScript/Go/Java/C++ LSP Servers
 - **[Swift開発ガイド](docs/SWIFT-GUIDE.md)** - SourceKit-LSP統合によるSwift開発支援
 
 ### 📖 技術資料
-- **[ツールリファレンス](docs/TOOLS.md)** - 全21ツールの詳細仕様とAPI
+- **[ツールリファレンス](docs/TOOLS.md)** - 全23ツールの詳細仕様とAPI
 - **[APIドキュメント](docs/API.md)** - MCP統合とプロトコル詳細
 - **[ログ・Diff設定ガイド](docs/LOGGING-CONFIGURATION.md)** - 操作ログとdiff表示の設定（v1.0.6新機能）
 - **[セキュリティガイド](docs/SECURITY.md)** - エンタープライズセキュリティ設定
@@ -202,7 +209,10 @@ TypeScript/Go/Java/C++ LSP Servers
 
 最新の変更内容や機能追加については、[CHANGELOG.md](CHANGELOG.md)をご確認ください。
 
-**最新リリース**: v1.0.9 (2025-08-09)
+**最新リリース**: v1.0.9 (2025-08-10)
+- 🧪 **Java LSP統合（検証中）** - Eclipse JDT Language Server統合による基本診断機能
+- 🔧 **Java LSP診断ツール追加** - `java_lsp_basic_diagnostics`、`java_lsp_diagnostics`の2つの新ツール
+- ⚡ **Phase 2A エラーハンドリング実装** - 基本的なエラー統計とヘルスチェック機能
 - 🚀 **プロジェクトメモリ管理システム改善** - `project_update_workflow` → `project_memory_update_workflow` に改名
 - 📂 **メモリ分類システム導入** - generic/project_specific/template の3カテゴリでナレッジ管理
 - 🎯 **分類対応プロンプト生成** - 各カテゴリに特化した適切なプロンプト自動生成

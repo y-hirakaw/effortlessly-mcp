@@ -48,7 +48,7 @@ export class LSPServerManager {
       });
 
       // LSPプロキシサーバーを起動
-      const proxyPath = this.findLSPProxyExecutable();
+      const proxyPath = await this.findLSPProxyExecutable();
       if (!proxyPath) {
         throw new Error('LSP proxy executable not found');
       }
@@ -127,7 +127,7 @@ export class LSPServerManager {
   /**
    * LSPプロキシ実行ファイルを検索
    */
-  private findLSPProxyExecutable(): string | null {
+  private async findLSPProxyExecutable(): Promise<string | null> {
     // build/lsp-proxy-standalone.js を探す
     const possiblePaths = [
       'build/lsp-proxy-standalone.js',
@@ -138,7 +138,7 @@ export class LSPServerManager {
     for (const relativePath of possiblePaths) {
       try {
         const fullPath = path.resolve(relativePath);
-        require('fs').accessSync(fullPath);
+        (await import('fs')).accessSync(fullPath);
         return fullPath;
       } catch {
         continue;
@@ -152,9 +152,9 @@ export class LSPServerManager {
    * ポート使用確認
    */
   private async checkPortInUse(port: number): Promise<boolean> {
+    const { createServer } = await import('net');
     return new Promise((resolve) => {
-      const net = require('net');
-      const server = net.createServer();
+      const server = createServer();
       
       server.listen(port, () => {
         server.close(() => resolve(false));

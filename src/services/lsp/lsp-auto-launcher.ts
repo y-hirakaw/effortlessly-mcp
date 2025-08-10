@@ -15,6 +15,7 @@ import type {
 } from './types.js';
 import { TypeScriptLSP } from './typescript-lsp.js';
 import { SwiftLSP } from './swift-lsp.js';
+import { JavaLSP } from './java-lsp.js';
 
 const execAsync = promisify(exec);
 
@@ -208,16 +209,26 @@ export class LSPAutoLauncher {
       case 'java':
         return {
           name: 'eclipse-jdtls',
-          command: 'jdtls',
-          args: [],
+          command: 'java',
+          args: [
+            '-Declipse.application=org.eclipse.jdt.ls.core.id1',
+            '-Dosgi.bundles.defaultStartLevel=4',
+            '-Declipse.product=org.eclipse.jdt.ls.core.product',
+            '-jar',
+            join(this.installBaseDir!, 'java', 'eclipse-jdt-ls.jar'),
+            '-configuration',
+            join(this.workspaceRoot, '.jdt-config'),
+            '-data',
+            this.workspaceRoot
+          ],
           fileExtensions: ['.java'],
           auto_start: {
-            enabled: false, // 将来実装予定
-            auto_install: false,
+            enabled: true,
+            auto_install: true,
             dependencies: [
               {
-                name: 'eclipse.jdt.ls',
-                installer: 'system',
+                name: 'eclipse-jdt-language-server',
+                installer: 'binary',
                 required: true
               }
             ],
@@ -274,7 +285,7 @@ export class LSPAutoLauncher {
    * 将来実装予定: Go, Java, Kotlin, Python
    */
   private hasNativeImplementation(language: string): boolean {
-    return ['typescript', 'javascript', 'swift'].includes(language.toLowerCase());
+    return ['typescript', 'javascript', 'swift', 'java'].includes(language.toLowerCase());
   }
 
   /**
@@ -297,6 +308,14 @@ export class LSPAutoLauncher {
         const swiftLsp = new SwiftLSP(config.workspaceRoot);
         await swiftLsp.connect();
         return swiftLsp as any; // SwiftLSPはLSPClientBaseを継承していると仮定
+
+      case 'java':
+        const javaLsp = await JavaLSP.createWithAutoSetup({
+          workspaceRoot: config.workspaceRoot,
+          autoInstall: config.auto_start?.auto_install !== false
+        });
+        await javaLsp.connect();
+        return javaLsp as any; // JavaLSPはLSPClientBaseを継承していると仮定
 
       default:
         throw new Error(`No native implementation for ${language}`);
@@ -585,6 +604,13 @@ export class LSPAutoLauncher {
    * 特定言語の設定を取得
    */
   getLanguageConfiguration(language: string): ExtendedLSPServerConfig | undefined {
-    return this.installedServers.get(language);
+    // インストール済み設定を優先
+    const installed = this.installedServers.get(language);
+    if (installed) {
+      return installed;
+    }
+
+    // デフォルト設定を返す
+    return this.createDefaultConfig(language) || undefined;
   }
 }

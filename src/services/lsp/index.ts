@@ -6,6 +6,7 @@
 export { LSPClientBase } from './lsp-client.js';
 export { TypeScriptLSP } from './typescript-lsp.js';
 export { SwiftLSP } from './swift-lsp.js';
+export { JavaLSP } from './java-lsp.js';
 export { SymbolIndexer } from './symbol-indexer.js';
 export { LSPAutoLauncher } from './lsp-auto-launcher.js';
 export { LSPDependencyManager } from './lsp-dependency-manager.js';

@@ -364,16 +364,164 @@ export class LSPDependencyManager {
    */
   private async installBinaryDependency(
     dependency: LSPDependency, 
-    _config?: LSPAutoStartConfig
+    config?: LSPAutoStartConfig
   ): Promise<DependencyInstallResult> {
-    // TODO: GitHub Releases APIを使用したバイナリダウンロード実装
-    this.logger.warn(`⚠️  Binary installation not yet implemented: ${dependency.name}`);
-    return {
-      success: false,
-      dependency,
-      skipped: true,
-      skipReason: 'Binary installation not implemented'
-    };
+    try {
+      // Eclipse JDT Language Server特別処理
+      if (dependency.name.includes('jdt') || dependency.name.includes('eclipse')) {
+        return await this.installEclipseJDTLS(dependency, config);
+      }
+
+      this.logger.warn(`⚠️  Binary installation not yet implemented: ${dependency.name}`);
+      return {
+        success: false,
+        dependency,
+        skipped: true,
+        skipReason: 'Binary installation not implemented'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        dependency,
+        error: error instanceof Error ? error.message : 'Binary install failed'
+      };
+    }
+  }
+
+  /**
+   * Eclipse JDT Language Server自動インストール
+   */
+  private async installEclipseJDTLS(
+    dependency: LSPDependency,
+    config?: LSPAutoStartConfig
+  ): Promise<DependencyInstallResult> {
+    try {
+      const installDir = config?.install_dir || join(this.baseInstallDir, 'java');
+      if (!existsSync(installDir)) {
+        mkdirSync(installDir, { recursive: true });
+      }
+
+      const jdtlsUrl = 'http://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz';
+      const tarPath = join(installDir, 'jdt-language-server-latest.tar.gz');
+      
+      this.logger.info(`📦 Downloading Eclipse JDT Language Server from ${jdtlsUrl}...`);
+      
+      // ダウンロード
+      await this.downloadFile(jdtlsUrl, tarPath);
+      
+      // 展開
+      this.logger.info('📂 Extracting Eclipse JDT Language Server...');
+      await this.extractTarGz(tarPath, installDir);
+      
+      // JARファイルを探す
+      const jarFiles = await this.findJDTLSJar(installDir);
+      if (jarFiles.length === 0) {
+        throw new Error('Eclipse JDT Language Server JAR not found after extraction');
+      }
+
+      const mainJar = jarFiles[0];
+      this.logger.info(`✅ Eclipse JDT Language Server installed: ${mainJar}`);
+      
+      return {
+        success: true,
+        dependency,
+        installedVersion: 'latest',
+        installedPath: mainJar
+      };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`❌ Eclipse JDT Language Server installation failed: ${errorMessage}`);
+      return {
+        success: false,
+        dependency,
+        error: error instanceof Error ? error.message : 'JDTLS install failed'
+      };
+    }
+  }
+
+  /**
+   * ファイルダウンロード
+   */
+  private async downloadFile(url: string, outputPath: string): Promise<void> {
+    const https = await import('https');
+    const fs = await import('fs');
+    
+    return new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(outputPath);
+      
+      https.get(url, (response) => {
+        if (response.statusCode === 302 || response.statusCode === 301) {
+          // リダイレクト処理
+          const redirectUrl = response.headers.location;
+          if (redirectUrl) {
+            this.downloadFile(redirectUrl, outputPath).then(resolve).catch(reject);
+            return;
+          }
+        }
+        
+        if (response.statusCode !== 200) {
+          reject(new Error(`Download failed: ${response.statusCode}`));
+          return;
+        }
+        
+        response.pipe(file);
+        
+        file.on('finish', () => {
+          file.close();
+          resolve();
+        });
+        
+        file.on('error', (err) => {
+          fs.unlinkSync(outputPath);
+          reject(err);
+        });
+      }).on('error', reject);
+    });
+  }
+
+  /**
+   * tar.gzファイル展開
+   */
+  private async extractTarGz(tarPath: string, extractDir: string): Promise<void> {
+    await execAsync(`tar -xzf "${tarPath}" -C "${extractDir}"`);
+    
+    // 展開後、tarファイルを削除
+    try {
+      const fs = await import('fs');
+      fs.unlinkSync(tarPath);
+    } catch {
+      // 削除失敗は無視
+    }
+  }
+
+  /**
+   * JDT Language Server JARファイル検索
+   */
+  private async findJDTLSJar(installDir: string): Promise<string[]> {
+    const jarFiles: string[] = [];
+    
+    async function searchJars(dir: string): Promise<void> {
+      const fs = await import('fs');
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name);
+        
+        if (entry.isDirectory()) {
+          await searchJars(fullPath);
+        } else if (entry.isFile() && entry.name.endsWith('.jar')) {
+          // Eclipse JDT Language ServerのメインJARを探す
+          if (entry.name.includes('org.eclipse.jdt.ls.product') || 
+              entry.name.includes('jdt-language-server')) {
+            jarFiles.push(fullPath);
+          }
+        }
+      }
+    }
+    
+    await searchJars(installDir);
+    return jarFiles;
   }
 
   /**
