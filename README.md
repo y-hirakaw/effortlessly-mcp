@@ -143,28 +143,9 @@ TypeScript/Go/Java/C++ LSP Servers
 
 ## 📋 変更履歴
 
-最新の変更内容や機能追加については、[CHANGELOG.md](CHANGELOG.md)をご確認ください。
+**v1.0.9** (2025-08-10) - Java LSP統合とプロジェクトメモリ改善
 
-**最新リリース**: v1.0.9 (2025-08-10)
-- 🧪 **Java LSP統合（検証中）** - Eclipse JDT Language Server統合による基本診断機能
-- 🔧 **Java LSP診断ツール追加** - `java_lsp_basic_diagnostics`、`java_lsp_diagnostics`の2つの新ツール
-- ⚡ **Phase 2A エラーハンドリング実装** - 基本的なエラー統計とヘルスチェック機能
-- 🚀 **プロジェクトメモリ管理システム改善** - `project_update_workflow` → `project_memory_update_workflow` に改名
-- 📂 **メモリ分類システム導入** - generic/project_specific/template の3カテゴリでナレッジ管理
-- 🎯 **分類対応プロンプト生成** - 各カテゴリに特化した適切なプロンプト自動生成
-- ⚡ **Swift LSP パフォーマンス向上** - タイムアウト時間最適化により安定性向上
-- ✅ **テスト品質向上** - **551テスト全成功**、DiffLogger修正によりテスト信頼性向上
-
-**v1.0.6 (2025-08-09)**
-- 🎛️ **設定ファイル統合化** - 設定を `.claude/workspace/effortlessly/config.yaml` に統合
-- ⚙️ **operationsログ制御** - `logging.operations.enabled` で操作ログの有効/無効を制御
-- 🎨 **diffログ表示改善** - 常にカラーコード使用でログファイル視認性向上
-
-**v1.0.4 (2025-08-08)**
-- Insert diff機能の大幅強化とテスト拡充
-- smart_edit_fileツールの安全性とパフォーマンス最適化 
-- ログ出力量最適化によるClaude Code互換性改善
-- FileSystemService Phase2A完全移行（LSP・プロジェクト管理・コード解析統合）
+詳細な変更履歴は [CHANGELOG.md](CHANGELOG.md) をご確認ください。
 
 ## 貢献・サポート
 
