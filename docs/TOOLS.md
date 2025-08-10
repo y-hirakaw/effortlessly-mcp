@@ -6,21 +6,33 @@
 
 effortlessly-mcpは以下のカテゴリに分類される25個のツールを提供します：
 
-## 🆕 最新の更新 (v1.0.1)
+## 🆕 最新の更新 (v1.0.9)
 
-**トークン制限対策実装**:
-- `list_directory`: max_results制限（デフォルト100、最大1000）
-- `code_get_symbols_overview`: max_files制限（デフォルト50、最大500）
-- LLMの種類に応じた推奨値設定で安定動作を実現
+**Java LSP統合（Phase 2A）**:
+- `java_lsp_basic_diagnostics`: Java LSPの基本状態確認・エラー統計ツール
+- Eclipse JDT Language Server統合による基本診断機能
+
+**Intent Logging機能追加**:
+- `smart_edit_file`, `smart_insert_text`にIntent Logging対応
+- 編集操作の目的・理由を記録して開発履歴の追跡性向上
+
+**テスト品質大幅向上**:
+- 全テスト数: 282 → 551テスト（196%増加）
+- 成功率: 100%維持（失敗0件）
+
+**プロジェクトメモリシステム改善**:
+- プロジェクトメモリの3分類システム（generic/project_specific/templates）
+- 分類対応プロンプト自動生成機能
 
 ## ツールカテゴリ
 
 - **ファイル操作**: 5ツール（読み取り、一覧、検索、メタデータ、エコー）
-- **ワークスペース管理**: 3ツール（有効化、情報取得、一覧表示）
-- **スマート編集**: 2ツール（ファイル編集、テキスト挿入）
+- **ワークスペース管理**: 3ツール（有効化、情報取得、一覧表示）  
+- **スマート編集**: 2ツール（ファイル編集、テキスト挿入）※Intent Logging対応
 - **コード解析**: 7ツール（シンボル検索、参照検索、階層取得など）
 - **コード編集**: 3ツール（シンボル置換、挿入、正規表現置換）
-- **プロジェクト管理**: 4ツール（メモリ読み書き、一覧、ワークフロー生成）
+- **Java LSP**: 1ツール（基本診断）※Phase 2A実装
+- **プロジェクト管理**: 4ツール（メモリ読み書き、一覧、ワークフロー生成）※分類システム対応
 
 ## ファイル操作ツール
 
@@ -281,6 +293,7 @@ const result = await mcp.callTool('list_directory', {
 - `replace_all` (boolean, optional): すべての出現箇所を置換（デフォルト: false）
 - `max_file_size` (number, optional): 最大ファイルサイズ（バイト、デフォルト: 1MB）
 - `create_new_file` (boolean, optional): 新規ディレクトリも含めて作成を許可（デフォルト: false）
+- `intent` (string, optional): 編集の目的・理由（v1.0.9追加、Intent Logging機能）
 
 **戻り値:**
 ```json
@@ -319,6 +332,7 @@ const result = await mcp.callTool('list_directory', {
 - `preview_mode` (boolean, optional): プレビューモード（デフォルト: false）
 - `create_backup` (boolean, optional): バックアップファイルを作成（デフォルト: true）
 - `max_file_size` (number, optional): 最大ファイルサイズ（デフォルト: 1MB）
+- `intent` (string, optional): 挿入の目的・理由（v1.0.9追加、Intent Logging機能）
 - `create_new_file` (boolean, optional): 新規ディレクトリも含めて作成を許可（デフォルト: false）
 
 **戻り値:**
@@ -742,6 +756,77 @@ const security = await mcp.callTool('project_memory_read', {
 - **固定ファイル名**: 古い情報参照問題を根本解決
 - **自動バックアップ**: 更新時に `.claude/workspace/effortlessly/memory/backups/` に自動保存
 - **構造化分離**: 情報種別ごとに専用インデックスで管理効率化
+
+## Java LSP 診断ツール
+
+### java_lsp_basic_diagnostics
+
+Java LSPサーバーの基本状態確認とエラー統計を取得（Phase 2A実装）
+
+**パラメータ:**
+- `detailed` (boolean, optional): 詳細情報を含めるか（デフォルト: false）
+
+**戻り値:**
+```json
+{
+  "success": true,
+  "lsp_status": {
+    "server_running": true,
+    "connection_healthy": true,
+    "response_time_ms": 156
+  },
+  "error_statistics": {
+    "total_errors": 3,
+    "error_types": {
+      "compile_errors": 2,
+      "syntax_errors": 1
+    },
+    "recent_errors": [
+      {
+        "type": "compile_error",
+        "message": "Cannot find symbol: variable undefinedVar",
+        "file": "src/Main.java",
+        "line": 15,
+        "timestamp": "2025-08-10T11:00:00Z"
+      }
+    ]
+  },
+  "health_check": {
+    "status": "healthy",
+    "checks": [
+      {"name": "server_startup", "status": "✅ OK"},
+      {"name": "workspace_initialization", "status": "✅ OK"},
+      {"name": "project_classpath", "status": "⚠️ Warning: Some dependencies not found"}
+    ]
+  },
+  "message": "Java LSPサーバーは正常に動作しています。コンパイルエラー2件、構文エラー1件を検出しました。",
+  "recommendations": [
+    "未定義変数 'undefinedVar' を確認してください（src/Main.java:15）",
+    "プロジェクトの依存関係を確認してください"
+  ]
+}
+```
+
+**使用例:**
+```typescript
+// 基本的な診断実行
+const diagnostics = await mcp.callTool('java_lsp_basic_diagnostics', {});
+
+// 詳細情報込みの診断
+const detailed = await mcp.callTool('java_lsp_basic_diagnostics', {
+  detailed: true
+});
+```
+
+**実装状況:**
+- ✅ **Phase 2A完了**: 基本診断機能・エラー記録・統計収集
+- 🔄 **Phase 2B計画中**: 高度診断機能・パフォーマンス解析
+- 📋 **Phase 3予定**: 完全統合・自動修正提案
+
+**注意事項:**
+- Java プロジェクトでのみ有効
+- Eclipse JDT Language Server が必要（自動インストール対応）
+- 初回実行時にLSPサーバー起動のため応答時間が長くなる場合があります
 
 ## プロジェクト管理ツール
 
