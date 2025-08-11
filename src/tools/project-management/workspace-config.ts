@@ -6,11 +6,11 @@ import { WorkspaceConfig, WorkspaceSettings } from './types.js';
  */
 const workspaceSettingsSchema = z.object({
   index_enabled: z.boolean().default(true),
-  lsp_servers: z.array(z.string()).default(['typescript', 'python']),
+  lsp_servers: z.array(z.string()).default(['typescript']),
   auto_save_logs: z.boolean().default(true),
   log_retention_days: z.number().min(1).max(365).default(30),
-  max_file_size: z.number().positive().optional(),
-  excluded_patterns: z.array(z.string()).optional(),
+  max_file_size: z.number().positive().default(1048576),
+  excluded_patterns: z.array(z.string()).default(['*.env', '*.key', '*.pem', 'node_modules/**', '.git/**']),
   follow_symlinks: z.boolean().default(false),
 });
 
@@ -81,7 +81,7 @@ export class WorkspaceConfigValidator {
   static createDefaultSettings(): WorkspaceSettings {
     return {
       index_enabled: true,
-      lsp_servers: ['typescript', 'python'],
+      lsp_servers: ['typescript'],
       auto_save_logs: true,
       log_retention_days: 30,
       max_file_size: 1048576, // 1MB

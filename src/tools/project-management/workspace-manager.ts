@@ -59,7 +59,6 @@ export class WorkspaceManager {
   private async ensureWorkspaceStructure(): Promise<void> {
     const directories = [
       this.workspaceBaseDir,
-      path.join(this.workspaceBaseDir, 'config'),
       path.join(this.workspaceBaseDir, 'index'),
       path.join(this.workspaceBaseDir, 'logs', 'audit'),
       path.join(this.workspaceBaseDir, 'logs', 'error'),

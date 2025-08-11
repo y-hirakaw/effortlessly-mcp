@@ -113,6 +113,98 @@ export class ConfigManager {
     config.workspaces.configurations[name] = workspaceConfig;
     config.workspaces.current = name;
     await this.saveConfig(config);
+    
+    // ワークスペース固有のconfig.yamlも作成
+    await this.createWorkspaceConfigFile(name, workspaceConfig);
+  }
+
+  /**
+   * ワークスペース固有のconfig.yamlファイルを作成
+   */
+  private async createWorkspaceConfigFile(_name: string, workspaceConfig: WorkspaceConfig): Promise<void> {
+    const workspaceConfigPath = path.join(
+      os.homedir(),
+      '.claude',
+      'workspace',
+      'effortlessly',
+      'config.yaml'
+    );
+
+    // ワークスペース固有の設定構造
+    const workspaceSpecificConfig = {
+      workspace: {
+        name: workspaceConfig.name,
+        root_path: workspaceConfig.root_path,
+        created_at: workspaceConfig.created_at,
+        last_accessed: workspaceConfig.last_accessed,
+        settings: workspaceConfig.settings,
+      },
+      logging: {
+        operations: {
+          enabled: workspaceConfig.settings?.auto_save_logs ?? true,
+        },
+        diff: {
+          enabled: true,
+          max_lines_for_detailed_diff: 500,
+          display_options: {
+            default_context_lines: 3,
+          },
+        },
+      },
+      lsp_servers: {
+        proxy_server: {
+          enabled: true,
+          host: 'localhost',
+          port: 3001,
+          auto_start: true,
+          startup_timeout: 10000,
+        },
+        supported_languages: {
+          typescript: {
+            enabled: workspaceConfig.settings?.lsp_servers?.includes('typescript') ?? true,
+            server_command: 'typescript-language-server',
+            server_args: ['--stdio'],
+          },
+          python: {
+            enabled: workspaceConfig.settings?.lsp_servers?.includes('python') ?? false,
+            server_command: 'pylsp',
+            server_args: [],
+          },
+          swift: {
+            enabled: workspaceConfig.settings?.lsp_servers?.includes('swift') ?? false,
+            server_command: 'sourcekit-lsp',
+            server_args: [],
+          },
+        },
+      },
+      indexing: {
+        enabled: workspaceConfig.settings?.index_enabled ?? true,
+        database_path: '.claude/workspace/effortlessly/index/symbols.db',
+        auto_reindex: true,
+        excluded_extensions: ['.log', '.tmp', '.cache', '.DS_Store'],
+        max_file_size: workspaceConfig.settings?.max_file_size ?? 1048576,
+        scan_interval: 300,
+      },
+    };
+
+    try {
+      const yamlContent = yaml.dump(workspaceSpecificConfig, {
+        indent: 2,
+        lineWidth: -1,
+        noRefs: true,
+      });
+
+      const fsService = FileSystemService.getInstance();
+      await fsService.writeFile(workspaceConfigPath, yamlContent);
+      
+      this.logger.info(`Workspace-specific config created: ${workspaceConfigPath}`);
+    } catch (error) {
+      this.logger.error('Failed to create workspace-specific config file', {
+        error_message: error instanceof Error ? error.message : String(error),
+        config_path: workspaceConfigPath,
+      } as any);
+      throw error;
+    }
   }
 
   /**

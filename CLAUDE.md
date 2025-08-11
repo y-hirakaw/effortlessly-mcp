@@ -128,7 +128,7 @@ The project is in active development with substantial implementation completed. 
 - `project_memory_write`: Store project-specific knowledge
 - `project_memory_read`: Retrieve stored knowledge
 - `project_memory_list`: List available memory entries
-- `project_update_workflow`: Generate update workflows
+- `project_memory_update_workflow`: Generate update workflows
 
 ### Security Features
 - Automatic sensitive pattern detection (API keys, passwords, credentials)
@@ -260,42 +260,6 @@ The project has a solid foundation with most core features implemented. Current 
   標準 Edit ツールを直接使用
   → バックアップなし、テスト機会の損失
   ```
-
-#### Intent Logging機能の活用
-
-**Intent Logging機能**: 編集系ツールでは`intent`パラメータにより操作の目的・理由を記録できます。
-
-##### Intent使用例
-
-```javascript
-// ✅ 推奨: intentパラメータで操作目的を明確化
-mcp__effortlessly-mcp__smart_edit_file({
-  "file_path": "src/components/Button.tsx",
-  "old_text": "className=\"btn\"",
-  "new_text": "className=\"btn btn-primary\"",
-  "intent": "プライマリボタンのスタイル統一のため"
-});
-
-mcp__effortlessly-mcp__smart_insert_text({
-  "file_path": "src/utils/logger.ts",
-  "text": "import { performance } from 'perf_hooks';",
-  "position_type": "start",
-  "intent": "パフォーマンス測定機能追加のためのimport文挿入"
-});
-```
-
-##### Intent記録の効果
-
-- **operations.log**に「なぜその操作を行ったか」が記録される
-- 開発履歴の追跡と理解が容易になる
-- チーム開発での変更理由の共有が明確になる
-- デバッグ時の変更箇所特定が効率化される
-
-```
-# operations.logの出力例
-[2025-08-10T01:00:00.000Z] 意図: プライマリボタンのスタイル統一のため
-[2025-08-10T01:00:00.000Z] [SMART_EDIT] | File: src/components/Button.tsx | 1 replacements made
-```
 
 #### テスト・開発の観点
 
