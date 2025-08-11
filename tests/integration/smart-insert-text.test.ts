@@ -320,4 +320,45 @@ describe('SmartInsertTextTool Integration', () => {
       expect(result.error).toContain('Reference text not found');
     });
   });
+
+  describe('intent parameter', () => {
+    it('should accept intent parameter', async () => {
+      const testFile = path.join(testDir, 'intent-test.txt');
+      const initialContent = 'Original content';
+      await fs.writeFile(testFile, initialContent);
+
+      const toolResult = await smartInsertTool.execute({
+        file_path: testFile,
+        text: 'Added with intent',
+        position_type: 'end',
+        intent: 'テスト用のテキスト追加'
+      });
+
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
+      expect(result.success).toBe(true);
+      
+      const finalContent = await fs.readFile(testFile, 'utf-8');
+      expect(finalContent).toContain('Added with intent');
+    });
+
+    it('should work with default intent when not specified', async () => {
+      const testFile = path.join(testDir, 'default-intent-test.txt');
+      const initialContent = 'Original content';
+      await fs.writeFile(testFile, initialContent);
+
+      const toolResult = await smartInsertTool.execute({
+        file_path: testFile,
+        text: 'Added without explicit intent',
+        position_type: 'end'
+      });
+
+      // Parse JSON result from tool
+      const result = JSON.parse(toolResult.content[0].text);
+      expect(result.success).toBe(true);
+      
+      const finalContent = await fs.readFile(testFile, 'utf-8');
+      expect(finalContent).toContain('Added without explicit intent');
+    });
+  });
 });

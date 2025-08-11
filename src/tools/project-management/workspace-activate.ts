@@ -12,6 +12,8 @@ export interface WorkspaceActivateInput {
   workspace_path: string;
   /** ワークスペース名（オプション、未指定時はパスから自動生成） */
   name?: string;
+  /** この操作を行う理由・目的 */
+  intent?: string;
   /** インデックス機能を有効にするか */
   index_enabled?: boolean;
   /** 使用するLSPサーバー */
@@ -109,7 +111,10 @@ export const workspaceActivateTool = {
       await logManager.logOperation(
         'WORKSPACE_ACTIVATE',
         result.workspace.root_path,
-        `Workspace "${result.workspace.name}" activated | Path: ${result.workspace.root_path}`
+        `Workspace "${result.workspace.name}" activated | Path: ${result.workspace.root_path}`,
+        // metadata is not available in this function context
+        undefined,
+        input.intent || 'ワークスペース活性化'
       );
 
       return result;

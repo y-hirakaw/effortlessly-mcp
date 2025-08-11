@@ -13,6 +13,7 @@ import { LogManager } from '../../utils/log-manager.js';
 const ProjectMemoryWriteSchema = z.object({
   memory_name: z.string().min(1).describe('Name of the memory to save'),
   content: z.string().min(1).describe('Content to store in the memory'),
+  intent: z.string().optional().default('プロジェクト知識保存').describe('この操作を行う理由・目的'),
   tags: z.array(z.string()).optional().default([]).describe('Optional tags for categorization')
 });
 
@@ -35,6 +36,11 @@ export class ProjectMemoryWriteTool extends BaseTool {
         type: 'string', 
         description: 'Content to store in the memory',
         required: true
+      },
+      intent: {
+        type: 'string',
+        description: 'この操作を行う理由・目的',
+        required: false
       },
       tags: {
         type: 'array',
@@ -98,7 +104,9 @@ export class ProjectMemoryWriteTool extends BaseTool {
     await logManager.logOperation(
       'PROJECT_MEMORY_WRITE',
       result.filePath,
-      `Memory "${result.metadata.name}" written | Size: ${result.metadata.size} bytes | Tags: ${result.metadata.tags?.join(', ') || 'none'}`
+      `Memory "${result.metadata.name}" written | Size: ${result.metadata.size} bytes | Tags: ${result.metadata.tags?.join(', ') || 'none'}`,
+      this.metadata,
+      params.intent
     );
 
     return this.createTextResult(JSON.stringify(response, null, 2));

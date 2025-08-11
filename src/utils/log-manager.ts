@@ -241,7 +241,8 @@ ${diffContent}
     operation: string,
     filePath: string | null,
     details: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
+    intent?: string
   ): Promise<void> {
     // 設定チェック - operationsログが無効化されている場合は処理をスキップ
     const config = this.loadConfig();
@@ -260,8 +261,17 @@ ${diffContent}
       const fileInfo = filePath ? ` | File: ${filePath}` : '';
       const metadataStr = metadata ? ` | Metadata: ${JSON.stringify(metadata)}` : '';
       
-      const baseLogEntry = `${timestamp} [${operation.toUpperCase()}]${fileInfo} | ${details}${metadataStr}\n`;
-      const logEntry = this.colorizeLogEntry(operation.toUpperCase(), baseLogEntry);
+      // 意図行＋操作行の2行形式
+      let logEntry = '';
+      if (intent) {
+        // 意図行（色付きタイムスタンプ + 白い意図）
+        logEntry += `${ANSI_COLORS.DIM}${timestamp}${ANSI_COLORS.RESET} ${ANSI_COLORS.BOLD}意図${ANSI_COLORS.RESET}: ${intent}\n`;
+      }
+      
+      // 操作行（色付き操作名）
+      const baseOperationEntry = `${timestamp} [${operation.toUpperCase()}]${fileInfo} | ${details}${metadataStr}\n`;
+      const colorizedOperationEntry = this.colorizeLogEntry(operation.toUpperCase(), baseOperationEntry);
+      logEntry += colorizedOperationEntry;
 
       await fsService.appendFile(logFile, logEntry, { encoding: 'utf8' });
     } catch (error) {

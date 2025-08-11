@@ -21,6 +21,11 @@ export class WorkspaceActivateTool extends BaseTool {
         description: 'ワークスペース名（オプション、未指定時はディレクトリ名から自動生成）',
         required: false,
       },
+      intent: {
+        type: 'string',
+        description: 'この操作を行う理由・目的',
+        required: false,
+      },
       index_enabled: {
         type: 'boolean',
         description: 'インデックス機能を有効にするか（デフォルト: true）',
