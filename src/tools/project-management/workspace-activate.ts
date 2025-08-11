@@ -113,8 +113,7 @@ export const workspaceActivateTool = {
         result.workspace.root_path,
         `Workspace "${result.workspace.name}" activated | Path: ${result.workspace.root_path}`,
         // metadata is not available in this function context
-        undefined,
-        input.intent || 'ワークスペース活性化'
+        undefined
       );
 
       return result;

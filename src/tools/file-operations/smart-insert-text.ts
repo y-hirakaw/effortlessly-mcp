@@ -302,8 +302,7 @@ export class SmartInsertTextTool extends BaseTool {
         'SMART_INSERT_TEXT',
         params.file_path,
         `Inserted text at ${params.position_type} position (${lines.length} → ${insertResult.lines.length} lines)${isNewFile ? ' [NEW FILE]' : ''}`,
-        this.metadata,
-        params.intent
+        this.metadata
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));

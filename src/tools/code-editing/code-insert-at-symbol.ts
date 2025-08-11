@@ -173,8 +173,7 @@ export class CodeInsertAtSymbolTool extends BaseTool {
         'INSERT_AT_SYMBOL',
         symbolLocation.file_path,
         `Inserted ${insertLines.length} lines ${params.position} symbol "${params.target_symbol}"`,
-        this.metadata,
-        params.intent
+        this.metadata
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));

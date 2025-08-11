@@ -202,8 +202,7 @@ export class CodeReplaceWithRegexTool extends BaseTool {
         'REPLACE_WITH_REGEX',
         params.file_path,
         `Applied regex pattern "${params.pattern}" → ${matchResult.matches.length} replacements`,
-        this.metadata,
-        params.intent
+        this.metadata
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));

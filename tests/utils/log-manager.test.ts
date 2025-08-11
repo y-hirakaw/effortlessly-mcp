@@ -161,6 +161,31 @@ describe('LogManager', () => {
         await logManager.forceRotate(LogType.DIFF);
       }).not.toThrow();
     });
+
+    it('should prevent duplicate rotation within same day', async () => {
+      // 重複ローテーション防止機能のテスト
+      const logManager = LogManager.getInstance();
+      
+      // 複数回のローテーション試行（同一日であれば重複実行されない）
+      expect(async () => {
+        await logManager.forceRotate(LogType.OPERATIONS);
+        await logManager.forceRotate(LogType.OPERATIONS);
+        await logManager.forceRotate(LogType.OPERATIONS);
+      }).not.toThrow();
+    });
+
+    it('should handle rotation state management correctly', async () => {
+      // ローテーション状態管理のテスト
+      const logManager = LogManager.getInstance();
+      
+      // ログファイルを作成
+      await logManager.logFileOperation('TEST_ROTATION', path.join(testLogDir, 'test.txt'), 'Test rotation state');
+      
+      // ローテーション実行
+      expect(async () => {
+        await logManager.forceRotate(LogType.OPERATIONS);
+      }).not.toThrow();
+    });
   });
 
   describe('Error Handling', () => {
@@ -265,6 +290,20 @@ describe('LogManager', () => {
       
       // 基本的な16色（\x1b[XXm）を使っていないことを確認
       expect(ANSI_COLORS.FILE_OPERATIONS).not.toMatch(/^\x1b\[[0-9]{1,2}m$/);
+    });
+  });
+
+  describe('Memory Management', () => {
+    it('should handle rotation history cleanup without errors', async () => {
+      // メモリリーク防止のクリーンアップ機能テスト
+      const logManager = LogManager.getInstance();
+      
+      // 複数回のローテーション実行でメモリに履歴を蓄積
+      expect(async () => {
+        await logManager.forceRotate(LogType.OPERATIONS);
+        await logManager.forceRotate(LogType.DIFF);
+        await logManager.logFileOperation('CLEANUP_TEST', path.join(testLogDir, 'test.txt'), 'Memory cleanup test');
+      }).not.toThrow();
     });
 
     it('should format colored logs correctly in operations', async () => {

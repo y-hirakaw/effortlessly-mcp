@@ -329,8 +329,7 @@ export class SmartEditFileTool extends BaseTool {
         'SMART_EDIT',
         params.file_path,
         `${editResult.matches.length} replacements made | Lines: ${editResult.newContent.split('\n').length}`,
-        undefined, // metadata
-        params.intent // 意図を渡す
+        undefined // metadata
       );
 
       // 11. ファイル更新

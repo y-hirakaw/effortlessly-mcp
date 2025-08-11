@@ -105,8 +105,7 @@ export class ProjectMemoryWriteTool extends BaseTool {
       'PROJECT_MEMORY_WRITE',
       result.filePath,
       `Memory "${result.metadata.name}" written | Size: ${result.metadata.size} bytes | Tags: ${result.metadata.tags?.join(', ') || 'none'}`,
-      this.metadata,
-      params.intent
+      this.metadata
     );
 
     return this.createTextResult(JSON.stringify(response, null, 2));

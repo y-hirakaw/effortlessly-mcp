@@ -74,14 +74,15 @@ interface LogConfig {
 export class LogManager {
   private static instance: LogManager;
   private baseLogDir: string;
-  private currentDate: string;
+  private lastRotationCheckDate: string | null = null;
+  private rotatedDates: Set<string> = new Set(); // 既にローテーションした日付を記録
   private config: LogConfig | null = null;
   private configLoadTime: number = 0;
   private readonly CONFIG_CACHE_DURATION = 60000; // 1分間キャッシュ
 
   private constructor() {
     this.baseLogDir = path.resolve('.claude/workspace/effortlessly/logs');
-    this.currentDate = this.getCurrentDateString();
+    // currentDateは削除し、毎回getCurrentDateString()を呼び出すように変更
   }
 
   public static getInstance(): LogManager {
@@ -154,10 +155,28 @@ export class LogManager {
   private async checkAndRotate(logType: LogType): Promise<void> {
     const today = this.getCurrentDateString();
     
-    if (this.currentDate !== today) {
-      // 日付が変わった場合、昨日のログをローテーション
-      await this.rotateLog(logType, this.currentDate);
-      this.currentDate = today;
+    // 初回チェック時はローテーションを実行しない
+    if (this.lastRotationCheckDate === null) {
+      this.lastRotationCheckDate = today;
+      return;
+    }
+    
+    if (this.lastRotationCheckDate !== today) {
+      const rotationKey = `${this.lastRotationCheckDate}-${logType}`;
+      
+      // 既にローテーション済みでないかチェック
+      if (!this.rotatedDates.has(rotationKey)) {
+        // 日付が変わった場合、昨日のログをローテーション
+        await this.rotateLog(logType, this.lastRotationCheckDate);
+        this.rotatedDates.add(rotationKey);
+      }
+      
+      this.lastRotationCheckDate = today;
+      
+      // ローテーション履歴のクリーンアップ（週1回程度の頻度で実行）
+      if (Math.random() < 0.02) { // 約2%の確率で実行（50回に1回程度）
+        this.cleanupRotationHistory();
+      }
     }
   }
 
@@ -241,8 +260,7 @@ ${diffContent}
     operation: string,
     filePath: string | null,
     details: string,
-    metadata?: Record<string, any>,
-    intent?: string
+    metadata?: Record<string, any>
   ): Promise<void> {
     // 設定チェック - operationsログが無効化されている場合は処理をスキップ
     const config = this.loadConfig();
@@ -261,17 +279,9 @@ ${diffContent}
       const fileInfo = filePath ? ` | File: ${filePath}` : '';
       const metadataStr = metadata ? ` | Metadata: ${JSON.stringify(metadata)}` : '';
       
-      // 意図行＋操作行の2行形式
-      let logEntry = '';
-      if (intent) {
-        // 意図行（色付きタイムスタンプ + 白い意図）
-        logEntry += `${ANSI_COLORS.DIM}${timestamp}${ANSI_COLORS.RESET} ${ANSI_COLORS.BOLD}意図${ANSI_COLORS.RESET}: ${intent}\n`;
-      }
-      
-      // 操作行（色付き操作名）
+      // 操作行のみの形式（意図ログは無効化）
       const baseOperationEntry = `${timestamp} [${operation.toUpperCase()}]${fileInfo} | ${details}${metadataStr}\n`;
-      const colorizedOperationEntry = this.colorizeLogEntry(operation.toUpperCase(), baseOperationEntry);
-      logEntry += colorizedOperationEntry;
+      const logEntry = this.colorizeLogEntry(operation.toUpperCase(), baseOperationEntry);
 
       await fsService.appendFile(logFile, logEntry, { encoding: 'utf8' });
     } catch (error) {
@@ -326,7 +336,26 @@ ${diffContent}
    * 手動ローテーション（テスト用）
    */
   public async forceRotate(logType: LogType): Promise<void> {
-    await this.rotateLog(logType, this.currentDate);
+    const today = this.getCurrentDateString();
+    await this.rotateLog(logType, today);
+  }
+
+  /**
+   * 古いローテーション記録のクリーンアップ（メモリリーク防止）
+   */
+  private cleanupRotationHistory(): void {
+    // 30日以上前の記録を削除
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 30);
+    const cutoffString = cutoffDate.toISOString().split('T')[0];
+    
+    // 古い記録を削除
+    for (const key of this.rotatedDates) {
+      const dateMatch = key.match(/^(\d{4}-\d{2}-\d{2})-/);
+      if (dateMatch && dateMatch[1] < cutoffString) {
+        this.rotatedDates.delete(key);
+      }
+    }
   }
 
   /**

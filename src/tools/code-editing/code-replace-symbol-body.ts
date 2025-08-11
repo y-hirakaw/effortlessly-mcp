@@ -154,8 +154,7 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
         'CODE_REPLACE_SYMBOL',
         symbolLocation.file_path,
         `Symbol "${params.symbol_path}" body replaced | Lines: ${symbolBody.start_line}-${symbolBody.end_line} | Backup: ${!!backupPath}`,
-        this.metadata,
-        params.intent
+        this.metadata
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
