@@ -15,6 +15,7 @@ import { promises as fs } from 'fs';
 const CodeReplaceSymbolBodySchema = z.object({
   symbol_path: z.string().describe('置換対象のシンボルパス (例: "className.methodName", "functionName")'),
   new_body: z.string().describe('新しい実装コード（シグネチャは除く）'),
+  intent: z.string().optional().default('シンボル置換').describe('この操作を行う理由・目的'),
   preserve_signature: z.boolean().optional().default(true).describe('シグネチャを保持するかどうか'),
   file_path: z.string().optional().describe('対象ファイルパス（指定がない場合はシンボル検索で自動検出）'),
   create_backup: z.boolean().optional().default(true).describe('変更前のバックアップを作成')
@@ -53,6 +54,11 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
         type: 'string', 
         description: '新しい実装コード（シグネチャは除く本体のみ）',
         required: true
+      },
+      intent: {
+        type: 'string',
+        description: 'この操作を行う理由・目的',
+        required: false
       },
       preserve_signature: {
         type: 'boolean',
@@ -144,17 +150,20 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
 
       // 操作ログ記録
       const logManager = LogManager.getInstance();
-      await logManager.logFileOperation(
+      await logManager.logOperation(
         'CODE_REPLACE_SYMBOL',
         symbolLocation.file_path,
-        `Symbol "${params.symbol_path}" body replaced | Lines: ${symbolBody.start_line}-${symbolBody.end_line} | Backup: ${!!backupPath}`
+        `Symbol "${params.symbol_path}" body replaced | Lines: ${symbolBody.start_line}-${symbolBody.end_line} | Backup: ${!!backupPath}`,
+        this.metadata,
+        params.intent
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 
-    } catch (error: any) {
-      Logger.getInstance().error('Failed to replace symbol body', error.message);
-      return this.createErrorResult(`シンボル置換エラー: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      Logger.getInstance().error('Failed to replace symbol body', error instanceof Error ? error : new Error(errorMessage));
+      return this.createErrorResult(`シンボル置換エラー: ${errorMessage}`);
     }
   }
 

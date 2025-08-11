@@ -16,6 +16,7 @@ const CodeInsertAtSymbolSchema = z.object({
   target_symbol: z.string().describe('挿入位置の基準となるシンボルパス'),
   position: z.enum(['before', 'after']).describe('挿入位置: シンボルの前(before)または後(after)'),
   content: z.string().describe('挿入するコード内容'),
+  intent: z.string().optional().default('シンボル位置挿入').describe('この操作を行う理由・目的'),
   file_path: z.string().optional().describe('対象ファイルパス（省略時は自動検索）'),
   auto_indent: z.boolean().optional().default(true).describe('自動インデント調整'),
   preserve_spacing: z.boolean().optional().default(true).describe('既存のスペーシングを保持'),
@@ -57,6 +58,11 @@ export class CodeInsertAtSymbolTool extends BaseTool {
         type: 'string',
         description: '挿入するコード内容',
         required: true
+      },
+      intent: {
+        type: 'string',
+        description: 'この操作を行う理由・目的',
+        required: false
       },
       file_path: {
         type: 'string',
@@ -163,17 +169,20 @@ export class CodeInsertAtSymbolTool extends BaseTool {
 
       // 操作ログ記録
       const logManager = LogManager.getInstance();
-      await logManager.logFileOperation(
+      await logManager.logOperation(
         'INSERT_AT_SYMBOL',
         symbolLocation.file_path,
-        `Inserted ${insertLines.length} lines ${params.position} symbol "${params.target_symbol}"`
+        `Inserted ${insertLines.length} lines ${params.position} symbol "${params.target_symbol}"`,
+        this.metadata,
+        params.intent
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 
-    } catch (error: any) {
-      Logger.getInstance().error('Failed to insert code at symbol', error.message);
-      return this.createErrorResult(`コード挿入エラー: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      Logger.getInstance().error('Failed to insert code at symbol', error instanceof Error ? error : new Error(errorMessage));
+      return this.createErrorResult(`コード挿入エラー: ${errorMessage}`);
     }
   }
 

@@ -16,6 +16,7 @@ const SmartInsertTextSchema = z.object({
   file_path: z.string().describe('編集対象ファイルパス'),
   text: z.string().describe('挿入するテキスト'),
   position_type: z.enum(['line_number', 'after_text', 'before_text', 'start', 'end']).describe('挿入位置の指定方法'),
+  intent: z.string().optional().default('テキスト挿入').describe('この操作を行う理由・目的'),
   line_number: z.number().optional().describe('行番号（1から開始、position_type="line_number"の場合）'),
   reference_text: z.string().optional().describe('参照テキスト（after_text/before_textの場合）'),
   auto_indent: z.boolean().optional().default(true).describe('自動インデント調整'),
@@ -160,9 +161,9 @@ export class SmartInsertTextTool extends BaseTool {
 
         // 5. ファイル内容読み取り
         originalContent = await fsService.readFile(params.file_path, { encoding: 'utf-8' }) as string;
-      } catch (error: any) {
+      } catch (error) {
         // ファイルが存在しない場合
-        if (error.code === 'ENOENT') {
+        if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
           // 親ディレクトリが存在するかチェック
           const dir = path.dirname(params.file_path);
           try {
@@ -192,7 +193,7 @@ export class SmartInsertTextTool extends BaseTool {
         } else {
           const errorResult = {
             success: false,
-            error: `ファイルアクセスエラー: ${error.message}`,
+            error: `ファイルアクセスエラー: ${error instanceof Error ? error.message : String(error)}`,
             file_path: params.file_path
           };
           return this.createTextResult(JSON.stringify(errorResult, null, 2));
@@ -297,19 +298,21 @@ export class SmartInsertTextTool extends BaseTool {
 
       // 操作ログ記録
       const logManager = LogManager.getInstance();
-      await logManager.logFileOperation(
+      await logManager.logOperation(
         'SMART_INSERT_TEXT',
         params.file_path,
-        `Inserted text at ${params.position_type} position (${lines.length} → ${insertResult.lines.length} lines)${isNewFile ? ' [NEW FILE]' : ''}`
+        `Inserted text at ${params.position_type} position (${lines.length} → ${insertResult.lines.length} lines)${isNewFile ? ' [NEW FILE]' : ''}`,
+        this.metadata,
+        params.intent
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 
-    } catch (error: any) {
-      Logger.getInstance().error('Failed to perform smart insert', error.message);
+    } catch (error) {
+      Logger.getInstance().error('Failed to perform smart insert', error instanceof Error ? error : new Error(String(error)));
       const errorResult = {
         success: false,
-        error: `テキスト挿入エラー: ${error.message}`,
+        error: `テキスト挿入エラー: ${error instanceof Error ? error.message : String(error)}`,
         file_path: params.file_path || 'unknown'
       };
       return this.createTextResult(JSON.stringify(errorResult, null, 2));

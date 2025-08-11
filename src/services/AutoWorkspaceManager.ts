@@ -243,7 +243,7 @@ export class AutoWorkspaceManager {
     }
     
     // 該当するルールからLSPサーバーを取得
-    const rule = detectionRules.find((r: any) => r.type === projectType)
+    const rule = detectionRules.find(r => r.type === projectType)
     if (rule) {
       return rule.lsp_servers
     }
@@ -255,14 +255,14 @@ export class AutoWorkspaceManager {
   /**
    * ログ出力（設定に基づいて詳細ログを制御）
    */
-  private log(...args: any[]): void {
+  private log(...args: unknown[]): void {
     if (this.config?.display.verbose_logging !== false) {
       // eslint-disable-next-line no-console
       console.log(...args)
     }
   }
 
-  private logWarn(...args: any[]): void {
+  private logWarn(...args: unknown[]): void {
     console.warn(...args)
   }
 }

@@ -15,6 +15,14 @@ export interface DiffOptions {
   showLineNumbers?: boolean;
 }
 
+interface ColorScheme {
+  RED: string;
+  GREEN: string;
+  YELLOW: string;
+  CYAN: string;
+  RESET: string;
+}
+
 interface DiffConfig {
   enabled?: boolean;
   max_lines_for_detailed_diff: number;
@@ -159,7 +167,7 @@ export class HighQualityDiff {
   /**
    * 新規ファイル作成時のフォーマット
    */
-  private formatNewFile(content: string, filePath: string, colors: any): string {
+  private formatNewFile(content: string, filePath: string, colors: ColorScheme): string {
     const lines = content.split('\n');
     return `${colors.CYAN}--- /dev/null${colors.RESET}\n` +
            `${colors.CYAN}+++ ${filePath}${colors.RESET}\n` +
@@ -170,7 +178,7 @@ export class HighQualityDiff {
   /**
    * ファイル削除時のフォーマット
    */
-  private formatDeleteFile(content: string, filePath: string, colors: any): string {
+  private formatDeleteFile(content: string, filePath: string, colors: ColorScheme): string {
     const lines = content.split('\n');
     return `${colors.CYAN}--- ${filePath}${colors.RESET}\n` +
            `${colors.CYAN}+++ /dev/null${colors.RESET}\n` +
@@ -181,7 +189,7 @@ export class HighQualityDiff {
   /**
    * unified diff形式を色付きで整形
    */
-  private colorizeUnifiedDiff(patch: string, colors: any): string {
+  private colorizeUnifiedDiff(patch: string, colors: ColorScheme): string {
     const lines = patch.split('\n');
     const colorizedLines: string[] = [];
     
@@ -243,7 +251,7 @@ export class HighQualityDiff {
   /**
    * 最適化されたdiff生成（git diff風の詳細表示）
    */
-  private generateOptimizedDiff(oldContent: string, newContent: string, filePath: string, colors: any, contextLines: number): string {
+  private generateOptimizedDiff(oldContent: string, newContent: string, filePath: string, colors: ColorScheme, contextLines: number): string {
     // 大規模変更の場合のみサマリー表示
     if (this.isLargeChange(oldContent, newContent)) {
       return this.generateSmartSummary(oldContent, newContent, filePath, colors);
@@ -262,7 +270,7 @@ export class HighQualityDiff {
   /**
    * スマートサマリー生成（大規模変更用）
    */
-  private generateSmartSummary(oldContent: string, newContent: string, filePath: string, colors: any): string {
+  private generateSmartSummary(oldContent: string, newContent: string, filePath: string, colors: ColorScheme): string {
     const oldLines = oldContent.split('\n').length;
     const newLines = newContent.split('\n').length;
     const sizeDiff = newContent.length - oldContent.length;

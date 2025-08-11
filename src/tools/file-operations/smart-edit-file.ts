@@ -16,6 +16,7 @@ const SmartEditFileSchema = z.object({
   file_path: z.string().describe('編集対象ファイルパス'),
   old_text: z.string().describe('置換対象の文字列（新規ファイル作成時は空文字列可）'),
   new_text: z.string().describe('置換後の文字列'),
+  intent: z.string().optional().default('ファイル編集').describe('この操作を行う理由・目的'),
   preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の変更は行わない）'),
   create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成'),
   case_sensitive: z.boolean().optional().default(true).describe('大文字小文字を区別'),
@@ -68,6 +69,11 @@ export class SmartEditFileTool extends BaseTool {
         type: 'string',
         description: '置換後の文字列',
         required: true
+      },
+      intent: {
+        type: 'string',
+        description: 'この操作を行う理由・目的',
+        required: false
       },
       preview_mode: {
         type: 'boolean',
@@ -186,9 +192,9 @@ export class SmartEditFileTool extends BaseTool {
 
         // 4. ファイル内容読み取り
         originalContent = await fsService.readFile(params.file_path, { encoding: 'utf-8' }) as string;
-      } catch (error: any) {
+      } catch (error) {
         // ファイルが存在しない場合
-        if (error.code === 'ENOENT') {
+        if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
           // 親ディレクトリが存在するかチェック
           const dir = path.dirname(params.file_path);
           try {
@@ -213,7 +219,7 @@ export class SmartEditFileTool extends BaseTool {
             }
           }
         } else {
-          return this.createErrorResult(`ファイルアクセスエラー: ${error.message}`);
+          return this.createErrorResult(`ファイルアクセスエラー: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -317,12 +323,14 @@ export class SmartEditFileTool extends BaseTool {
       const diffLogger = DiffLogger.getInstance();
       await diffLogger.logPreciseDiff(originalContent, editResult.newContent, params.file_path, 'Smart Edit');
 
-      // 10.5. 操作ログ記録
+      // 10.5. 操作ログ記録（意図付き）
       const logManager = LogManager.getInstance();
-      await logManager.logFileOperation(
+      await logManager.logOperation(
         'SMART_EDIT',
         params.file_path,
-        `${editResult.matches.length} replacements made | Lines: ${editResult.newContent.split('\n').length}`
+        `${editResult.matches.length} replacements made | Lines: ${editResult.newContent.split('\n').length}`,
+        undefined, // metadata
+        params.intent // 意図を渡す
       );
 
       // 11. ファイル更新
@@ -353,9 +361,9 @@ export class SmartEditFileTool extends BaseTool {
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 
-    } catch (error: any) {
+    } catch (error) {
       // 詳細なエラー情報をログ記録
-      Logger.getInstance().error('Failed to perform smart edit', error, {
+      Logger.getInstance().error('Failed to perform smart edit', error instanceof Error ? error : new Error(String(error)), {
         toolName: this.metadata.name,
         parameters: {
           file_path: params.file_path,
@@ -363,7 +371,7 @@ export class SmartEditFileTool extends BaseTool {
           new_text_length: typeof params.new_text === 'string' ? params.new_text.length : 'undefined',
           preview_mode: params.preview_mode
         },
-        errorType: error.constructor.name,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
         possibleCause: this.analyzePossibleCause(error, params)
       });
 

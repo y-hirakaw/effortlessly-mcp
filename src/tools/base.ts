@@ -45,14 +45,14 @@ export abstract class BaseTool implements ITool {
             field: e.path.join('.'),
             code: e.code,
             message: e.message,
-            received: e.path.reduce((obj: any, path) => obj?.[path], parameters)
+            received: e.path.reduce((obj: unknown, path) => (obj as Record<string, unknown>)?.[path], parameters)
           }))
         });
 
         // より詳細なエラーメッセージを作成
         const fieldErrors = error.errors.map(e => {
           const fieldPath = e.path.join('.');
-          const receivedValue = e.path.reduce((obj: any, path) => obj?.[path], parameters);
+          const receivedValue = e.path.reduce((obj: unknown, path) => (obj as Record<string, unknown>)?.[path], parameters);
           return `${fieldPath}: ${e.message} (受信値: ${typeof receivedValue === 'undefined' ? 'undefined' : typeof receivedValue})`;
         }).join(', ');
 

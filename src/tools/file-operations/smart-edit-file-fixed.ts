@@ -126,9 +126,9 @@ export class SmartEditFileTool extends BaseTool {
 
         // 4. ファイル内容読み取り
         originalContent = await fs.readFile(params.file_path, 'utf-8');
-      } catch (error: any) {
+      } catch (error) {
         // ファイルが存在しない場合
-        if (error.code === 'ENOENT') {
+        if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
           if (!params.create_new_file) {
             return this.createErrorResult(`ファイルが見つかりません: ${params.file_path}. 新規作成を行う場合は create_new_file=true を指定してください。`);
           }
@@ -141,7 +141,7 @@ export class SmartEditFileTool extends BaseTool {
           const dir = path.dirname(params.file_path);
           await fs.mkdir(dir, { recursive: true });
         } else {
-          return this.createErrorResult(`ファイルアクセスエラー: ${error.message}`);
+          return this.createErrorResult(`ファイルアクセスエラー: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 
@@ -242,9 +242,10 @@ export class SmartEditFileTool extends BaseTool {
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 
-    } catch (error: any) {
-      Logger.getInstance().error('Failed to perform smart edit', error.message);
-      return this.createErrorResult(`ファイル編集エラー: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      Logger.getInstance().error('Failed to perform smart edit', error instanceof Error ? error : new Error(errorMessage));
+      return this.createErrorResult(`ファイル編集エラー: ${errorMessage}`);
     }
   }
 

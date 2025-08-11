@@ -14,6 +14,7 @@ const CodeReplaceWithRegexSchema = z.object({
   file_path: z.string().describe('対象ファイルパス'),
   pattern: z.string().describe('検索用正規表現パターン'),
   replacement: z.string().describe('置換文字列（バックリファレンス $1, $2 等使用可能）'),
+  intent: z.string().optional().default('正規表現置換').describe('この操作を行う理由・目的'),
   flags: z.string().optional().default('g').describe('正規表現フラグ (g: global, i: ignoreCase, m: multiline, s: dotAll)'),
   max_replacements: z.number().optional().describe('最大置換回数（安全性のため）'),
   preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の置換は行わない）'),
@@ -64,6 +65,11 @@ export class CodeReplaceWithRegexTool extends BaseTool {
         type: 'string',
         description: '置換文字列（バックリファレンス $1, $2 等使用可能）',
         required: true
+      },
+      intent: {
+        type: 'string',
+        description: 'この操作を行う理由・目的',
+        required: false
       },
       flags: {
         type: 'string',
@@ -192,17 +198,20 @@ export class CodeReplaceWithRegexTool extends BaseTool {
 
       // 操作ログ記録
       const logManager = LogManager.getInstance();
-      await logManager.logFileOperation(
+      await logManager.logOperation(
         'REPLACE_WITH_REGEX',
         params.file_path,
-        `Applied regex pattern "${params.pattern}" → ${matchResult.matches.length} replacements`
+        `Applied regex pattern "${params.pattern}" → ${matchResult.matches.length} replacements`,
+        this.metadata,
+        params.intent
       );
 
       return this.createTextResult(JSON.stringify(result, null, 2));
 
-    } catch (error: any) {
-      Logger.getInstance().error('Failed to perform regex replacement', error.message);
-      return this.createErrorResult(`正規表現置換エラー: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      Logger.getInstance().error('Failed to perform regex replacement', error instanceof Error ? error : new Error(errorMessage));
+      return this.createErrorResult(`正規表現置換エラー: ${errorMessage}`);
     }
   }
 
@@ -210,8 +219,8 @@ export class CodeReplaceWithRegexTool extends BaseTool {
     try {
       new RegExp(pattern, flags);
       return { valid: true };
-    } catch (error: any) {
-      return { valid: false, error: error.message };
+    } catch (error) {
+      return { valid: false, error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -323,8 +332,8 @@ export class CodeReplaceWithRegexTool extends BaseTool {
             errors.push('括弧の対応が不正である可能性があります');
           }
       }
-    } catch (error: any) {
-      errors.push(`構文エラー: ${error.message}`);
+    } catch (error) {
+      errors.push(`構文エラー: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     return {
