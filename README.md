@@ -21,7 +21,7 @@ Claude Code向けのMCP（Model Context Protocol）サーバーです。セキ�
 - Java診断機能（基本）
 
 ### プロジェクト管理
-- ワークスペース管理
+- ワークスペース管理（設定ファイル自動生成）
 - プロジェクトメモリシステム
 
 詳細は [docs/TOOLS.md](docs/TOOLS.md) を参照してください。
@@ -142,6 +142,8 @@ TypeScript/Go/Java/C++ LSP Servers
 - 🧪 **Claude Code自動起動**: 検証中
 
 ## 📋 変更履歴
+
+**v1.0.10** (2025-08-11) - ワークスペース設定自動生成機能追加
 
 **v1.0.9** (2025-08-10) - Java LSP統合とプロジェクトメモリ改善
 

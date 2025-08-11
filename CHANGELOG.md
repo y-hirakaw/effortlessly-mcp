@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.10] - 2025-08-11
+
+### Added
+- 🔧 **ワークスペース設定自動生成機能**
+  - `workspace_activate` 実行時に `.claude/workspace/effortlessly/config.yaml` を自動生成
+  - ワークスペース固有の設定（LSPサーバー、インデックス設定、ログ設定等）を統一フォーマットで出力
+  - 既存の統合config.yamlとの互換性を保持
+
+### Changed
+- 🏗️ **ワークスペース構造の最適化**
+  - `configフォルダ`の生成を廃止、設定ファイルを直接 `.claude/workspace/effortlessly/config.yaml` に統一
+  - デフォルトLSPサーバーを `['typescript']` に変更（従来の `['typescript', 'python']` から簡素化）
+  - デフォルト設定値を既存設定ファイルと完全統一
+
+### Fixed
+- 🐛 **設定管理の改善**
+  - ワークスペース活性化時の設定ファイル作成処理を確実に実行
+  - TypeScriptビルドエラーの修正（未使用パラメータ、型エラー等）
+
 ## [1.0.9] - 2025-08-10
 
 ### Added
