@@ -123,7 +123,7 @@ export class ConfigManager {
    */
   private async createWorkspaceConfigFile(_name: string, workspaceConfig: WorkspaceConfig): Promise<void> {
     const workspaceConfigPath = path.join(
-      os.homedir(),
+      workspaceConfig.root_path,
       '.claude',
       'workspace',
       'effortlessly',
@@ -188,19 +188,28 @@ export class ConfigManager {
     };
 
     try {
+      this.logger.info(`Attempting to create config file at: ${workspaceConfigPath}`);
+      
+      // ディレクトリが存在しない場合は作成
+      const configDir = path.dirname(workspaceConfigPath);
+      const fsService = FileSystemService.getInstance();
+      await fsService.mkdir(configDir, { recursive: true });
+      
       const yamlContent = yaml.dump(workspaceSpecificConfig, {
         indent: 2,
         lineWidth: -1,
         noRefs: true,
       });
 
-      const fsService = FileSystemService.getInstance();
+      this.logger.info(`YAML content generated, length: ${yamlContent.length}`);
+
       await fsService.writeFile(workspaceConfigPath, yamlContent);
       
-      this.logger.info(`Workspace-specific config created: ${workspaceConfigPath}`);
+      this.logger.info(`Workspace-specific config created successfully: ${workspaceConfigPath}`);
     } catch (error) {
       this.logger.error('Failed to create workspace-specific config file', {
         error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
         config_path: workspaceConfigPath,
       } as any);
       throw error;
