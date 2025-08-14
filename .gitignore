@@ -143,6 +143,7 @@ build/
 .claude/workspace/
 sample.md
 .serena/
+test-scripts/
 
 # Test project build directories
 tests/test-projects/test-swift-project/.build/
