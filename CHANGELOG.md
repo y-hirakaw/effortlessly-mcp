@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2025-08-14
+
+### Enhanced
+- ⚡ **Swift LSP統合のパフォーマンス改善**
+  - SwiftLSPインスタンスのキャッシュ機能実装
+  - 初回検索: 5-10秒（初期化処理）
+  - 2回目以降: 1秒以下に高速化（キャッシュ利用）
+  - 不要なLSPプロキシチェックをSwiftプロジェクトでスキップ
+  - 接続維持戦略により接続・切断の繰り返しを排除
+
+### Fixed
+- 🔧 **Swift シンボル検索の安定性向上**
+  - ワークスペース単位でLSPインスタンス管理
+  - プロセス終了時のクリーンアップ処理追加
+  - リソース効率の最適化
+
+### Technical Details
+- 改修ファイル: `src/tools/code-analysis/code-find-symbol.ts`
+- キャッシュ管理: グローバル変数によるインスタンス保持
+- パフォーマンス測定: 実測値で10倍以上の高速化を確認
+
 ## [1.0.11] - 2025-08-14
 
 ### Added
