@@ -147,3 +147,5 @@ sample.md
 # Test project build directories
 tests/test-projects/test-swift-project/.build/
 tests/test-projects/test-cocoapods-project/Pods/
+
+.vscode/

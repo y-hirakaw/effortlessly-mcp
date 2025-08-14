@@ -4,7 +4,7 @@
 
 ## 概要
 
-effortlessly-mcpは以下のカテゴリに分類される25個のツールを提供します：
+effortlessly-mcpは以下のカテゴリに分類される26個のツールを提供します：
 
 ## 🆕 最新の更新 (v1.0.9)
 
@@ -28,7 +28,7 @@ effortlessly-mcpは以下のカテゴリに分類される25個のツールを�
 
 - **ファイル操作**: 5ツール（読み取り、一覧、検索、メタデータ、エコー）
 - **ワークスペース管理**: 3ツール（有効化、情報取得、一覧表示）  
-- **スマート編集**: 2ツール（ファイル編集、テキスト挿入）※Intent Logging対応
+- **スマート編集**: 3ツール（ファイル編集、テキスト挿入、完全上書き）※Intent Logging対応
 - **コード解析**: 7ツール（シンボル検索、参照検索、階層取得など）
 - **コード編集**: 3ツール（シンボル置換、挿入、正規表現置換）
 - **Java LSP**: 1ツール（基本診断）※Phase 2A実装
@@ -352,6 +352,56 @@ const result = await mcp.callTool('list_directory', {
   "is_new_file": false
 }
 ```
+
+### 3. override_text
+
+既存ファイルの完全上書きまたは新規ファイル作成（高リスク操作）
+
+**パラメータ:**
+- `file_path` (string, required): 対象ファイルパス
+- `text` (string, required): 新しいファイル内容（完全置換）
+- `preview_mode` (boolean, optional): プレビューモード（デフォルト: false）
+- `create_backup` (boolean, optional): バックアップファイルを作成（デフォルト: true）
+- `max_file_size` (number, optional): 最大ファイルサイズ（デフォルト: 10MB）
+- `confirm_override` (boolean, optional): 上書き意図の明示的確認（デフォルト: false）
+- `allow_new_file` (boolean, optional): 新規ファイル作成を許可（デフォルト: true）
+
+**戻り値:**
+```json
+{
+  "success": true,
+  "file_path": "/path/to/config.json",
+  "preview_mode": false,
+  "operation": "override",
+  "backup_path": "/path/to/.claude/workspace/effortlessly/backups/config.json.2023-12-01T10-00-00-000Z.backup",
+  "original_size": 1024,
+  "new_size": 2048,
+  "security_warning": "⚠️ 高リスク操作: 既存ファイル（1024バイト）を完全上書きします。必要に応じてpreview_mode=trueで内容確認を推奨。"
+}
+```
+
+**使用例:**
+```bash
+# 設定ファイル完全更新
+mcp://override_text({
+  "file_path": "config/app.json",
+  "text": "{\n  \"version\": \"2.0\",\n  \"features\": [\"auth\", \"api\"]\n}",
+  "preview_mode": true
+})
+
+# 新規テンプレートファイル作成
+mcp://override_text({
+  "file_path": "templates/component.tsx",
+  "text": "import React from 'react';\n\nexport const Template = () => {\n  return <div>Template</div>;\n};",
+  "allow_new_file": true
+})
+```
+
+**セキュリティ機能:**
+- 機密ファイル（.env, config, package.json等）に対する自動保護
+- `confirm_override=true` での明示的確認機能
+- 自動バックアップ作成（既存ファイルのみ）
+- プレビューモードでの事前確認
 
 ## コード解析ツール
 

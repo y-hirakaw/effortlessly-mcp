@@ -13,7 +13,8 @@ Claude Code向けのMCP（Model Context Protocol）サーバーです。セキ�
 
 ### ファイル操作
 - ファイル読み取り、編集、検索
-- ディレクトリ一覧、メタデータ取得  
+- ディレクトリ一覧、メタデータ取得
+- **ファイル完全上書き** (`override_text`): バックアップ機能付きの安全な上書き  
 
 ### コード解析（LSP統合）
 - シンボル検索、参照解析
@@ -123,7 +124,7 @@ TypeScript/Go/Java/C++ LSP Servers
 - **[Swift開発ガイド](docs/SWIFT-GUIDE.md)** - SourceKit-LSP統合によるSwift開発支援
 
 ### 📖 技術資料
-- **[ツールリファレンス](docs/TOOLS.md)** - 全23ツールの詳細仕様とAPI
+- **[ツールリファレンス](docs/TOOLS.md)** - 全26ツールの詳細仕様とAPI
 - **[APIドキュメント](docs/API.md)** - MCP統合とプロトコル詳細
 - **[ログ・Diff設定ガイド](docs/LOGGING-CONFIGURATION.md)** - 操作ログとdiff表示の設定（v1.0.6新機能）
 - **[セキュリティガイド](docs/SECURITY.md)** - エンタープライズセキュリティ設定

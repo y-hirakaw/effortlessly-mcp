@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2025-08-14
+
+### Added
+- 🗃️ **override_text機能の実装**
+  - ファイル全体の安全な上書き機能を追加
+  - 自動バックアップ機能付きでリスク軽減
+  - プレビューモード対応で事前確認可能
+  - セキュリティ警告表示で高リスク操作の明確化
+  - 新規ファイル作成・既存ファイル完全置換の両対応
+
+### Enhanced
+- 🛡️ **ファイル操作安全性の強化**
+  - タイムスタンプ付きバックアップファイル自動生成
+  - ファイルサイズ制限とセキュリティ警告機能
+  - 操作メタデータ（元サイズ、新サイズ、バックアップパス）の詳細提供
+
+### Technical Details
+- 新規ファイル: `src/tools/file-operations/override-text.ts`
+- 対応テスト: `src/tools/file-operations/override-text.test.ts`
+- バックアップ保存先: `.claude/workspace/effortlessly/backups/`
+
 ## [1.0.10] - 2025-08-11
 
 ### Added

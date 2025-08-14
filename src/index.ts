@@ -241,6 +241,23 @@ function registerTools(): void {
         );
         break;
         
+      case 'override_text':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('対象ファイルパス'),
+            text: z.string().describe('新しいファイル内容（完全置換）'),
+            preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の変更は行わない）'),
+            create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成'),
+            max_file_size: z.number().optional().default(10485760).describe('最大ファイルサイズ（バイト、デフォルト: 10MB）'),
+            confirm_override: z.boolean().optional().default(false).describe('上書き意図の明示的確認'),
+            allow_new_file: z.boolean().optional().default(true).describe('新規ファイル作成を許可'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
       case 'project_memory_update_workflow':
         server.tool(
           name,
