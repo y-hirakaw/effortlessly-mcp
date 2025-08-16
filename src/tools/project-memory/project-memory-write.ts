@@ -73,7 +73,7 @@ export class ProjectMemoryWriteTool extends BaseTool {
     // プロジェクトメモリサービスを初期化
     const memoryService = new ProjectMemoryService(currentWorkspace.root_path, this.logger);
 
-    // メモリを保存
+    // メモリを保存（新しいディレクトリ構造）
     const result = await memoryService.writeMemory(memory_name, content, tags);
 
     this.logger.info(`Project memory saved successfully: ${memory_name}`, {
@@ -108,6 +108,9 @@ export class ProjectMemoryWriteTool extends BaseTool {
       this.metadata
     );
 
-    return this.createTextResult(JSON.stringify(response, null, 2));
+    console.log(`DEBUG: Final response.memory_name = "${response.memory_name}"`);
+    const jsonString = JSON.stringify(response, null, 2);
+    console.log(`DEBUG: JSON string contains memory_name:`, jsonString.includes(response.memory_name || ''));
+    return this.createTextResult(jsonString);
   }
 }

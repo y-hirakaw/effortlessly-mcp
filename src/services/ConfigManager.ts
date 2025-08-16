@@ -40,14 +40,7 @@ export interface IntegratedConfig {
       server_args: string[];
     }>;
   };
-  indexing: {
-    enabled: boolean;
-    database_path: string;
-    auto_reindex: boolean;
-    excluded_extensions: string[];
-    max_file_size: number;
-    scan_interval: number;
-  };
+
 }
 
 export class ConfigManager {
@@ -177,14 +170,7 @@ export class ConfigManager {
           },
         },
       },
-      indexing: {
-        enabled: workspaceConfig.settings?.index_enabled ?? true,
-        database_path: '.claude/workspace/effortlessly/index/symbols.db',
-        auto_reindex: true,
-        excluded_extensions: ['.log', '.tmp', '.cache', '.DS_Store'],
-        max_file_size: workspaceConfig.settings?.max_file_size ?? 1048576,
-        scan_interval: 300,
-      },
+
     };
 
     try {
@@ -236,13 +222,7 @@ export class ConfigManager {
     return config.lsp_servers;
   }
 
-  /**
-   * インデックス設定を取得
-   */
-  async getIndexingConfig() {
-    const config = await this.loadConfig();
-    return config.indexing;
-  }
+
 
   /**
    * Get specific workspace configuration by name
@@ -301,14 +281,7 @@ export class ConfigManager {
           },
         },
       },
-      indexing: {
-        enabled: true,
-        database_path: '.claude/workspace/effortlessly/index/symbols.db',
-        auto_reindex: true,
-        excluded_extensions: ['.log', '.tmp', '.cache', '.DS_Store'],
-        max_file_size: 1048576,
-        scan_interval: 300,
-      },
+
     };
   }
 
@@ -324,7 +297,7 @@ export class ConfigManager {
         configurations: { ...defaults.workspaces.configurations, ...config.workspaces?.configurations },
       },
       lsp_servers: { ...defaults.lsp_servers, ...config.lsp_servers },
-      indexing: { ...defaults.indexing, ...config.indexing },
+
     };
   }
 }

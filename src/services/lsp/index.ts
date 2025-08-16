@@ -7,14 +7,14 @@ export { LSPClientBase } from './lsp-client.js';
 export { TypeScriptLSP } from './typescript-lsp.js';
 export { SwiftLSP } from './swift-lsp.js';
 export { JavaLSP } from './java-lsp.js';
-export { SymbolIndexer } from './symbol-indexer.js';
+
 export { LSPAutoLauncher } from './lsp-auto-launcher.js';
 export { LSPDependencyManager } from './lsp-dependency-manager.js';
 export type * from './types.js';
 
 // クラス内で使用するため、明示的にインポート
 import { LSPClientBase } from './lsp-client.js';
-import { SymbolIndexer } from './symbol-indexer.js';
+
 import { LSPAutoLauncher } from './lsp-auto-launcher.js';
 import { LSPDependencyManager } from './lsp-dependency-manager.js';
 import { Logger } from '../logger.js';
@@ -24,7 +24,7 @@ import type { ExtendedLSPServerConfig } from './types.js';
 export class LSPManager {
   private static instance?: LSPManager;
   private clients = new Map<string, LSPClientBase>();
-  private indexers = new Map<string, SymbolIndexer>();
+
   private autoLauncher?: LSPAutoLauncher;
   private dependencyManager?: LSPDependencyManager;
   private logger: Logger;
@@ -131,19 +131,7 @@ export class LSPManager {
     return this.clients.get(name);
   }
 
-  /**
-   * インデックスを登録
-   */
-  registerIndexer(name: string, indexer: SymbolIndexer): void {
-    this.indexers.set(name, indexer);
-  }
 
-  /**
-   * インデックスを取得
-   */
-  getIndexer(name: string): SymbolIndexer | undefined {
-    return this.indexers.get(name);
-  }
 
   /**
    * 全てのLSPクライアントを切断
@@ -165,13 +153,5 @@ export class LSPManager {
     this.logger.info('✅ All LSP clients disconnected');
   }
 
-  /**
-   * 全てのインデックスを閉じる
-   */
-  closeAllIndexers(): void {
-    for (const indexer of this.indexers.values()) {
-      indexer.close();
-    }
-    this.indexers.clear();
-  }
+
 }

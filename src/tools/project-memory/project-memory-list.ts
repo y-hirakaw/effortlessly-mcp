@@ -60,7 +60,7 @@ export class ProjectMemoryListTool extends BaseTool {
     // プロジェクトメモリサービスを初期化
     const memoryService = new ProjectMemoryService(currentWorkspace.root_path, this.logger);
 
-    // メモリ一覧を取得
+    // メモリ一覧を取得（新しいディレクトリ構造）
     const listResult = await memoryService.listMemories(filter_tags);
 
     // 統計情報を取得（必要な場合）

@@ -22,7 +22,8 @@ import {
 import {
   ProjectMemoryWriteTool,
   ProjectMemoryReadTool,
-  ProjectMemoryListTool
+  ProjectMemoryListTool,
+  ProjectMemorySmartReadTool
 } from './project-memory/index.js';
 import { ProjectMemoryUpdateWorkflowTool } from './project-memory-update-workflow.js';
 import {
@@ -87,6 +88,7 @@ export class ToolRegistry {
     this.registerTool(new ProjectMemoryWriteTool());
     this.registerTool(new ProjectMemoryReadTool());
     this.registerTool(new ProjectMemoryListTool());
+    this.registerTool(new ProjectMemorySmartReadTool());
     
     // プロジェクト更新ワークフローツール
     this.registerTool(new ProjectMemoryUpdateWorkflowTool());

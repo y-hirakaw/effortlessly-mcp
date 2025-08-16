@@ -4,7 +4,7 @@ import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import { ConfigManager } from '../../services/ConfigManager.js';
 import { LSPServerManager } from '../../services/LSPServerManager.js';
-import { IndexService } from '../../services/IndexService.js';
+
 import { ValidationError, FileSystemError } from '../../types/errors.js';
 import { 
   WorkspaceConfig, 
@@ -25,7 +25,7 @@ export class WorkspaceManager {
   private currentWorkspace: WorkspaceInfo | null = null;
   private configManager: ConfigManager;
   private static lspServerManager: LSPServerManager;
-  private indexService: IndexService;
+
 
   private constructor() {
     // ワークスペースのベースディレクトリを.claude/workspace/effortlessly/に設定
@@ -34,7 +34,7 @@ export class WorkspaceManager {
     if (!WorkspaceManager.lspServerManager) {
       WorkspaceManager.lspServerManager = new LSPServerManager();
     }
-    this.indexService = new IndexService();
+
   }
 
   static getInstance(): WorkspaceManager {
@@ -54,15 +54,22 @@ export class WorkspaceManager {
 
 
   /**
-   * ワークスペースディレクトリを初期化
+   * ワークスペースディレクトリを初期化（新しい階層型インデックス構造対応）
    */
   private async ensureWorkspaceStructure(): Promise<void> {
     const directories = [
       this.workspaceBaseDir,
+      // 新しい階層型インデックス構造
       path.join(this.workspaceBaseDir, 'index'),
+      path.join(this.workspaceBaseDir, 'index', 'knowledge'),
+      path.join(this.workspaceBaseDir, 'index', 'project'),
+      path.join(this.workspaceBaseDir, 'index', 'lsp_symbols'),
+      path.join(this.workspaceBaseDir, 'index', 'meta'),
+      // ログディレクトリ
       path.join(this.workspaceBaseDir, 'logs', 'audit'),
       path.join(this.workspaceBaseDir, 'logs', 'error'),
       path.join(this.workspaceBaseDir, 'logs', 'debug'),
+      // その他のディレクトリ
       path.join(this.workspaceBaseDir, 'temp'),
       path.join(this.workspaceBaseDir, 'backups'),
     ];
@@ -76,6 +83,98 @@ export class WorkspaceManager {
         throw new FileSystemError(`ディレクトリの作成に失敗しました: ${dir}`);
       }
     }
+
+    // meta_index.mdの自動生成
+    await this.ensureMetaIndex();
+  }
+
+  /**
+   * メタインデックスファイルの自動生成
+   */
+  private async ensureMetaIndex(): Promise<void> {
+    const metaIndexPath = path.join(this.workspaceBaseDir, 'index', 'meta_index.md');
+    const fsService = FileSystemService.getInstance();
+    
+    try {
+      // meta_index.mdが存在しない場合のみ作成
+      const exists = fsService.existsSync(metaIndexPath);
+      if (!exists) {
+        const metaIndexContent = this.generateMetaIndexContent();
+        await fsService.writeFile(metaIndexPath, metaIndexContent, { encoding: 'utf-8' });
+        this.logger.info('Meta index file created', { path: metaIndexPath });
+      }
+    } catch (error) {
+      this.logger.error('Failed to create meta index file', { error_message: error instanceof Error ? error.message : String(error) } as any);
+      // メタインデックス作成の失敗は致命的ではないため、処理を続行
+    }
+  }
+
+  /**
+   * メタインデックスコンテンツ生成
+   */
+  private generateMetaIndexContent(): string {
+    const now = new Date().toISOString().split('T')[0];
+    return `# プロジェクト知識 メタインデックス
+
+このファイルは、effortlessly-mcpプロジェクトの全ての知識・インデックスを統合した目次として機能します。
+
+## 📁 ディレクトリ構造
+
+\`\`\`
+index/
+├── meta_index.md           # このファイル - 全体の目次
+├── knowledge/              # AI生成知識インデックス
+├── lsp_symbols/            # LSPシンボル関連ファイル
+├── project/                # プロジェクト固有情報
+├── meta/                   # メタ情報・設定
+├── memory_index.json       # メタデータ管理
+└── [各種インデックスファイル]
+\`\`\`
+
+## 📊 知識カテゴリ
+
+### knowledge/ - AI生成知識
+- **目的**: プロジェクト理解の自動生成インデックス
+- **内容**: アーキテクチャ、設計パターン、実装詳細
+- **更新**: project_memory_update_workflow により自動更新
+
+### lsp_symbols/ - コードシンボル
+- **目的**: LSP統合によるセマンティック検索
+- **内容**: プロジェクトメモリファイル、LSP関連の設定・キャッシュ
+
+### project/ - プロジェクト情報
+- **目的**: プロジェクト固有の設定・ドキュメント
+- **内容**: 設計ドキュメント、仕様書、プロジェクト履歴
+
+### meta/ - メタ情報
+- **目的**: インデックスシステム自体の管理情報
+- **内容**: 設定、統計、システム状態
+
+## 🔄 更新・管理
+
+### 自動更新機能
+\`\`\`bash
+# メタインデックス再生成
+project_memory_update_workflow task="meta_index" scope="full"
+
+# カテゴリ別インデックス更新
+project_memory_update_workflow task="hierarchical_index" scope="<category>"
+\`\`\`
+
+### 手動管理
+- プロジェクトメモリ: project_memory_write/read/list
+- LSPシンボル: code_find_symbol等のLSPツール群
+- ディレクトリ管理: workspace_activate時の自動作成
+
+## 📈 統計情報
+
+最終更新: ${now}
+システムバージョン: v1.0.14
+構造タイプ: 階層型インデックス
+
+---
+*このメタインデックスは階層型インデックス構造の中核として、プロジェクト知識の体系的管理を実現します。*
+`;
   }
 
   /**
@@ -134,22 +233,8 @@ export class WorkspaceManager {
         });
       }
 
-      // インデックス作成の自動実行
-      const indexConfig = await this.configManager.getIndexingConfig();
-      if (indexConfig?.enabled) {
-        try {
-          this.logger.info('Initializing IndexService and starting workspace indexing');
-          await this.indexService.initialize();
-          
-          // バックグラウンドでインデックス作成を実行（非同期）
-          this.indexService.indexWorkspace(validatedPath).catch(error => {
-            this.logger.warn('Background indexing failed', { error });
-          });
-        } catch (error) {
-          this.logger.warn('Failed to initialize IndexService', { error });
-          // インデックス初期化失敗は非致命的エラーとして継続
-        }
-      }
+      // インデックス作成機能は現在無効化（LSP直接使用に移行）
+      // 注：将来的にSymbolIndexer相当の機能が必要になった場合は再実装
 
       // 現在のワークスペースを先にセット（loadWorkspaceInfoでstatusが正しく決定されるため）
       this.currentWorkspace = {

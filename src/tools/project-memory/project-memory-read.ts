@@ -51,7 +51,7 @@ export class ProjectMemoryReadTool extends BaseTool {
     // プロジェクトメモリサービスを初期化
     const memoryService = new ProjectMemoryService(currentWorkspace.root_path, this.logger);
 
-    // メモリを読み取り
+    // メモリを読み取り（新しいディレクトリ構造）
     const memoryEntry = await memoryService.readMemory(memory_name);
 
     this.logger.info(`Project memory read successfully: ${memory_name}`, {

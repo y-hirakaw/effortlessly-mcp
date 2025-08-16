@@ -1,12 +1,17 @@
 /**
  * プロジェクトメモリ更新ワークフロー生成ツール
  * プロジェクトメモリを最新化するための手順を生成
+ * 
+ * v2.0.0 - セルフドキュメンティング型命名規則を採用
+ * AIが内容を理解しやすい説明的なファイル名を自動生成
  */
 
 import { z } from 'zod';
 import { BaseTool } from './base.js';
 import { IToolMetadata, IToolResult } from '../types/common.js';
 import { LogManager } from '../utils/log-manager.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const ProjectMemoryUpdateWorkflowSchema = z.object({
   task: z.string().optional().describe('更新タスクの種類'),
@@ -81,6 +86,127 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   };
 
   protected readonly schema = ProjectMemoryUpdateWorkflowSchema;
+  /**
+   * プロジェクト情報を取得
+   */
+  private getProjectInfo(): { name: string; version: string } {
+    try {
+      const packageJsonPath = path.join(process.cwd(), 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        return {
+          name: packageJson.name || 'project',
+          version: packageJson.version || '1.0.0'
+        };
+      }
+    } catch (error) {
+      // エラー時はデフォルト値を返す
+    }
+    return { name: 'project', version: '1.0.0' };
+  }
+
+  /**
+   * セルフドキュメンティング型のファイル名を生成
+   * AIが内容を理解しやすい説明的な名前を生成する
+   */
+  private generateDescriptiveFileName(
+    taskType: string,
+    category?: string,
+    context?: string
+  ): string {
+    const projectInfo = this.getProjectInfo();
+    const version = `v${projectInfo.version}`;
+
+    // タスクタイプに応じた説明的な名前のマッピング
+    const nameMapping: Record<string, { category: string; detail: string; description: string }> = {
+      'meta_index': {
+        category: 'navigation',
+        detail: 'knowledge-index',
+        description: 'プロジェクト全体の知識ナビゲーションインデックス'
+      },
+      'project_structure_index': {
+        category: 'structure',
+        detail: 'project-overview',
+        description: 'プロジェクト構造の包括的な概要'
+      },
+      'dependencies_map': {
+        category: 'dependencies',
+        detail: 'analysis-map',
+        description: '依存関係の詳細分析マップ'
+      },
+      'tech_stack_inventory': {
+        category: 'tech-stack',
+        detail: 'comprehensive-audit',
+        description: '技術スタックの包括的な監査レポート'
+      },
+      'development_context': {
+        category: 'development',
+        detail: 'environment-setup',
+        description: '開発環境セットアップとコンテキスト情報'
+      },
+      // カテゴリ別インデックス
+      'architecture_index': {
+        category: 'architecture',
+        detail: 'design-patterns-index',
+        description: 'アーキテクチャ設計パターンのインデックス'
+      },
+      'code_structure_index': {
+        category: 'structure',
+        detail: 'code-organization-index',
+        description: 'コード構造と組織化のインデックス'
+      },
+      'data_index': {
+        category: 'data',
+        detail: 'management-strategy-index',
+        description: 'データ管理戦略のインデックス'
+      },
+      'security_index': {
+        category: 'security',
+        detail: 'implementation-status',
+        description: 'セキュリティ実装状況レポート'
+      },
+      'integration_index': {
+        category: 'integration',
+        detail: 'external-systems-index',
+        description: '外部システム統合のインデックス'
+      }
+    };
+
+    const mapping = nameMapping[taskType] || {
+      category: category || 'general',
+      detail: taskType.replace(/_/g, '-'),
+      description: taskType
+    };
+
+    // ファイル名の組み立て（プロジェクト名のプレフィックスを除去）
+    let fileName = `${mapping.category}-${mapping.detail}-${version}`;
+    
+    // コンテキストがある場合は追加
+    if (context) {
+      fileName += `-${context}`;
+    }
+
+    return fileName;
+  }
+
+  /**
+   * プロンプトに説明的なファイル名の生成指示を追加
+   */
+  private enhancePromptWithNamingGuidance(basePrompt: string, fileName: string, description: string): string {
+    return `${basePrompt}
+
+  【重要】このドキュメントは以下の命名規則に従って保存されます：
+  ファイル名: ${fileName}
+  説明: ${description}
+
+  このファイル名はAIが内容を理解しやすいセルフドキュメンティング型の名前です。
+  ドキュメントの内容もこのファイル名に相応しい、包括的で構造化された情報を含めてください。
+
+  ドキュメントの先頭には以下を含めてください：
+  # ${description}
+  *生成日時: ${new Date().toISOString().split('T')[0]}*
+  *バージョン: ${this.getProjectInfo().version}*`;
+  }
 
   protected async executeInternal(_validatedParameters: unknown): Promise<IToolResult> {
     const params = _validatedParameters as ProjectMemoryUpdateWorkflowParams;
@@ -119,6 +245,26 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
    */
   private getTaskCatalog(): TaskCatalog {
     return {
+      "meta_index": {
+        description: "🆕 メタインデックス（目次）を生成・更新",
+        use_cases: [
+          "プロジェクト知識の全体像を把握したい時",
+          "新規参画者向けのナビゲーション提供",
+          "既存インデックスの整理・統合"
+        ],
+        estimated_time: "1-2分",
+        scope_options: ["full: 全インデックスを統合", "incremental: 新規項目のみ追加"]
+      },
+      "hierarchical_index": {
+        description: "🆕 階層別カテゴリインデックスを生成",
+        use_cases: [
+          "特定領域（アーキテクチャ、クラス構成等）の詳細整理",
+          "複雑な情報の体系的整理",
+          "専門分野別の深掘り情報作成"
+        ],
+        estimated_time: "3-6分",
+        scope_options: ["architecture: アーキテクチャ", "code_structure: コード構造", "data: データ管理", "security: セキュリティ", "integration: 外部統合"]
+      },
       "structure_index": {
         description: "プロジェクト構造のインデックスを最新化",
         use_cases: [
@@ -174,6 +320,12 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   ): WorkflowPlan | null {
     
     switch (task) {
+      case 'meta_index':
+        return this.generateMetaIndexWorkflow(scope, focusAreas, preview, classification);
+      
+      case 'hierarchical_index':
+        return this.generateHierarchicalIndexWorkflow(scope, focusAreas, preview, classification);
+      
       case 'structure_index':
         return this.generateStructureIndexWorkflow(scope, focusAreas, preview, classification);
       
@@ -189,6 +341,394 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
       default:
         return null;
     }
+  }
+
+  /**
+   * メタインデックス（目次）生成ワークフロー
+   */
+  private generateMetaIndexWorkflow(scope: string, _focusAreas?: string[], preview: boolean = false, _classification?: string): WorkflowPlan {
+    const steps: WorkflowStep[] = [];
+    let stepCounter = 1;
+
+    // 既存のプロジェクトメモリを全て確認
+    steps.push({
+      step: stepCounter++,
+      tool: 'project_memory_list',
+      params: { include_statistics: true },
+      purpose: '既存のプロジェクト知識・インデックスを全て取得',
+      expected_output: '保存済みメモリファイルの一覧と統計情報'
+    });
+
+    // 階層別インデックスディレクトリの存在確認
+    steps.push({
+      step: stepCounter++,
+      tool: 'list_directory',
+      params: {
+        directory_path: '.claude/workspace/effortlessly/index/knowledge',
+        recursive: false
+      },
+      purpose: 'index/knowledge/ディレクトリ内のカテゴリ別インデックスを確認',
+      expected_output: 'カテゴリ別知識インデックスファイルの存在状況'
+    });
+
+    // メタインデックスを生成・保存
+    if (!preview) {
+      const fileName = this.generateDescriptiveFileName('meta_index');
+      const description = 'プロジェクト全体の知識ナビゲーションインデックス';
+      
+      steps.push({
+        step: stepCounter++,
+        tool: 'project_memory_write',
+        params: {
+          memory_name: fileName,
+          content: this.enhancePromptWithNamingGuidance(
+            `前のステップで取得した既存インデックス情報を基に、階層的なメタインデックス（目次）をMarkdown形式で作成してください。
+
+以下の構造で作成：
+
+# effortlessly-mcp プロジェクト知識インデックス
+
+## 🗺️ プロジェクト知識マップ
+
+### パス: アーキテクチャについて
+- **[システム設計](knowledge/architecture_index.md)** - アーキテクチャ概要と設計思想
+- **[技術スタック](project/tech_stack_inventory.md)** - 使用技術とライブラリ選定理由
+
+### パス: コード構造について  
+- **[コード構造概要](knowledge/code_structure_index.md)** - 主要コンポーネントと責務分担
+- **[LSP統合](lsp_symbols/)** - LSP関連設定とプロジェクトメモリ
+
+### パス: データ管理について
+- **[データ管理](knowledge/data_management_index.md)** - ストレージ戦略と永続化
+- **[プロジェクト情報管理](project/project_structure_index.md)** - 知識・メタデータ管理システム
+
+### パス: セキュリティ実装について
+- **[セキュリティ設計](knowledge/security_index.md)** - セキュリティアーキテクチャ
+- **[セキュリティ実装状況](project_specific/security_implementation_map.md)** - 実装詳細と対策状況
+
+### パス: 外部統合について
+- **[統合アーキテクチャ](knowledge/integration_index.md)** - 外部システム・プロトコル統合
+- **[統合実装詳細](project_specific/lsp_integration_status.md)** - 具体的な統合実装と進捗
+
+## 📚 詳細インデックス
+各カテゴリの詳細情報へのリンクを含めてください。
+
+## 🔄 更新情報
+最終更新日時と更新内容を記録してください。`,
+            fileName,
+            description
+          ),
+          tags: ['meta-index', 'navigation', 'auto-generated', scope],
+          overwrite: true
+        },
+        purpose: 'メタインデックス（プロジェクト知識の目次）を生成・保存',
+        expected_output: 'メタインデックスの保存完了確認'
+      });
+    }
+
+    return {
+      workflow_name: 'メタインデックス（目次）生成',
+      description: `プロジェクト知識全体の${scope === 'full' ? '完全な' : '差分'}目次を生成します`,
+      estimated_time: '1-2分',
+      steps,
+      next_actions: [
+        '特定カテゴリの詳細が必要な場合: project_memory_update_workflow task="hierarchical_index" scope="architecture"',
+        'カテゴリ別インデックスの生成: hierarchical_index タスクを各カテゴリで実行'
+      ],
+      notes: preview ? [
+        'これはプレビューです。実際の実行時は各ステップを順番に実行してください。',
+        'メタインデックスは既存の全ての知識を統合した目次として機能します。'
+      ] : [
+        'メタインデックスは他の全てのインデックスへの入り口となります。',
+        '既存のインデックスファイルが不足している場合は、hierarchical_indexタスクで生成してください。'
+      ]
+    };
+  }
+
+  /**
+   * 階層別カテゴリインデックス生成ワークフロー
+   */
+  private generateHierarchicalIndexWorkflow(scope: string, _focusAreas?: string[], preview: boolean = false, classification?: string): WorkflowPlan {
+    const category = scope || 'architecture'; // デフォルトはアーキテクチャ
+    const steps: WorkflowStep[] = [];
+    let stepCounter = 1;
+
+    // カテゴリ別の情報収集ステップを生成
+    const categorySteps = this.getCategorySpecificSteps(category);
+    categorySteps.forEach(step => {
+      steps.push({
+        step: stepCounter++,
+        ...step
+      });
+    });
+
+    // 階層別インデックスディレクトリ作成（必要に応じて）
+    steps.push({
+      step: stepCounter++,
+      tool: 'list_directory',
+      params: {
+        directory_path: '.claude/workspace/effortlessly/index/knowledge'
+      },
+      purpose: 'index/knowledge/ディレクトリの存在確認（作成が必要かチェック）',
+      expected_output: 'knowledge/ディレクトリの状況'
+    });
+
+    // カテゴリ別インデックスを保存
+    if (!preview) {
+      const fileName = this.generateDescriptiveFileName(`${category}_index`, category);
+      const nameMapping: Record<string, string> = {
+        'architecture': 'アーキテクチャ設計パターンのインデックス',
+        'code_structure': 'コード構造と組織化のインデックス',
+        'data': 'データ管理戦略のインデックス',
+        'security': 'セキュリティ実装状況レポート',
+        'integration': '外部システム統合のインデックス'
+      };
+      const description = nameMapping[category] || `${category}カテゴリのインデックス`;
+      
+      steps.push({
+        step: stepCounter++,
+        tool: 'project_memory_write',
+        params: {
+          memory_name: `knowledge/${fileName}`,
+          content: this.enhancePromptWithNamingGuidance(this.getCategoryPrompt(category), fileName, description),
+          tags: ['hierarchical-index', category, 'auto-generated', scope, ...(classification ? [classification] : [])],
+          overwrite: true
+        },
+        purpose: `${category}カテゴリの階層別インデックスを生成・保存`,
+        expected_output: 'カテゴリ別インデックスの保存完了確認'
+      });
+    }
+
+    return {
+      workflow_name: `階層別インデックス生成 (${category})`,
+      description: `${category}カテゴリの詳細な階層的インデックスを生成します`,
+      estimated_time: '3-6分',
+      steps,
+      next_actions: [
+        'メタインデックスの更新: project_memory_update_workflow task="meta_index"',
+        '他のカテゴリも生成: hierarchical_index の scope を変更して実行'
+      ],
+      notes: preview ? [
+        'これはプレビューです。実際の実行時は各ステップを順番に実行してください。',
+        `${category}カテゴリに特化した詳細情報が生成されます。`
+      ] : [
+        `${category}カテゴリの階層的インデックスが index/knowledge/ ディレクトリに保存されます。`,
+        'メタインデックスからこのカテゴリインデックスにリンクされます。'
+      ]
+    };
+  }
+
+  /**
+   * カテゴリ別の情報収集ステップを取得
+   */
+  private getCategorySpecificSteps(category: string): Omit<WorkflowStep, 'step'>[] {
+    const stepMap: Record<string, Omit<WorkflowStep, 'step'>[]> = {
+      architecture: [
+        {
+          tool: 'code_get_symbols_overview',
+          params: { relative_path: 'src', max_depth: 2 },
+          purpose: 'アーキテクチャの主要コンポーネントを取得',
+          expected_output: '主要クラス・インターフェースの構造'
+        },
+        {
+          tool: 'read_file',
+          params: { file_path: 'CLAUDE.md' },
+          purpose: 'プロジェクト設計思想とアーキテクチャ概要を確認',
+          expected_output: 'プロジェクトのアーキテクチャドキュメント'
+        }
+      ],
+      code_structure: [
+        {
+          tool: 'code_get_symbols_overview',
+          params: { relative_path: 'src', max_depth: 2 },
+          purpose: '主要コンポーネントとモジュール構造を取得',
+          expected_output: 'コードベースの主要構造と責務分担'
+        },
+        {
+          tool: 'code_get_symbol_hierarchy',
+          params: { directory_path: 'src', max_depth: 2 },
+          purpose: 'コード階層とモジュール関係を分析',
+          expected_output: 'モジュール間の依存関係と階層構造'
+        }
+      ],
+      data: [
+        {
+          tool: 'search_files',
+          params: { directory: 'src', content_pattern: 'database|storage|cache|persist|save|load', recursive: true, include_content: true },
+          purpose: 'データ保存・管理関連の実装を自動検索',
+          expected_output: 'データ関連実装の自動検出結果'
+        },
+        {
+          tool: 'code_search_pattern',
+          params: { pattern: 'class.*(?:Manager|Service|Repository|Store)', directory_path: 'src' },
+          purpose: 'データ管理クラスパターンを自動検出',
+          expected_output: 'データ管理に関連するクラス群'
+        }
+      ],
+      security: [
+        {
+          tool: 'search_files',
+          params: { directory: 'src', content_pattern: 'security|auth|audit|permission|validate|sanitize', recursive: true, include_content: true },
+          purpose: 'セキュリティ関連実装を自動検索',
+          expected_output: 'セキュリティ機能の自動検出結果'
+        },
+        {
+          tool: 'code_search_pattern',
+          params: { pattern: '(class|interface|function).*(?:Security|Auth|Audit|Validator)', directory_path: 'src' },
+          purpose: 'セキュリティ関連クラス・関数を自動検出',
+          expected_output: 'セキュリティコンポーネントの自動分析'
+        }
+      ],
+      integration: [
+        {
+          tool: 'search_files',
+          params: { directory: 'src', content_pattern: 'server|client|protocol|api|integration', recursive: true, include_content: true },
+          purpose: '外部統合関連の実装を自動検索',
+          expected_output: '統合機能の自動検出結果'
+        },
+        {
+          tool: 'code_get_symbols_overview',
+          params: { relative_path: 'src', max_depth: 3 },
+          purpose: '統合関連コンポーネントの構造を自動分析',
+          expected_output: '統合アーキテクチャの自動解析結果'
+        }
+      ]
+    };
+
+    return stepMap[category] || [];
+  }
+
+  /**
+   * カテゴリ別のプロンプトを取得
+   */
+  private getCategoryPrompt(category: string): string {
+    const prompts: Record<string, string> = {
+      architecture: `前のステップで収集した情報を基に、effortlessly-mcpのアーキテクチャ詳細インデックスを作成してください。
+
+# アーキテクチャインデックス
+
+## 🏗️ システム設計概要
+- 5層アーキテクチャの詳細
+- 各層の責務と相互作用
+- 設計原則と思想
+
+## 🔧 主要コンポーネント
+- 核となるクラス・サービス
+- 依存関係と相互作用
+- インターフェース設計
+
+## 📦 モジュール構成
+- ディレクトリ構造の意図
+- パッケージ間の関係
+- 拡張性への配慮
+
+## 🔄 データフロー
+- リクエスト処理の流れ
+- エラーハンドリング戦略
+- 非同期処理パターン`,
+
+      code_structure: `前のステップで収集した情報を基に、プロジェクトのコード構造詳細インデックスを作成してください。
+
+# コード構造インデックス
+
+## 🏗️ 主要コンポーネント
+検出されたクラス・インターフェース・関数を分析し、以下を自動生成：
+- 主要なコンポーネントの分類と責務
+- モジュール間の依存関係
+- 設計パターンの検出結果
+
+## 📦 モジュール構成
+- ディレクトリ構造とその意図
+- パッケージ・名前空間の組織化
+- 層別アーキテクチャの実装状況
+
+## 🔗 相互関係
+- コンポーネント間の依存関係
+- インターフェース・継承関係
+- データフローと制御フロー
+
+## 🛠️ 実装パターン
+- 検出された設計パターン
+- 共通ユーティリティの使用状況
+- コード品質指標`,
+
+      data: `前のステップで収集した情報を基に、プロジェクトのデータ管理詳細インデックスを作成してください。
+
+# データ管理インデックス
+
+## 🗄️ データストレージ
+検出されたデータ保存実装を分析し、以下を自動生成：
+- 使用されているストレージ技術（DB、ファイル、メモリ等）
+- データ永続化パターンの実装状況
+- パフォーマンス最適化手法
+
+## 📁 データ構造
+- データモデルとスキーマ設計
+- ファイル形式とディレクトリ構造
+- 設定・メタデータ管理
+
+## 💾 メモリ管理
+- キャッシュ戦略の実装
+- 状態管理パターン
+- リソース効率化手法
+
+## 🔄 データフロー
+- データの読み書きパターン
+- 同期・非同期処理
+- 整合性保証メカニズム`,
+
+      security: `前のステップで収集した情報を基に、プロジェクトのセキュリティ実装詳細インデックスを作成してください。
+
+# セキュリティ実装インデックス
+
+## 🛡️ セキュリティ機能
+検出されたセキュリティ実装を分析し、以下を自動生成：
+- 認証・認可の実装パターン
+- 入力検証・サニタイゼーション
+- アクセス制御メカニズム
+
+## 🔍 監査・ログ機能
+- セキュリティログの実装状況
+- 監査証跡の記録方法
+- インシデント検出機能
+
+## 🔒 データ保護
+- 機密情報の保護実装
+- 暗号化・ハッシュ化の使用
+- 安全なデータ処理
+
+## ⚠️ 脅威対策
+- 脆弱性対策の実装状況
+- セキュリティテスト機能
+- エラーハンドリング`,
+
+      integration: `前のステップで収集した情報を基に、プロジェクトの外部統合詳細インデックスを作成してください。
+
+# 外部統合インデックス
+
+## 🔗 統合アーキテクチャ
+検出された統合実装を分析し、以下を自動生成：
+- 使用されているプロトコル・API
+- クライアント・サーバー実装
+- 統合パターンとアーキテクチャ
+
+## ⚡ 接続・通信管理
+- 接続管理の実装方法
+- 通信プロトコルの詳細
+- エラーハンドリング・再試行機能
+
+## 🛠️ 統合機能
+- データ交換フォーマット
+- 同期・非同期処理
+- ステート管理
+
+## 🔄 運用・保守
+- 監視・ログ機能
+- パフォーマンス最適化
+- 障害対応・復旧機能`
+    };
+
+    return prompts[category] || `${category}カテゴリの詳細インデックスを作成してください。`;
   }
 
   /**
@@ -251,12 +791,19 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
     // 結果をプロジェクトメモリに保存
     if (!preview) {
+      const fileName = this.generateDescriptiveFileName('project_structure_index');
+      const description = 'プロジェクト構造の包括的な概要';
+      
       steps.push({
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: 'project_structure_index',
-          content: this.generateClassificationPrompt(classification, 'project_structure_index', 'Markdown形式のプロジェクト構造インデックス'),
+          memory_name: fileName,
+          content: this.enhancePromptWithNamingGuidance(
+            this.generateClassificationPrompt(classification, 'project_structure_index', 'Markdown形式のプロジェクト構造インデックス'),
+            fileName,
+            description
+          ),
           tags: ['index', 'structure', 'auto-generated', scope, ...(classification ? [classification] : [])]
         },
         purpose: 'プロジェクト構造情報をメモリに保存',
@@ -330,12 +877,19 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
     // 結果保存
     if (!preview) {
+      const fileName = this.generateDescriptiveFileName('dependencies_map');
+      const description = '依存関係の詳細分析マップ';
+      
       steps.push({
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: 'dependencies_map',
-          content: this.generateClassificationPrompt(classification, 'dependencies_map', '依存関係分析結果をまとめたMarkdown'),
+          memory_name: fileName,
+          content: this.enhancePromptWithNamingGuidance(
+            this.generateClassificationPrompt(classification, 'dependencies_map', '依存関係分析結果をまとめたMarkdown'),
+            fileName,
+            description
+          ),
           tags: ['dependencies', 'analysis', 'auto-generated', scope, ...(classification ? [classification] : [])]
         },
         purpose: '依存関係マップをプロジェクトメモリに保存'
@@ -387,12 +941,19 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
     // 結果保存
     if (!preview) {
+      const fileName = this.generateDescriptiveFileName('tech_stack_inventory');
+      const description = '技術スタックの包括的な監査レポート';
+      
       steps.push({
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: 'tech_stack_inventory',
-          content: '技術スタック棚卸し結果のMarkdown',
+          memory_name: fileName,
+          content: this.enhancePromptWithNamingGuidance(
+            '技術スタック棚卸し結果のMarkdown',
+            fileName,
+            description
+          ),
           tags: ['tech-stack', 'inventory', 'auto-generated']
         },
         purpose: '技術スタック情報をプロジェクトメモリに保存'
@@ -443,12 +1004,19 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
     // 開発コンテキスト保存
     if (!preview) {
+      const fileName = this.generateDescriptiveFileName('development_context');
+      const description = '開発環境セットアップとコンテキスト情報';
+      
       steps.push({
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
-          memory_name: 'development_context',
-          content: '開発コンテキスト情報を統合したMarkdown',
+          memory_name: fileName,
+          content: this.enhancePromptWithNamingGuidance(
+            '開発コンテキスト情報を統合したMarkdown',
+            fileName,
+            description
+          ),
           tags: ['context', 'development', 'onboarding', 'auto-generated']
         },
         purpose: '開発コンテキストをプロジェクトメモリに保存'
@@ -575,7 +1143,7 @@ effortlessly-mcpのLSP統合機能について、
 
 含める情報：
 - TypeScript/Swift LSPの実装状況
-- symbol-indexerの設計と実装詳細
+- LSPクライアント統合の設計と実装詳細
 - 自動起動システムの開発状況
 - パフォーマンス最適化の進捗
 - 未対応言語の対応計画

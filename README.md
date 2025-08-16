@@ -79,24 +79,21 @@ LSP Proxy Server (localhost:3001)
 TypeScript/Go/Java/C++ LSP Servers
 ```
 
-### 📁 ワークスペース構造 (v1.0.7統合設計)
+### 📁 ワークスペース構造 (v1.0.14階層型インデックス統合設計)
 
 ```
 .claude/workspace/effortlessly/
-├── config.yaml            # 🚀 NEW: 統合設定ファイル（全設定を一元管理）
+├── config.yaml            # 統合設定ファイル（全設定を一元管理）
 ├── logs/
 │   ├── audit/             # 監査ログ
 │   ├── error/             # エラーログ
 │   └── debug/             # デバッグ情報
-├── index/
-│   ├── symbols.db         # 🚀 NEW: SQLiteシンボルインデックス
-├── memory/                # プロジェクトメモリ（分類システム対応）
-│   ├── generic/           # 🆕 汎用・再利用可能な知識
-│   ├── project_specific/  # 🆕 effortlessly-mcp固有情報
-│   ├── templates/         # 🆕 新規プロジェクト用テンプレート
-│   ├── project_structure_index.md
-│   ├── architecture_overview.md
-│   └── [その他の固定インデックス...]
+├── index/                 # 🆕 階層型インデックス構造
+│   ├── knowledge/         # 🆕 プロジェクト知識（汎用・再利用可能）
+│   ├── project/           # 🆕 プロジェクト固有情報とテンプレート
+│   ├── lsp_symbols/       # 🆕 LSPシンボルデータベース
+│   │   └── symbols.db     # SQLiteシンボルインデックス
+│   └── meta/              # 🆕 メタインデックス（目次・ナビゲーション）
 ├── backups/               # 自動バックアップ
 └── temp/                  # 一時ファイル
 ```

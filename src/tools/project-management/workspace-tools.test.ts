@@ -247,9 +247,6 @@ lsp_servers:
     port: 3001
     auto_start: true
 
-indexing:
-  enabled: true
-  database_path: ".claude/workspace/effortlessly/index/symbols.db"
 
 logging:
   audit:
@@ -311,9 +308,6 @@ lsp_servers:
     port: 3001
     auto_start: true
 
-indexing:
-  enabled: true
-  database_path: ".claude/workspace/effortlessly/index/symbols.db"
 
 logging:
   audit:

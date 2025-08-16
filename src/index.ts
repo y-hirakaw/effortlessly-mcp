@@ -310,6 +310,19 @@ function registerTools(): void {
         );
         break;
         
+      case 'project_memory_smart_read':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            query: z.string().min(1).describe('What information are you looking for?'),
+            max_results: z.number().min(1).max(10).default(3).describe('Maximum number of memory files to return'),
+            include_content: z.boolean().default(true).describe('Whether to include full content or just metadata')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
       case 'code_search_pattern':
         server.tool(
           name,

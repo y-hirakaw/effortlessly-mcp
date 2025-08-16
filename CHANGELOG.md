@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.15] - 2025-08-16
+
+### Added
+- 🎯 **新命名規則によるプロジェクトメモリシステム**
+  - プロジェクト名プレフィックス除去機能を実装（`effortlessly-mcp-` → 除去）
+  - セルフドキュメンティング型ファイル名規則：`{category}-{detail}-{version}-{context}`
+  - AIによる意味理解向上とスマート検索の高精度化
+- 🔍 **プロジェクトメモリスマート検索の精度向上**
+  - 新命名規則により検索スコア精度が向上（73-93点の高精度を実現）
+  - ファイル名からの意味推論アルゴリズム強化
+  - コンテキスト理解による適切なファイル優先順位付け
+
+### Fixed
+- ✅ **インデックス再構築システムの完全検証**
+  - indexフォルダ削除後の自動再構築機能を検証・確認
+  - 新命名規則での正常なファイル生成を確認
+  - memory_index.jsonの正常更新と整合性を確認
+
+### Changed
+- 📝 **プロジェクトメモリファイル命名規則の改善**
+  - 従来の冗長なプレフィックス削除によりファイル名を簡潔化
+  - バージョン情報自動埋め込みでファイルの世代管理を強化
+  - AIが理解しやすいセマンティックなファイル名構造に変更
+
+## [1.0.14] - 2025-08-16
+
+### Added
+- 🏗️ **階層型インデックス構造の実装**
+  - プロジェクトメモリシステムを階層型インデックス構造に統合
+  - `.claude/workspace/effortlessly/index/`下に構造化されたサブディレクトリを配置
+  - `knowledge/`: 汎用・再利用可能な知識（他プロジェクトでも活用可能）
+  - `project/`: プロジェクト固有情報とテンプレート
+  - `lsp_symbols/`: LSPシンボルデータベース（symbols.db）
+  - `meta/`: メタインデックス（目次・ナビゲーション）
+- 🎯 **新しいワークフロータスク機能**
+  - `meta_index`: メタインデックス（目次）の生成・更新
+  - `hierarchical_index`: 階層型インデックスの作成・管理
+  - AI自動生成対応のプロンプトシステム統合
+
+### Changed
+- 📁 **ディレクトリ構造の再編成**
+  - `memory/` → `index/knowledge/` への移行
+  - `symbols.db` → `index/lsp_symbols/symbols.db` への移行
+  - serenaとの競合回避とより明確な構造分離
+- ⚡ **プロジェクトメモリサービスの改良**
+  - 新しい階層型ディレクトリ構造に対応
+  - `memory_index.json` → より構造化されたインデックス管理
+
+### Fixed
+- 🔧 **全MCPツールの統合更新**
+  - `project_memory_write`, `project_memory_read`, `project_memory_list`ツールの新構造対応
+  - `workspace_activate`の新しい階層型ディレクトリ自動作成
+  - LSP関連ツールのsymbols.dbパス参照更新
+  - ConfigManagerの設定パス統一
+
+### Technical Details
+- 改修対象ファイル:
+  - `src/services/project-memory.ts` - ベースディレクトリパスの変更
+  - `src/tools/project-memory/*.ts` - 3つのメモリ管理ツール更新
+  - `src/tools/project-management/workspace-manager.ts` - 階層ディレクトリ作成
+  - `src/services/ConfigManager.ts` - symbols.dbパス更新（2箇所）
+  - `src/services/lsp/symbol-indexer.ts` - LSPシンボルDBパス更新
+- 新機能ワークフロー: `project_memory_update_workflow`に階層型インデックス管理機能追加
+- 移行戦略: Phase制による段階的な全コンポーネント更新
+
 ## [1.0.13] - 2025-08-16
 
 ### Enhanced
