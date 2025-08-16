@@ -40,6 +40,11 @@ export class CodeFindSymbolTool implements ITool {
         description: '最大結果数',
         required: false,
       },
+      enable_fallback: {
+        type: 'boolean',
+        description: 'フォールバック検索を有効にするか（デフォルト: true）',
+        required: false,
+      },
     },
   };
 

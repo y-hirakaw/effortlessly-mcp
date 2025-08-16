@@ -144,6 +144,8 @@ TypeScript/Go/Java/C++ LSP Servers
 
 ## 📋 変更履歴
 
+**v1.0.13** (2025-08-16) - Swift LSPフォールバック制御機能とMCPツールパラメータ修正
+
 **v1.0.12** (2025-08-14) - Swift LSP統合パフォーマンス改善
 
 **v1.0.11** (2025-08-14) - Swift LSP統合強化とoverride_text機能追加
