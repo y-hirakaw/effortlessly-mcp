@@ -413,11 +413,12 @@ export class SwiftLSP extends LSPClientBase {
     kind?: SymbolKind;
     exactMatch?: boolean;
     maxResults?: number;
+    enableFallback?: boolean;
   }): Promise<SymbolSearchResult[]> {
     const startTime = Date.now();
     this.metrics.recordLSPAttempt(); // 新しいメトリクスクラス使用
     
-    const { exactMatch = false, maxResults = 100 } = options || {};
+    const { exactMatch = false, maxResults = 100, enableFallback = false } = options || {};
     let results: SymbolSearchResult[] = [];
     
     try {
@@ -442,25 +443,36 @@ export class SwiftLSP extends LSPClientBase {
         return results;
       }
       
-      // LSPで結果が得られない場合、フォールバック検索を実行
-      this.logger.warn('Swift LSP: No results from LSP, falling back to text-based search');
-      results = await this.searchSymbolsWithFallbackCached(query, { exactMatch, maxResults }, cacheKey);
+      // LSPで結果が得られない場合、フォールバック検索を実行（有効な場合のみ）
+      if (enableFallback) {
+        this.logger.warn('Swift LSP: No results from LSP, falling back to text-based search');
+        results = await this.searchSymbolsWithFallbackCached(query, { exactMatch, maxResults }, cacheKey);
+      } else {
+        this.logger.warn('Swift LSP: No results from LSP, fallback disabled');
+        results = [];
+      }
       
       this.metrics.recordResponseTime(Date.now() - startTime);
       return results;
     } catch (error) {
-      this.logger.error('Swift LSP: LSP search failed, attempting fallback search', error as Error);
+      this.logger.error('Swift LSP: LSP search failed', error as Error);
       
-      // エラーが発生した場合もフォールバック検索を試行
-      try {
-        const cacheKey = `${query}_${JSON.stringify(options)}`;
-        results = await this.searchSymbolsWithFallbackCached(query, { exactMatch, maxResults }, cacheKey);
-        this.logger.info(`Swift LSP: Fallback search found ${results.length} symbols`);
-        this.metrics.recordResponseTime(Date.now() - startTime);
-        return results;
-      } catch (fallbackError) {
-        this.logger.error('Swift LSP: Both LSP and fallback search failed', fallbackError as Error);
-        throw fallbackError;
+      // エラーが発生した場合もフォールバック検索を試行（有効な場合のみ）
+      if (enableFallback) {
+        this.logger.warn('Swift LSP: Attempting fallback search after LSP error');
+        try {
+          const cacheKey = `${query}_${JSON.stringify(options)}`;
+          results = await this.searchSymbolsWithFallbackCached(query, { exactMatch, maxResults }, cacheKey);
+          this.logger.info(`Swift LSP: Fallback search found ${results.length} symbols`);
+          this.metrics.recordResponseTime(Date.now() - startTime);
+          return results;
+        } catch (fallbackError) {
+          this.logger.error('Swift LSP: Both LSP and fallback search failed', fallbackError as Error);
+          throw fallbackError;
+        }
+      } else {
+        this.logger.error('Swift LSP: LSP search failed, fallback disabled');
+        throw error;
       }
     }
   }

@@ -308,23 +308,76 @@ async function getFileSymbolHierarchy(
       await lsp.connect();
     }
     
-    // Swift LSPからシンボルを取得
-    const symbols = await lsp.searchSymbols('', { maxResults: 1000 });
-    const fileSymbols = symbols.filter(s => s.file === path.relative(workspaceRoot, filePath));
-    
-    return fileSymbols.map(symbol => ({
-      name: symbol.name,
-      kind: symbol.kind,
-      kind_name: symbolKindToString(symbol.kind),
-      file: symbol.file,
-      start_line: symbol.position.line,
-      start_column: symbol.position.character,
-      end_line: symbol.range.end.line,
-      end_column: symbol.range.end.character,
-      detail: symbol.detail,
-      children: [],
-      depth: 0
-    }));
+    // Swift LSPからファイルのドキュメントシンボルを取得
+    try {
+      // まずドキュメントシンボル取得を試行
+      const symbols = await (lsp as any).getFileSymbols(filePath);
+      logger.info(`Swift LSP: Retrieved ${symbols.length} symbols for file: ${filePath}`);
+      
+      if (symbols.length > 0) {
+        return symbols.map((symbol: any) => ({
+          name: symbol.name,
+          kind: symbol.kind,
+          kind_name: symbolKindToString(symbol.kind),
+          file: path.relative(workspaceRoot, filePath),
+          start_line: symbol.location?.range?.start?.line ?? symbol.position?.line ?? 0,
+          start_column: symbol.location?.range?.start?.character ?? symbol.position?.character ?? 0,
+          end_line: symbol.location?.range?.end?.line ?? symbol.range?.end?.line ?? 0,
+          end_column: symbol.location?.range?.end?.character ?? symbol.range?.end?.character ?? 0,
+          detail: symbol.detail,
+          children: [],
+          depth: 0
+        }));
+      }
+      
+      // ドキュメントシンボルが取得できない場合、searchSymbolsでフォールバック
+      logger.warn(`Swift LSP: No document symbols found, trying workspace symbol search for file: ${filePath}`);
+      
+      // まず空のクエリで全シンボルを取得を試行
+      let searchResults = await lsp.searchSymbols('', { maxResults: 1000 });
+      
+      // 結果が少ない場合、ファイル名でも検索
+      if (searchResults.length < 5) {
+        const fileName = path.basename(filePath, '.swift');
+        const fileNameResults = await lsp.searchSymbols(fileName, { maxResults: 1000 });
+        
+        // 重複を避けて結合
+        const existingNames = new Set(searchResults.map((s: any) => s.name));
+        const newResults = fileNameResults.filter((s: any) => !existingNames.has(s.name));
+        searchResults = [...searchResults, ...newResults];
+      }
+      
+      // ファイルパスでフィルタリング
+      const relativeFilePath = path.relative(workspaceRoot, filePath);
+      const fileSymbols = searchResults.filter((symbol: any) => {
+        // symbol.fileプロパティか、location.uriから相対パスを取得
+        let symbolFile = symbol.file;
+        if (!symbolFile && symbol.location?.uri) {
+          symbolFile = path.relative(workspaceRoot, symbol.location.uri.replace('file://', ''));
+        }
+        return symbolFile === relativeFilePath;
+      });
+      
+      logger.info(`Swift LSP: Found ${fileSymbols.length} symbols via fallback search for file: ${filePath} (from ${searchResults.length} total)`);
+      
+      return fileSymbols.map((symbol: any) => ({
+        name: symbol.name,
+        kind: symbol.kind,
+        kind_name: symbolKindToString(symbol.kind),
+        file: relativeFilePath,
+        start_line: symbol.position?.line ?? symbol.location?.range?.start?.line ?? 0,
+        start_column: symbol.position?.character ?? symbol.location?.range?.start?.character ?? 0,
+        end_line: symbol.range?.end?.line ?? symbol.location?.range?.end?.line ?? 0,
+        end_column: symbol.range?.end?.character ?? symbol.location?.range?.end?.character ?? 0,
+        detail: symbol.detail,
+        children: [],
+        depth: 0
+      }));
+      
+    } catch (error) {
+      logger.warn(`Swift LSP: Failed to get symbols for ${filePath}`, { error });
+      return [];
+    }
   }
   
   if (language === 'typescript' || language === 'javascript') {

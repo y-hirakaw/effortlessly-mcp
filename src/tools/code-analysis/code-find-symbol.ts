@@ -23,7 +23,8 @@ export const CodeFindSymbolParamsSchema = z.object({
   search_type: z.enum(['exact', 'fuzzy']).optional().default('fuzzy').describe('検索タイプ'),
   symbol_kind: z.number().optional().describe('シンボルの種類（SymbolKind）'),
   file_pattern: z.string().optional().describe('ファイルパターン（部分マッチ）'),
-  max_results: z.number().min(1).max(1000).optional().default(100).describe('最大結果数')
+  max_results: z.number().min(1).max(1000).optional().default(100).describe('最大結果数'),
+  enable_fallback: z.boolean().optional().default(true).describe('フォールバック検索を有効にするか（デフォルト: true）')
 });
 
 export type CodeFindSymbolParams = z.infer<typeof CodeFindSymbolParamsSchema>;
@@ -235,7 +236,8 @@ async function searchWithSwiftLSP(
       const symbols = await swiftLsp.searchSymbols(symbolName, {
         kind: params.symbol_kind as SymbolKind | undefined,
         exactMatch: params.search_type === 'exact',
-        maxResults: params.max_results || 100
+        maxResults: params.max_results || 100,
+        enableFallback: params.enable_fallback ?? true
       });
       
       // 結果をCodeSymbolResult形式に変換
