@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Enhanced
+- 🎛️ **Swift LSPフォールバック制御機能を実装**
+  - `enable_fallback`パラメータによるLSP/フォールバック動作の明確な分離
+  - `code_find_symbol`ツールにフォールバック制御オプション統合
+  - デバッグ時の動作状態を正確に把握可能
+  - LSPのみ動作とフォールバック付き動作を選択的に使用可能
+
+### Fixed
+- 🔧 **code_get_symbol_hierarchyの安定性向上**
+  - Swift LSPでのシンボル取得ロジックを改善
+  - フォールバック検索によるより堅牢な動作
+  - エラーハンドリングとロギングを強化
+
+### Technical Details
+- 改修ファイル: 
+  - `src/services/lsp/swift-lsp.ts` - フォールバック制御ロジック追加
+  - `src/tools/code-analysis/code-find-symbol.ts` - enable_fallbackパラメータ統合
+  - `src/tools/code-analysis/code-get-symbol-hierarchy.ts` - シンボル取得改善
+- デバッグレポート: `SWIFT_LSP_DEBUG_PROGRESS.md` - 問題分析と解決過程を記録
+
 ## [1.0.12] - 2025-08-14
 
 ### Enhanced
