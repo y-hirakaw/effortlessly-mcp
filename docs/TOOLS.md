@@ -6,6 +6,47 @@
 
 effortlessly-mcpは以下のカテゴリに分類される26個のツールを提供します：
 
+## 📋 サポートツール一覧
+
+### ファイル操作ツール
+- **echo** - 接続テスト用エコー機能
+- **read_file** - ファイル内容の読み取り（部分読み取り・行番号表示対応）
+- **list_directory** - ディレクトリ内容の一覧表示（再帰検索・パターンフィルタ対応）
+- **get_file_metadata** - ファイル/ディレクトリのメタデータ取得
+- **search_files** - ファイル検索とパターンマッチング
+- **smart_edit_file** - 安全なファイル編集（プレビュー、バックアップ、エラーハンドリング対応）
+- **smart_insert_text** - 柔軟な位置指定によるテキスト挿入
+- **override_text** - 既存ファイルの完全上書きまたは新規ファイル作成
+
+### ワークスペース管理ツール
+- **workspace_activate** - プロジェクトワークスペースの有効化
+- **workspace_get_info** - 現在アクティブなワークスペースの情報取得
+- **workspace_list_all** - 登録済みの全ワークスペースを一覧表示
+
+### コード解析ツール（LSP統合）
+- **code_find_symbol** - TypeScript/JavaScript/Swiftファイル内のシンボル検索
+- **code_find_references** - 指定位置のシンボルの参照（使用箇所）を検索
+- **code_find_referencing_symbols** - 指定シンボルを参照しているシンボルを検索
+- **code_get_symbol_hierarchy** - ファイル/ディレクトリのシンボル階層を取得
+- **code_get_symbols_overview** - 包括的なシンボル構造概要を取得
+- **code_search_pattern** - 正規表現パターンによるファイル内容検索
+- **code_analyze_dependencies** - ファイルのインポート/エクスポート依存関係を分析
+
+### コード編集ツール
+- **code_replace_symbol_body** - コードシンボルの実装部分のみを精密に置換
+- **code_insert_at_symbol** - 指定シンボルの前後に精密にコードを挿入
+- **code_replace_with_regex** - 正規表現パターンを使用した柔軟なコード置換
+
+### プロジェクト管理ツール
+- **project_memory_write** - プロジェクト固有の知識・設計情報を永続化
+- **project_memory_read** - 保存されたプロジェクト固有の知識・設計情報を取得
+- **project_memory_list** - 保存されたプロジェクト知識の一覧とメタデータを取得
+- **project_memory_smart_read** - AI駆動のプロジェクト知識検索（クエリベース）
+- **project_memory_update_workflow** - プロジェクトメモリを最新化するための手順を生成
+
+### Java LSP診断ツール
+- **java_lsp_basic_diagnostics** - Java LSPサーバーの基本状態確認とエラー統計（Phase 2A）
+
 ## 🆕 最新の更新 (v1.0.9)
 
 **Java LSP統合（Phase 2A）**:
