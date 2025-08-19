@@ -401,15 +401,19 @@ function getContextLines(
 }
 
 /**
- * シンボルコンテキストの取得（簡易実装）
+ * シンボルコンテキストの取得（Swift対応版）
  */
 async function getSymbolContext(
   lines: string[],
   currentLine: number,
-  _filePath: string
+  filePath: string
 ): Promise<SymbolContext | undefined> {
   // 現在の行から上に向かって関数やクラスの定義を探す
   const symbolContext: SymbolContext = {};
+  
+  // ファイル拡張子から言語を判定
+  const ext = path.extname(filePath).toLowerCase();
+  const isSwiftFile = ext === '.swift';
   
   // 関数定義のパターン（TypeScript/JavaScript向け）
   const functionPatterns = [
@@ -418,10 +422,27 @@ async function getSymbolContext(
     /(?:public|private|protected)?\s*(?:static\s+)?(\w+)\s*\([^)]*\)/,
   ];
   
-  // クラス定義のパターン
+  // Swift関数定義のパターン
+  const swiftFunctionPatterns = [
+    /(?:func\s+)(\w+)\s*\(/,
+    /(?:private|public|internal|fileprivate)?\s*(?:static\s+)?(?:func\s+)(\w+)\s*\(/,
+    /(?:override\s+)?(?:func\s+)(\w+)\s*\(/,
+    /(?:init)\s*\(/,  // コンストラクタ
+    /(?:deinit)\s*\(/,  // デストラクタ
+  ];
+  
+  // クラス定義のパターン（TypeScript/JavaScript向け）
   const classPatterns = [
     /(?:class|interface|type)\s+(\w+)/,
     /(?:export\s+)?(?:class|interface|type)\s+(\w+)/,
+  ];
+  
+  // Swift クラス/構造体定義のパターン
+  const swiftClassPatterns = [
+    /(?:class|struct|enum|protocol|actor)\s+(\w+)/,
+    /(?:private|public|internal|fileprivate)?\s*(?:class|struct|enum|protocol|actor)\s+(\w+)/,
+    /(?:final\s+)?(?:class\s+)(\w+)/,
+    /(?:extension\s+)(\w+)/,
   ];
   
   for (let i = currentLine; i >= 0; i--) {
@@ -429,10 +450,18 @@ async function getSymbolContext(
     
     // 関数定義の検索
     if (!symbolContext.function_name) {
-      for (const pattern of functionPatterns) {
+      const patterns = isSwiftFile ? swiftFunctionPatterns : functionPatterns;
+      
+      for (const pattern of patterns) {
         const match = line.match(pattern);
         if (match) {
-          symbolContext.function_name = match[1];
+          if (isSwiftFile && pattern.source.includes('init')) {
+            symbolContext.function_name = 'init';
+          } else if (isSwiftFile && pattern.source.includes('deinit')) {
+            symbolContext.function_name = 'deinit';
+          } else {
+            symbolContext.function_name = match[1];
+          }
           symbolContext.symbol_type = 'function';
           break;
         }
@@ -441,10 +470,28 @@ async function getSymbolContext(
     
     // クラス定義の検索
     if (!symbolContext.class_name) {
-      for (const pattern of classPatterns) {
+      const patterns = isSwiftFile ? swiftClassPatterns : classPatterns;
+      
+      for (const pattern of patterns) {
         const match = line.match(pattern);
         if (match) {
           symbolContext.class_name = match[1];
+          // Swift特有のシンボルタイプを設定
+          if (isSwiftFile) {
+            if (line.includes('struct')) {
+              symbolContext.symbol_type = 'struct';
+            } else if (line.includes('enum')) {
+              symbolContext.symbol_type = 'enum';
+            } else if (line.includes('protocol')) {
+              symbolContext.symbol_type = 'protocol';
+            } else if (line.includes('actor')) {
+              symbolContext.symbol_type = 'actor';
+            } else if (line.includes('extension')) {
+              symbolContext.symbol_type = 'extension';
+            } else {
+              symbolContext.symbol_type = 'class';
+            }
+          }
           break;
         }
       }

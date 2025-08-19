@@ -1,0 +1,4 @@
+module TestCocoaPodsApp {
+    header "/Users/y-hirakawa/git/effortlessly-mcp/tests/test-projects/test-cocoapods-project/.build/arm64-apple-macosx/debug/TestCocoaPodsApp.build/TestCocoaPodsApp-Swift.h"
+    requires objc
+}

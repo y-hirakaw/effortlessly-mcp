@@ -7,12 +7,13 @@ import { z } from 'zod';
 import path from 'path';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import type { SymbolKind } from 'vscode-languageserver-protocol';
-import { TypeScriptLSP, SwiftLSP, LSPManager } from '../../services/lsp/index.js';
+import { TypeScriptLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
 import { LSPServerManager } from '../../services/LSPServerManager.js';
 import { LogManager } from '../../utils/log-manager.js';
 import { symbolKindToString } from './types.js';
+import { getOrCreateSwiftLSP } from './swift-lsp-helper.js';
 
 /**
  * シンボル概要取得パラメータスキーマ
@@ -385,21 +386,8 @@ async function getFileSymbols(
   
   try {
     if (language === 'swift') {
-      // Swift LSPを使用
-      const lspName = `swift-${workspaceRoot}`;
-      let lsp = lspManager.getClient(lspName) as SwiftLSP;
-      
-      if (!lsp) {
-        const available = await SwiftLSP.isAvailable();
-        if (!available) {
-          logger.warn('Swift Language Server not available');
-          return [];
-        }
-        
-        lsp = new SwiftLSP(workspaceRoot, logger);
-        lspManager.registerClient(lspName, lsp);
-        await lsp.connect();
-      }
+      // Swift LSPヘルパーを使用してキャッシュされたインスタンスを取得
+      const lsp = await getOrCreateSwiftLSP(workspaceRoot, logger);
       
       // Swift LSPからシンボルを取得
       const symbols = await lsp.searchSymbols('', { maxResults: 1000 });

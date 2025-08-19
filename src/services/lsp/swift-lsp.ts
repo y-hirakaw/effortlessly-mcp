@@ -836,14 +836,21 @@ export class SwiftLSP extends LSPClientBase {
       
       for (const location of locations) {
         const filePath = this.uriToPath(location.uri);
-        const context = await this.getLineContext(filePath, location.range.start.line);
+        let context = '';
+        
+        try {
+          context = await this.getLineContext(filePath, location.range.start.line);
+        } catch (error) {
+          this.logger.warn(`Failed to get context for ${filePath}:${location.range.start.line}`, { error });
+          context = ''; // フォールバック値
+        }
         
         results.push({
           file: filePath,
           position: location.range.start,
           range: location.range,
           kind: 'reference', // SourceKit-LSPは種類を区別しない
-          context
+          context: context || '' // 念のため空文字にフォールバック
         });
       }
       

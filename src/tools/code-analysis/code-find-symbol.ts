@@ -14,6 +14,7 @@ import { Logger } from '../../services/logger.js';
 import { LogManager } from '../../utils/log-manager.js';
 import { getHttpLSPClient } from '../../services/lsp-proxy/http-lsp-client.js';
 import { symbolKindToString } from './types.js';
+import { getOrCreateSwiftLSP } from './swift-lsp-helper.js';
 
 /**
  * シンボル検索パラメータスキーマ
@@ -170,22 +171,7 @@ async function detectProjectLanguage(workspaceRoot: string): Promise<'swift' | '
   return 12; // Function as default
 }
 
-// SwiftLSPインスタンスをキャッシュ（パフォーマンス改善）
-let cachedSwiftLsp: any = null;
-let cachedWorkspaceRoot: string | null = null;
-
-// プロセス終了時のクリーンアップ
-process.on('exit', async () => {
-  if (cachedSwiftLsp) {
-    try {
-      await cachedSwiftLsp.disconnect();
-    } catch (error) {
-      // 終了時のエラーは無視
-    }
-    cachedSwiftLsp = null;
-    cachedWorkspaceRoot = null;
-  }
-});
+// プロセス終了時のクリーンアップ（swift-lsp-helperが管理）
 
 /**
  * SwiftLSP直接統合による検索（Phase 2実装 - パフォーマンス改善版）
@@ -207,29 +193,8 @@ async function searchWithSwiftLSP(
   };
 }> {
   try {
-    // SwiftLSP サービスを動的インポート（初回のみ）
-    const { SwiftLSP } = await import('../../services/lsp/swift-lsp.js');
-    
-    // ワークスペースが変更された場合、または初回の場合のみ新規作成
-    if (!cachedSwiftLsp || cachedWorkspaceRoot !== workspaceRoot) {
-      // 既存のインスタンスがあれば切断
-      if (cachedSwiftLsp) {
-        try {
-          await cachedSwiftLsp.disconnect();
-        } catch (error) {
-          logger.warn('Failed to disconnect previous SwiftLSP instance', { error });
-        }
-      }
-      
-      // 新しいインスタンスを作成
-      cachedSwiftLsp = new SwiftLSP(workspaceRoot, logger);
-      cachedWorkspaceRoot = workspaceRoot;
-      
-      // 接続を確立
-      await cachedSwiftLsp.connect();
-    }
-    
-    const swiftLsp = cachedSwiftLsp;
+    // 共通ヘルパーを使用してSwiftLSPインスタンスを取得
+    const swiftLsp = await getOrCreateSwiftLSP(workspaceRoot, logger);
     
     try {
       // LSPを使用してシンボル検索（searchSymbolsメソッドを使用）

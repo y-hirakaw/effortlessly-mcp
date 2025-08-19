@@ -10,6 +10,7 @@ import { Logger } from '../../services/logger.js';
 import { LogManager } from '../../utils/log-manager.js';
 import { promises as fs } from 'fs';
 
+
 const CodeReplaceWithRegexSchema = z.object({
   file_path: z.string().describe('対象ファイルパス'),
   pattern: z.string().describe('検索用正規表現パターン'),
@@ -118,8 +119,9 @@ export class CodeReplaceWithRegexTool extends BaseTool {
         return this.createErrorResult(`正規表現エラー: ${regexValidation.error}`);
       }
 
-      // 3. ファイル内容読み取り
+      // 3. ファイル内容読み取りと言語検出
       const originalContent = await fs.readFile(params.file_path, 'utf-8');
+      // const fileLanguage = this.detectLanguage(params.file_path);
 
       // 4. パターンマッチング実行
       const matchResult = this.performRegexMatching(
@@ -318,6 +320,16 @@ export class CodeReplaceWithRegexTool extends BaseTool {
           }
           break;
         
+        case 'swift':
+          // Swift構文の基本チェック
+          if (!this.validateBrackets(content)) {
+            errors.push('括弧の対応が不正です');
+          }
+          if (!this.validateSwiftSyntax(content)) {
+            errors.push('Swift構文エラーの可能性があります');
+          }
+          break;
+        
         case 'py':
           // Pythonのインデント基本チェック
           if (!this.validatePythonIndentation(content)) {
@@ -387,6 +399,46 @@ export class CodeReplaceWithRegexTool extends BaseTool {
     
     return true;
   }
+
+  private validateSwiftSyntax(content: string): boolean {
+    // Swift特有の構文チェック
+    const lines = content.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // 空行やコメント行はスキップ
+      if (line === '' || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) {
+        continue;
+      }
+      
+      // 基本的なSwift構文チェック
+      // func, class, struct, enum, protocol, extension などのキーワードチェック
+      if (line.match(/^(func|class|struct|enum|protocol|extension|init|deinit)\s+/)) {
+        // 正しい宣言形式かチェック
+        if (line.includes('func') && !line.includes('(')) {
+          return false; // 関数宣言に括弧がない
+        }
+      }
+      
+      // import文のチェック
+      if (line.startsWith('import ')) {
+        const importParts = line.split(' ');
+        if (importParts.length < 2 || importParts[1].trim() === '') {
+          return false; // import文が不完全
+        }
+      }
+      
+      // 基本的な構文エラーチェック
+      if (line.includes(';;')) {
+        return false; // 連続セミコロン（Swiftでは不要）
+      }
+    }
+    
+    return true;
+  }
+
+
 
   private async createBackup(filePath: string, content: string): Promise<string> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');

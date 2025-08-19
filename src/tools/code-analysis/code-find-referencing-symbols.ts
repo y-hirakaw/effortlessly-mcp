@@ -434,39 +434,74 @@ async function findContainingSymbol(
   for (let i = lineNumber; i >= 0; i--) {
     const line = lines[i].trim();
     
-    // 関数定義のパターン
+    // ファイル拡張子から言語を判定
+    const ext = path.extname(_filePath).toLowerCase();
+    const isSwiftFile = ext === '.swift';
+    
+    // 関数定義のパターン（TypeScript/JavaScript）
     const functionPatterns = [
       /(?:function\s+|const\s+|let\s+|var\s+)(\w+)\s*[=:]?\s*(?:\([^)]*\)|\([^)]*\)\s*=>)/,
       /(?:async\s+)?(\w+)\s*\([^)]*\)\s*{/,
       /(?:public|private|protected)?\s*(?:static\s+)?(\w+)\s*\([^)]*\)/,
     ];
     
-    // クラス定義のパターン
+    // Swift関数定義のパターン
+    const swiftFunctionPatterns = [
+      /(?:func\s+)(\w+)\s*\(/,
+      /(?:private|public|internal|fileprivate)?\s*(?:static\s+)?(?:func\s+)(\w+)\s*\(/,
+      /(?:override\s+)?(?:func\s+)(\w+)\s*\(/,
+      /(?:init)\s*\(/,
+      /(?:deinit)\s*\(/,
+    ];
+    
+    // クラス定義のパターン（TypeScript/JavaScript）
     const classPatterns = [
       /(?:class|interface|type)\s+(\w+)/,
       /(?:export\s+)?(?:class|interface|type)\s+(\w+)/,
     ];
     
-    // 関数定義のチェック
-    for (const pattern of functionPatterns) {
+    // Swift クラス/構造体定義のパターン
+    const swiftClassPatterns = [
+      /(?:class|struct|enum|protocol|actor)\s+(\w+)/,
+      /(?:private|public|internal|fileprivate)?\s*(?:class|struct|enum|protocol|actor)\s+(\w+)/,
+      /(?:final\s+)?(?:class\s+)(\w+)/,
+      /(?:extension\s+)(\w+)/,
+    ];
+    
+    // 関数定義のチェック（言語別）
+    const funcPatterns = isSwiftFile ? swiftFunctionPatterns : functionPatterns;
+    for (const pattern of funcPatterns) {
       const match = line.match(pattern);
       if (match) {
+        let name = match[1];
+        if (isSwiftFile && (pattern.source.includes('init') || pattern.source.includes('deinit'))) {
+          name = pattern.source.includes('init') ? 'init' : 'deinit';
+        }
         return {
-          name: match[1],
-          kind: 12, // LSP SymbolKind.Function
+          name,
+          kind: isSwiftFile && (name === 'init' || name === 'deinit') ? 9 : 12, // Constructor or Function
           line: i,
-          column: line.indexOf(match[1]),
+          column: line.indexOf(name),
         };
       }
     }
     
-    // クラス定義のチェック
-    for (const pattern of classPatterns) {
+    // クラス定義のチェック（言語別）
+    const clsPatterns = isSwiftFile ? swiftClassPatterns : classPatterns;
+    for (const pattern of clsPatterns) {
       const match = line.match(pattern);
       if (match) {
+        let kind = 5; // Default to Class
+        if (isSwiftFile) {
+          if (line.includes('struct')) kind = 23; // Struct
+          else if (line.includes('enum')) kind = 10; // Enum
+          else if (line.includes('protocol')) kind = 11; // Interface
+          else if (line.includes('actor')) kind = 5; // Actor as Class
+          else if (line.includes('extension')) kind = 5; // Extension as Class
+        }
         return {
           name: match[1],
-          kind: 5, // LSP SymbolKind.Class
+          kind,
           line: i,
           column: line.indexOf(match[1]),
         };

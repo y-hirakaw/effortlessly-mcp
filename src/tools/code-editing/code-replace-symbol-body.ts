@@ -8,9 +8,10 @@ import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 // import { LSPService } from '../../services/lsp/lsp-service.js';
 import { Logger } from '../../services/logger.js';
-
 import { LogManager } from '../../utils/log-manager.js';
 import { promises as fs } from 'fs';
+import path from 'path';
+import { getOrCreateSwiftLSP } from '../code-analysis/swift-lsp-helper.js';
 
 const CodeReplaceSymbolBodySchema = z.object({
   symbol_path: z.string().describe('置換対象のシンボルパス (例: "className.methodName", "functionName")'),
@@ -171,16 +172,72 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
     line: number;
     column: number;
   } | null> {
-    // 簡易実装: ファイルパスが指定されている場合はそれを使用
-    // 実際のLSP統合は後で実装
     if (filePath) {
-      // ファイル内でのシンプルな文字列検索による近似
+      const ext = path.extname(filePath).toLowerCase();
+      const isSwiftFile = ext === '.swift';
+      
+      if (isSwiftFile) {
+        // Swift LSPを使用したシンボル検索
+        try {
+          const workspaceRoot = process.cwd(); // 適切なワークスペースルートに変更
+          const swiftLsp = await getOrCreateSwiftLSP(workspaceRoot, Logger.getInstance());
+          
+          // searchSymbolsを使用してシンボルを検索
+          const symbols = await swiftLsp.searchSymbols(symbolPath, { maxResults: 10 });
+          
+          // ファイルパスでフィルタリング
+          const relativeFilePath = path.relative(workspaceRoot, filePath);
+          const matchingSymbol = symbols.find(s => s.file === relativeFilePath);
+          
+          if (matchingSymbol && matchingSymbol.position) {
+            return {
+              file_path: filePath,
+              line: matchingSymbol.position.line,
+              column: matchingSymbol.position.character
+            };
+          }
+        } catch (error) {
+          Logger.getInstance().warn('Swift LSP search failed, falling back to text search', { error });
+        }
+      }
+      
+      // TypeScript/JavaScript または Swift LSP失敗時のテキスト検索
       try {
         const content = await fs.readFile(filePath, 'utf-8');
         const lines = content.split('\n');
         
+        // より精密なシンボル検索パターン
+        const patterns = isSwiftFile ? 
+          [
+            new RegExp(`func\\s+${symbolPath}\\s*\\(`),
+            new RegExp(`class\\s+${symbolPath}\\s*[:{]`),
+            new RegExp(`struct\\s+${symbolPath}\\s*[:{]`),
+            new RegExp(`enum\\s+${symbolPath}\\s*[:{]`),
+            new RegExp(`protocol\\s+${symbolPath}\\s*[:{]`),
+            new RegExp(`init\\s*\\(`) // initの場合
+          ] : [
+            new RegExp(`function\\s+${symbolPath}\\s*\\(`),
+            new RegExp(`class\\s+${symbolPath}\\s*[{]`),
+            new RegExp(`interface\\s+${symbolPath}\\s*[{]`),
+            new RegExp(`const\\s+${symbolPath}\\s*[=:]`),
+            new RegExp(`\\b${symbolPath}\\s*\\([^)]*\\)\\s*{`)
+          ];
+        
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
+          
+          for (const pattern of patterns) {
+            const match = pattern.exec(line);
+            if (match) {
+              return {
+                file_path: filePath,
+                line: i,
+                column: match.index
+              };
+            }
+          }
+          
+          // フォールバック: 単純な文字列マッチ
           if (line.includes(symbolPath)) {
             return {
               file_path: filePath,
@@ -190,7 +247,7 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
           }
         }
       } catch (error) {
-        Logger.getInstance().warn('Failed to read file for symbol search');
+        Logger.getInstance().warn('Failed to read file for symbol search', { error });
       }
     }
     
@@ -211,6 +268,8 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
     
     const lines = content.split('\n');
     const startLine = location.line;
+    const ext = path.extname(location.file_path).toLowerCase();
+    const isSwiftFile = ext === '.swift';
     
     // シンボルの開始を検出
     let symbolStart = startLine;
@@ -234,6 +293,47 @@ export class CodeReplaceSymbolBodyTool extends BaseTool {
       if (inFunction && braceLevel === 0) {
         symbolEnd = i;
         break;
+      }
+    }
+
+    // Swift特有の処理: プロトコルやcomputed propertyなど
+    if (isSwiftFile && !inFunction) {
+      // computed propertyやprotocolメソッドの場合
+      for (let i = symbolStart; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // computed property (get/set)
+        if (line.includes('get') || line.includes('set')) {
+          inFunction = true;
+          symbolStart = i;
+          continue;
+        }
+        
+        // protocol method declaration (本体なし)
+        if (line.endsWith(')') && !line.includes('{')) {
+          return {
+            full_code: line,
+            signature: line,
+            body: '',
+            start_line: i,
+            end_line: i
+          };
+        }
+        
+        if (inFunction) {
+          if (line.includes('{')) {
+            braceLevel += (line.match(/\{/g) || []).length;
+          }
+          
+          if (line.includes('}')) {
+            braceLevel -= (line.match(/\}/g) || []).length;
+            
+            if (braceLevel === 0) {
+              symbolEnd = i;
+              break;
+            }
+          }
+        }
       }
     }
 

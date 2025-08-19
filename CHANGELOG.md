@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- 🔧 **Swift LSP code_find_references機能の修正**
+  - Swift言語でのシンボル参照検索が正常に動作するよう修正
+  - 相対パス・絶対パス両方での動作を確認
+  - User構造体、メソッド定義等の参照検索が正確に動作
+  - TypeScript/JavaScript/Swift全言語でLSP参照検索が完全動作
+
+### Improved
+- 🚀 **LSPサーバー自動起動の確認**
+  - 任意のLSP系ツール初回呼び出し時の自動起動を確認
+  - プロキシサーバーとの連携が適切に動作
+  - エラー時のフォールバック機能も正常動作
+
+### Fixed
+- 🐛 **ESLintエラーの修正**
+  - 制御文字正規表現のno-control-regexエラーを修正
+  - プロジェクト全体のビルドが正常に完了
+
 ## [1.0.15] - 2025-08-19
 
 ### Fixed

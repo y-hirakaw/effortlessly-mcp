@@ -191,6 +191,7 @@ export class ProjectMemoryService {
       // ファイルシステムで問題となる文字のみ置換
       .replace(/[<>:"/\\|?*]/g, '_')
       // 制御文字を除去
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x00-\x1f\x7f]/g, '')
       // 連続するアンダースコアを単一に
       .replace(/_{2,}/g, '_')

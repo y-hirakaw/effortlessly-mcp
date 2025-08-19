@@ -347,13 +347,31 @@ class DependencyAnalyzer {
           
           imports.push({
             source,
-            resolved_path: undefined, // Swiftは複雑なモジュール解決が必要
+            resolved_path: isExternal ? undefined : await this.resolveSwiftImportPath(source, filePath),
             type: 'import',
             imported_names: [source],
             line_number: lineNumber,
             original_statement: line,
             is_external: isExternal,
             is_dev_dependency: false
+          });
+        }
+        
+        // @testable import（テスト用インポート）
+        const testableImportMatch = line.match(/^@testable\s+import\s+(.+)$/);
+        if (testableImportMatch) {
+          const source = testableImportMatch[1].trim();
+          const isExternal = this.isExternalSwiftDependency(source);
+          
+          imports.push({
+            source,
+            resolved_path: isExternal ? undefined : await this.resolveSwiftImportPath(source, filePath),
+            type: 'import',
+            imported_names: [source],
+            line_number: lineNumber,
+            original_statement: line,
+            is_external: isExternal,
+            is_dev_dependency: true // @testableは開発依存関係
           });
         }
       }
@@ -448,8 +466,97 @@ class DependencyAnalyzer {
 
   private isExternalSwiftDependency(source: string): boolean {
     // Swiftの標準ライブラリやフレームワークを判定
-    const swiftFrameworks = ['Foundation', 'UIKit', 'SwiftUI', 'Combine', 'Darwin'];
-    return swiftFrameworks.includes(source) || !source.includes('.');
+    const swiftFrameworks = [
+      'Foundation', 'UIKit', 'SwiftUI', 'Combine', 'Darwin', 'CoreData', 'CoreGraphics',
+      'AVFoundation', 'CloudKit', 'Network', 'CryptoKit', 'OSLog', 'os', 'Dispatch',
+      'XCTest', 'Testing', // テストフレームワーク
+      'ArgumentParser', 'AsyncHTTPClient', 'SwiftNIO', // 一般的なSPMパッケージ
+    ];
+    
+    // 標準フレームワークは外部依存関係
+    if (swiftFrameworks.includes(source)) {
+      return true;
+    }
+    
+    // ドット記法でないモジュール名は通常外部依存関係（例: Firebase, Alamofire）
+    if (!source.includes('.') && source !== source.toLowerCase()) {
+      return true;
+    }
+    
+    return false;
+  }
+
+  private async resolveSwiftImportPath(source: string, fromFile: string): Promise<string | undefined> {
+    if (!this.params.resolve_imports) {
+      return undefined;
+    }
+
+    try {
+      const fromDir = path.dirname(fromFile);
+      
+      // プロジェクト内のモジュールを検索
+      // 1. 同じディレクトリ内のSwiftファイルを検索
+      const sameDirFile = path.join(fromDir, `${source}.swift`);
+      const fsService = FileSystemService.getInstance();
+      
+      try {
+        await fsService.access(sameDirFile);
+        return sameDirFile;
+      } catch {
+        // ファイルが見つからない場合は続行
+      }
+      
+      // 2. Sources/{ModuleName}/ パターンを検索
+      const workspaceRelative = path.relative(this.workspaceRoot, fromFile);
+      const pathParts = workspaceRelative.split(path.sep);
+      
+      // Sourcesディレクトリを探す
+      let sourcesIndex = pathParts.indexOf('Sources');
+      if (sourcesIndex === -1) {
+        sourcesIndex = pathParts.findIndex(part => part.toLowerCase().includes('source'));
+      }
+      
+      if (sourcesIndex !== -1) {
+        const sourcesPath = path.join(this.workspaceRoot, ...pathParts.slice(0, sourcesIndex + 1));
+        const moduleDir = path.join(sourcesPath, source);
+        
+        try {
+          const moduleFiles = await fsService.readdir(moduleDir);
+          const swiftFiles = moduleFiles.filter(f => (typeof f === 'string' ? f : f.name).endsWith('.swift'));
+          if (swiftFiles.length > 0) {
+            return path.join(moduleDir, typeof swiftFiles[0] === 'string' ? swiftFiles[0] : swiftFiles[0].name); // 最初のSwiftファイルを返す
+          }
+        } catch {
+          // ディレクトリが見つからない場合は続行
+        }
+      }
+      
+      // 3. プロジェクト全体でモジュール名でディレクトリ検索
+      const possiblePaths = [
+        path.join(this.workspaceRoot, 'Sources', source),
+        path.join(this.workspaceRoot, source),
+        path.join(this.workspaceRoot, 'Modules', source),
+      ];
+      
+      for (const possiblePath of possiblePaths) {
+        try {
+          const stats = await fsService.stat(possiblePath);
+          if (stats.isDirectory()) {
+            const files = await fsService.readdir(possiblePath);
+            const swiftFiles = files.filter(f => (typeof f === 'string' ? f : f.name).endsWith('.swift'));
+            if (swiftFiles.length > 0) {
+              return path.join(possiblePath, typeof swiftFiles[0] === 'string' ? swiftFiles[0] : swiftFiles[0].name);
+            }
+          }
+        } catch {
+          // パスが存在しない場合は続行
+        }
+      }
+      
+      return undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   private async resolveImportPath(source: string, fromFile: string): Promise<string | undefined> {
