@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.15] - 2025-08-19
+
+### Fixed
+- 🔧 **TypeScriptビルドエラー完全解消**
+  - case文での重複宣言エラー修正（`lsp-auto-launcher.ts`）
+  - ESLintエラー修正（console.log文の削除）
+  - 全ビルドエラーが解消され、MCPサーバーが正常起動可能
+- ✅ **Swift LSP統合の動作確認完了**
+  - Swift LSP基本機能テスト（シンボル検索、階層取得、依存関係分析）
+  - Swift編集機能テスト（`smart_edit_file`による安全なコード編集）
+  - CPTestProjectでの実地テストにより83%の機能が動作確認済み
+  - LSP_REMAINING_TASKS.mdの動作確認結果を反映
+
+### Validated
+- 🎯 **Swift LSP統合の実用性確認**
+  - ✅ シンボル検索: `JSONHandler`クラスの正確な検出
+  - ✅ シンボル階層: 7つのSwift構造体・クラスを正確に取得
+  - ✅ 依存関係分析: Foundation、Alamofireの外部依存関係を正確に検出
+  - ✅ コード編集: `smart_edit_file`による安全なSwiftコード編集確認
+  - ⚠️ LSP参照検索: スナップショットエラー発生（フォールバック動作）
+
 ## [1.0.15] - 2025-08-16
 
 ### Added

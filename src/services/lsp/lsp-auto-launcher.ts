@@ -299,23 +299,26 @@ export class LSPAutoLauncher {
 
     switch (language.toLowerCase()) {
       case 'typescript':
-      case 'javascript':
+      case 'javascript': {
         const tsLsp = new TypeScriptLSP(config.workspaceRoot);
         await tsLsp.connect();
         return tsLsp as any; // TypeScriptLSPはLSPClientBaseを継承していると仮定
+      }
         
-      case 'swift':
+      case 'swift': {
         const swiftLsp = new SwiftLSP(config.workspaceRoot);
         await swiftLsp.connect();
         return swiftLsp as any; // SwiftLSPはLSPClientBaseを継承していると仮定
+      }
 
-      case 'java':
+      case 'java': {
         const javaLsp = await JavaLSP.createWithAutoSetup({
           workspaceRoot: config.workspaceRoot,
           autoInstall: config.auto_start?.auto_install !== false
         });
         await javaLsp.connect();
         return javaLsp as any; // JavaLSPはLSPClientBaseを継承していると仮定
+      }
 
       default:
         throw new Error(`No native implementation for ${language}`);

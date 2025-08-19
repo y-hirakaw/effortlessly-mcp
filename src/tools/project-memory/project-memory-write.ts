@@ -108,9 +108,8 @@ export class ProjectMemoryWriteTool extends BaseTool {
       this.metadata
     );
 
-    console.log(`DEBUG: Final response.memory_name = "${response.memory_name}"`);
+    // DEBUG: Final response validation
     const jsonString = JSON.stringify(response, null, 2);
-    console.log(`DEBUG: JSON string contains memory_name:`, jsonString.includes(response.memory_name || ''));
     return this.createTextResult(jsonString);
   }
 }
