@@ -6,12 +6,12 @@
 import { z } from 'zod';
 import path from 'path';
 import { FileSystemService } from '../../services/FileSystemService.js';
-import { TypeScriptLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { LSPServerManager } from '../../services/LSPServerManager.js';
 import { Logger } from '../../services/logger.js';
 import { LogManager } from '../../utils/log-manager.js';
 import { getOrCreateSwiftLSP } from './swift-lsp-helper.js';
+import { TypeScriptLSPHelper } from '../../services/lsp/typescript-lsp-helper.js';
 
 /**
  * 参照検索パラメータスキーマ
@@ -147,7 +147,8 @@ export const codeFindReferencesTool = {
       } else if (['.ts', '.tsx', '.js', '.jsx'].includes(fileExtension)) {
         // TypeScript LSPを使用
         logger.info('Using TypeScript LSP for reference search');
-        const lsp = await getOrCreateTypeScriptLSP(workspaceRoot, logger);
+        const helper = TypeScriptLSPHelper.getInstance();
+        const lsp = await helper.getOrCreateTypeScriptLSP(workspaceRoot);
         
         // TypeScript LSPで参照検索を実行
         references = await lsp.searchReferences(
@@ -398,33 +399,5 @@ function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * TypeScript LSPインスタンスを取得または作成
- */
-async function getOrCreateTypeScriptLSP(workspaceRoot: string, logger: Logger): Promise<TypeScriptLSP> {
-  const lspManager = LSPManager.getInstance();
-  const lspName = `typescript-${workspaceRoot}`;
-  
-  let lsp = lspManager.getClient(lspName) as TypeScriptLSP;
-  
-  if (!lsp) {
-    // TypeScript LSPが利用可能かチェック
-    const available = await TypeScriptLSP.isAvailable();
-    if (!available) {
-      throw new Error(
-        'TypeScript Language Server not found. Please install it using: npm install -g typescript-language-server typescript'
-      );
-    }
-
-    // 新しいLSPインスタンスを作成
-    lsp = new TypeScriptLSP(workspaceRoot, logger);
-    lspManager.registerClient(lspName, lsp);
-    
-    // 接続
-    await lsp.connect();
-    
-    logger.info(`Connected to TypeScript LSP for workspace: ${workspaceRoot}`);
-  }
-
-  return lsp;
-}
+// 注: getOrCreateTypeScriptLSP関数は削除されました。
+// TypeScriptLSPHelperクラスのgetOrCreateTypeScriptLSPメソッドを使用してください。

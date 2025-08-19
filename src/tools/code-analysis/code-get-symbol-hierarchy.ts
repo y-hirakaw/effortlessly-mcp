@@ -7,12 +7,12 @@ import { z } from 'zod';
 import path from 'path';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import type { SymbolKind } from 'vscode-languageserver-protocol';
-import { TypeScriptLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
 import { LogManager } from '../../utils/log-manager.js';
 import { symbolKindToString } from './types.js';
 import { getOrCreateSwiftLSP } from './swift-lsp-helper.js';
+import { TypeScriptLSPHelper } from '../../services/lsp/typescript-lsp-helper.js';
 
 /**
  * シンボル階層取得パラメータスキーマ
@@ -290,8 +290,6 @@ async function getFileSymbolHierarchy(
   _params: CodeGetSymbolHierarchyParams,
   logger: Logger
 ): Promise<SymbolHierarchyNode[]> {
-  const lspManager = LSPManager.getInstance();
-  
   if (language === 'swift') {
     // Swift LSPヘルパーを使用してキャッシュされたインスタンスを取得
     const lsp = await getOrCreateSwiftLSP(workspaceRoot, logger);
@@ -369,20 +367,9 @@ async function getFileSymbolHierarchy(
   }
   
   if (language === 'typescript' || language === 'javascript') {
-    // TypeScript LSPを使用
-    const lspName = `typescript-${workspaceRoot}`;
-    let lsp = lspManager.getClient(lspName) as TypeScriptLSP;
-    
-    if (!lsp) {
-      const available = await TypeScriptLSP.isAvailable();
-      if (!available) {
-        throw new Error('TypeScript Language Server not available');
-      }
-      
-      lsp = new TypeScriptLSP(workspaceRoot, logger);
-      lspManager.registerClient(lspName, lsp);
-      await lsp.connect();
-    }
+    // TypeScript LSPHelperを使用してキャッシュされたインスタンスを取得
+    const helper = TypeScriptLSPHelper.getInstance();
+    const lsp = await helper.getOrCreateTypeScriptLSP(workspaceRoot);
     
     // ファイルのシンボルを取得（SymbolInformation形式）
     const symbols = await (lsp as any).getFileSymbols(filePath);

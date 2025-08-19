@@ -7,13 +7,13 @@ import { z } from 'zod';
 import path from 'path';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import type { SymbolKind } from 'vscode-languageserver-protocol';
-import { TypeScriptLSP, LSPManager } from '../../services/lsp/index.js';
 import { WorkspaceManager } from '../project-management/workspace-manager.js';
 import { Logger } from '../../services/logger.js';
 import { LSPServerManager } from '../../services/LSPServerManager.js';
 import { LogManager } from '../../utils/log-manager.js';
 import { symbolKindToString } from './types.js';
 import { getOrCreateSwiftLSP } from './swift-lsp-helper.js';
+import { TypeScriptLSPHelper } from '../../services/lsp/typescript-lsp-helper.js';
 
 /**
  * シンボル概要取得パラメータスキーマ
@@ -381,8 +381,6 @@ async function getFileSymbols(
   if (language === 'unknown') {
     return [];
   }
-
-  const lspManager = LSPManager.getInstance();
   
   try {
     if (language === 'swift') {
@@ -404,32 +402,25 @@ async function getFileSymbols(
     }
     
     if (language === 'typescript' || language === 'javascript') {
-      // TypeScript LSPを使用
-      const lspName = `typescript-${workspaceRoot}`;
-      let lsp = lspManager.getClient(lspName) as TypeScriptLSP;
-      
-      if (!lsp) {
-        const available = await TypeScriptLSP.isAvailable();
-        if (!available) {
-          logger.warn('TypeScript Language Server not available');
-          return [];
-        }
+      // TypeScript LSPHelperを使用してキャッシュされたインスタンスを取得
+      try {
+        const helper = TypeScriptLSPHelper.getInstance();
+        const lsp = await helper.getOrCreateTypeScriptLSP(workspaceRoot);
         
-        lsp = new TypeScriptLSP(workspaceRoot, logger);
-        lspManager.registerClient(lspName, lsp);
-        await lsp.connect();
+        // ファイルのシンボルを取得
+        const symbols = await (lsp as any).getFileSymbols(filePath);
+        
+        return symbols.map((symbol: any) => ({
+          name: symbol.name,
+          kind: symbol.kind,
+          kind_name: symbolKindToString(symbol.kind),
+          start_line: symbol.location.range.start.line,
+          detail: symbol.detail
+        }));
+      } catch (error) {
+        logger.warn('TypeScript LSP Helper failed:', { error: (error as Error).message });
+        return [];
       }
-      
-      // ファイルのシンボルを取得
-      const symbols = await (lsp as any).getFileSymbols(filePath);
-      
-      return symbols.map((symbol: any) => ({
-        name: symbol.name,
-        kind: symbol.kind,
-        kind_name: symbolKindToString(symbol.kind),
-        start_line: symbol.location.range.start.line,
-        detail: symbol.detail
-      }));
     }
     
   } catch (error) {
