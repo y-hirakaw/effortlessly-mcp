@@ -143,7 +143,9 @@ build/
 .claude/workspace/
 sample.md
 .serena/
-test-scripts/
+
+# Test directories (test projects are in ../CPTestProject)
+test-*/
 
 # Test project build directories
 tests/test-projects/test-swift-project/.build/

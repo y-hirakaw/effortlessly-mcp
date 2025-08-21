@@ -458,3 +458,11 @@ mcp__effortlessly-mcp__code_find_symbol({
 ## README更新について
 
 * READMEの更新を指示されたらCHANGELOG.mdも必要に応じて更新すること
+
+## テストプロジェクトについて
+
+### テストディレクトリの配置
+- **開発用テストディレクトリ**: `test-*` フォルダはgitignoreされており、バージョン管理に含まれません
+- **CocoaPodsテストプロジェクト**: `../CPTestProject` に配置されています
+  - このプロジェクトディレクトリ内ではなく、親ディレクトリに配置
+  - Swift/Objective-CのCocoaPods統合テスト用
