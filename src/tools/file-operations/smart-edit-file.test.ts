@@ -552,5 +552,59 @@ function testFunction() {
         expect(resultData.preview_content).toContain('return value: 42;');
       }
     });
+
+  describe('改行文字の処理', () => {
+    it('置換時に余分な改行を追加しない', async () => {
+      const testPath = path.join(tempDir, 'newline-test.txt');
+      const originalContent = 'line1\nline2\nline3';
+      await fs.writeFile(testPath, originalContent);
+
+      const result = await tool.execute({
+        file_path: testPath,
+        old_text: 'line2',
+        new_text: 'replaced',
+        replace_all: false
+      });
+
+      const modifiedContent = await fs.readFile(testPath, 'utf-8');
+      expect(modifiedContent).toBe('line1\nreplaced\nline3');
+      // 不要な改行がないことを確認
+      expect(modifiedContent.split('\n').length).toBe(3);
+    });
+
+    it('行末での置換を正しく処理', async () => {
+      const testPath = path.join(tempDir, 'eol-test.txt');
+      const originalContent = 'line1\nline2\nline3';
+      await fs.writeFile(testPath, originalContent);
+
+      const result = await tool.execute({
+        file_path: testPath,
+        old_text: 'line3',
+        new_text: 'end',
+        replace_all: false
+      });
+
+      const modifiedContent = await fs.readFile(testPath, 'utf-8');
+      expect(modifiedContent).toBe('line1\nline2\nend');
+      expect(modifiedContent.split('\n').length).toBe(3);
+    });
+
+    it('複数行の置換を正しく処理', async () => {
+      const testPath = path.join(tempDir, 'multiline-test.txt');
+      const originalContent = 'line1\nline2\nline3\nline4';
+      await fs.writeFile(testPath, originalContent);
+
+      const result = await tool.execute({
+        file_path: testPath,
+        old_text: 'line2\nline3',
+        new_text: 'replaced',
+        replace_all: false
+      });
+
+      const modifiedContent = await fs.readFile(testPath, 'utf-8');
+      expect(modifiedContent).toBe('line1\nreplaced\nline4');
+      expect(modifiedContent.split('\n').length).toBe(3);
+    });
+  });
   });
 });
