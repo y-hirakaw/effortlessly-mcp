@@ -559,7 +559,7 @@ function testFunction() {
       const originalContent = 'line1\nline2\nline3';
       await fs.writeFile(testPath, originalContent);
 
-      const result = await tool.execute({
+      await tool.execute({
         file_path: testPath,
         old_text: 'line2',
         new_text: 'replaced',
@@ -577,7 +577,7 @@ function testFunction() {
       const originalContent = 'line1\nline2\nline3';
       await fs.writeFile(testPath, originalContent);
 
-      const result = await tool.execute({
+      await tool.execute({
         file_path: testPath,
         old_text: 'line3',
         new_text: 'end',
@@ -594,7 +594,7 @@ function testFunction() {
       const originalContent = 'line1\nline2\nline3\nline4';
       await fs.writeFile(testPath, originalContent);
 
-      const result = await tool.execute({
+      await tool.execute({
         file_path: testPath,
         old_text: 'line2\nline3',
         new_text: 'replaced',
