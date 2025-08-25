@@ -433,6 +433,64 @@ function registerTools(): void {
         );
         break;
         
+      // 🆕 Search Learning Engine ツール群 (v2.0 AI強化機能)
+      case 'search_with_learning':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            query: z.string().describe('検索クエリ'),
+            directory: z.string().optional().describe('検索対象ディレクトリ（デフォルト: カレントディレクトリ）'),
+            file_pattern: z.string().optional().describe('ファイル名パターン（glob形式）'),
+            content_pattern: z.string().optional().describe('ファイル内容の検索パターン（正規表現）'),
+            case_sensitive: z.boolean().optional().default(false).describe('大文字小文字を区別するか'),
+            recursive: z.boolean().optional().default(true).describe('再帰的に検索するか'),
+            max_results: z.number().optional().default(100).describe('最大結果数'),
+            learn_patterns: z.boolean().optional().default(true).describe('検索パターンを学習するか')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'optimize_search_query':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            query: z.string().describe('最適化したい検索クエリ'),
+            context: z.string().optional().describe('検索の文脈や目的'),
+            includeAlternatives: z.boolean().optional().default(true).describe('代替クエリ提案を含めるか')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'get_search_statistics':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            period: z.enum(['day', 'week', 'month', 'all']).optional().default('week').describe('統計期間'),
+            includePatterns: z.boolean().optional().default(true).describe('学習パターンを含めるか'),
+            includePerformance: z.boolean().optional().default(true).describe('パフォーマンス統計を含めるか')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
+      case 'update_search_patterns':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            forceRelearn: z.boolean().optional().default(false).describe('強制的に全データを再学習するか'),
+            minPatternSupport: z.number().optional().default(3).describe('パターン認識の最小サポート数'),
+            analysisDepth: z.enum(['basic', 'detailed', 'comprehensive']).optional().default('detailed').describe('分析の深度')
+          },
+          createToolHandler(name, tool)
+        );
+        break;
+        
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);
         continue;

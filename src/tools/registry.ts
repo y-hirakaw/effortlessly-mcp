@@ -37,6 +37,12 @@ import {
   OverrideTextTool
 } from './file-operations/index.js';
 import { JavaLSPBasicDiagnosticsTool } from './code-analysis/java-lsp-basic-diagnostics.js';
+import { 
+  searchWithLearning,
+  optimizeSearchQuery,
+  getSearchStatistics,
+  updateSearchPatterns
+} from './project-memory/search-learning-engine.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -105,6 +111,12 @@ export class ToolRegistry {
     
     // Java LSP基本診断ツール（Phase 2A）
     this.registerTool(new JavaLSPBasicDiagnosticsTool());
+    
+    // 🆕 AI強化検索機能（v2.0新機能・最高ROI：350%）
+    this.registerTool(searchWithLearning);
+    this.registerTool(optimizeSearchQuery);
+    this.registerTool(getSearchStatistics);
+    this.registerTool(updateSearchPatterns);
   }
 
   /**
