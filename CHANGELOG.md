@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [2.0.0] - 2025-01-25
+
+### 🔄 **戦略的方向転換 - 実用性重視への転換**
+
+#### Breaking Changes
+- 🚫 **LSP機能の大幅縮小**
+  - Swift LSP統合を非推奨化（実験的機能として維持）
+  - Java LSP統合を非推奨化（実験的機能として維持）
+  - TypeScript LSP機能を最小限に縮小
+  - 複雑な依存関係解析機能を削除予定
+
+#### Changed
+- 📝 **開発方針の転換**
+  - LSP統合開発から、ファイル編集・プロジェクト管理機能へのフォーカス変更
+  - 複雑な技術的挑戦から、確実で実用的な機能提供への転換
+  - 保守負担の大幅削減（70%削減目標）
+
+- 📋 **新RDD作成**
+  - `docs/RDD/RDD.md`: 新しい方向性を反映したv2.0 RDD
+  - `docs/RDD/RDD_old.md`: 旧LSP中心のRDDをアーカイブ
+
+#### Planned Features
+- ✨ **ファイル編集機能の強化**（優先度1）
+  - バッチ編集機能
+  - テンプレート適用機能
+  - 複数パターン一括置換
+
+- 🧠 **プロジェクトメモリのAI強化**（優先度2）
+  - AI駆動の知識整理
+  - 自動文書生成
+  - コンテキストベースの知識提案
+
+- 🔄 **ワークフロー自動化**（優先度3）
+  - タスク自動実行
+  - ファイル変更監視
+  - 自動フォーマット・バックアップ
+
+### Fixed
+- 🐛 **TypeScriptビルドエラーの修正**
+  - `smart-edit-file.test.ts`の未使用変数エラーを修正
+  - ビルドが正常に完了することを確認
+  ### 🚫 **LSP機能完全無効化**（2025-01-25）
+  - ✅ **10個のLSPツールを無効化**
+  - `code_find_symbol`, `code_find_references`, `code_get_symbol_hierarchy`
+  - `code_analyze_dependencies`, `code_search_pattern`, `code_find_referencing_symbols`
+  - `code_get_symbols_overview`, `code_replace_symbol_body`, `code_insert_at_symbol`
+  - `code_replace_with_regex`
+  - ✅ **MCPツール数削減**: 23個 → 13個（43%削減）
+  - ✅ **AI応答速度向上**: ツール選択の軽量化により高速化
+  - ✅ **保守負担軽減**: 複雑なLSP統合から解放
+
 
 ## [1.0.16] - 2025-08-19
 
