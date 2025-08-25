@@ -52,6 +52,25 @@ read_file({
 // 従来 vs 新機能
 従来: read_file × 3回実行 → 3往復の遅延
 新機能: read_file × 1回実行 → 1往復、複数範囲同時取得
+
+// AI強化機能: smart_range_optimizer（新規追加）
+smart_range_optimizer: {
+  // AIによる最適読み込み範囲の自動提案
+  suggest_optimal_ranges: (file_path, intent) => OptimalRange[]
+  
+  // 使用例
+  optimizer.suggest_ranges("UserService.ts", "バグ調査") => [
+    {start: 10, end: 50, label: "クラス定義", relevance: 0.9},
+    {start: 200, end: 250, label: "問題のメソッド", relevance: 0.95},
+    {start: 800, end: 850, label: "関連テスト", relevance: 0.85}
+  ]
+  
+  // 期待効果
+  - 読み込み精度: 70% → 95%
+  - 不要データ削減: 60%
+  - AI応答速度: 50%向上
+  - ROI: 400%（実装工数2-3週間）
+}
 ```
 
 #### 2.1.3 高度な検索機能
@@ -64,6 +83,26 @@ read_file({
 - fuzzy_search: あいまい検索
 - content_index: 高速全文検索インデックス
 - search_history: 検索履歴と再利用
+
+// AI強化機能: search_learning_engine（新規追加）
+search_learning_engine: {
+  // 検索履歴から学習して検索精度を向上
+  learn_search_patterns: (history) => OptimizedQuery[]
+  optimize_content_index: (usage_stats) => IndexStrategy
+  
+  // 使用例
+  engine.learn_patterns(searchHistory) => {
+    common_patterns: ["class.*Service", "function.*test"],
+    personalized_shortcuts: {"bugs": "error|exception|fail"},
+    optimization_suggestions: ["Use file_pattern for *.ts files"]
+  }
+  
+  // 期待効果
+  - 検索精度: 60% → 90%
+  - 検索時間: 50%短縮
+  - キャッシュヒット率: 30% → 80%
+  - ROI: 350%（実装工数1-2週間）
+}
 ```
 
 ### 2.2 優先度2: プロジェクトメモリ機能 ✅ **実装済み・AI強化予定**
@@ -215,6 +254,8 @@ interface Workflow {
 - [x] ドキュメント更新
 
 ### Phase 2: コア機能強化（Week 3-4）
+- [ ] **smart_range_optimizer機能の実装**（優先度1: ROI 400%）
+- [ ] **search_learning_engine機能の実装**（優先度2: ROI 350%）
 - [ ] batch_edit機能の実装
 - [ ] template_apply機能の実装
 - [ ] smart_memory_organize機能の実装
