@@ -32,7 +32,29 @@ effortlessly-mcpは、Claude Code向けの実用的なMCPサーバーとして�
 - regex_replace_multi: 複数パターンの一括置換
 ```
 
-#### 2.1.2 高度な検索機能
+#### 2.1.2 高速ファイル読み込み機能
+```typescript
+// 複数範囲一括読み込み機能（read_file拡張）
+read_file({
+  file_path: "src/UserService.ts",
+  ranges: [
+    {start: 10, end: 50, label: "クラス定義"},
+    {start: 200, end: 250, label: "メソッド実装"},
+    {start: 800, end: 850, label: "使用例・テスト"}
+  ]
+})
+
+// 効果
+- レスポンス速度: 3倍以上高速化（往復回数削減）
+- AI効率化: 複数箇所の文脈を保持したまま分析可能
+- 使用場面: 関数定義・使用箇所・テスト確認、バグ調査、コードレビュー
+
+// 従来 vs 新機能
+従来: read_file × 3回実行 → 3往復の遅延
+新機能: read_file × 1回実行 → 1往復、複数範囲同時取得
+```
+
+#### 2.1.3 高度な検索機能
 ```typescript
 // 現在の機能（維持）
 - search_files: ファイル名・内容検索
