@@ -1,22 +1,23 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import Database from 'better-sqlite3';
 import { Logger } from './logger.js';
 
 const logger = Logger.getInstance();
 
-// 検索履歴の型定義
-interface SearchHistory {
-  id: string;
-  query: string;
-  pattern_type: 'file_pattern' | 'content_pattern' | 'mixed';
-  directory: string;
-  results_count: number;
-  success: boolean;
-  timestamp: Date;
-  response_time_ms: number;
-  user_selected?: string[]; // ユーザーが実際に選択したファイル
-}
+// 検索履歴の型定義（将来使用予定）
+// interface SearchHistory {
+//   id: string;
+//   query: string;
+//   pattern_type: 'file_pattern' | 'content_pattern' | 'mixed';
+//   directory: string;
+//   results_count: number;
+//   success: boolean;
+//   timestamp: Date;
+//   response_time_ms: number;
+//   user_selected?: string[]; // ユーザーが実際に選択したファイル
+// }
 
 // 学習された検索パターンの型
 interface SearchPattern {
@@ -45,6 +46,25 @@ interface IndexStrategy {
   memory_allocation: number;
 }
 
+// ファイル変更追跡の型（将来使用予定）
+// interface FileChangeTracker {
+//   path: string;
+//   hash: string;
+//   last_modified: number;
+//   size: number;
+// }
+
+// キャッシュされた検索結果の型
+interface CachedSearchResult {
+  query: string;
+  pattern_type: string;
+  directory: string;
+  results: any[];
+  cached_at: number;
+  expires_at: number;
+  file_hashes: Map<string, string>;
+}
+
 /**
  * 検索学習エンジン - AI駆動の検索最適化
  * ROI: 350%, 実装工数: 1-2週間
@@ -52,8 +72,13 @@ interface IndexStrategy {
 export class SearchLearningEngine {
   private db: Database.Database;
   private dbPath: string;
+  private fileHashes: Map<string, string> = new Map();
+  private resultCache: Map<string, CachedSearchResult> = new Map();
+  private workspaceRoot: string;
 
   constructor(workspaceRoot: string) {
+    this.workspaceRoot = workspaceRoot;
+    
     // SQLiteデータベースのパス設定
     const workspaceDir = path.join(workspaceRoot, '.claude', 'workspace', 'effortlessly');
     const indexDir = path.join(workspaceDir, 'index');
@@ -66,6 +91,7 @@ export class SearchLearningEngine {
     this.dbPath = path.join(indexDir, 'search_learning.db');
     this.db = new Database(this.dbPath);
     this.initializeDatabase();
+    this.initializeFileTracking();
   }
 
   /**
@@ -74,6 +100,43 @@ export class SearchLearningEngine {
   async initialize(): Promise<void> {
     // データベース初期化は既にコンストラクタで完了
     logger.info('SearchLearningEngine initialized');
+  }
+
+  /**
+   * 検索結果の記録（既存のAPI互換性維持）
+   */
+  async recordSearch(searchHistory: {
+    query: string;
+    pattern_type: string;
+    directory: string;
+    results_count: number;
+    success: boolean;
+    timestamp: Date;
+    response_time_ms: number;
+  }): Promise<string> {
+    // 検索履歴を記録
+    const id = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const stmt = this.db.prepare(`
+      INSERT INTO search_history 
+      (id, query, pattern_type, directory, results_count, success, timestamp, response_time_ms, user_selected)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      id,
+      searchHistory.query,
+      searchHistory.pattern_type,
+      searchHistory.directory,
+      searchHistory.results_count,
+      searchHistory.success ? 1 : 0,
+      searchHistory.timestamp.getTime(),
+      searchHistory.response_time_ms,
+      null
+    );
+
+    logger.info('Search history recorded', { id, query: searchHistory.query });
+    return id;
   }
 
   /**
@@ -108,43 +171,44 @@ export class SearchLearningEngine {
       )
     `);
 
+    // ファイル変更追跡テーブル
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS file_tracking (
+        path TEXT PRIMARY KEY,
+        hash TEXT NOT NULL,
+        last_modified INTEGER NOT NULL,
+        size INTEGER NOT NULL,
+        tracked_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+      )
+    `);
+
+    // 検索結果キャッシュテーブル
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS search_cache (
+        cache_key TEXT PRIMARY KEY,
+        query TEXT NOT NULL,
+        pattern_type TEXT NOT NULL,
+        directory TEXT NOT NULL,
+        results TEXT NOT NULL, -- JSON
+        file_hashes TEXT NOT NULL, -- JSON
+        cached_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      )
+    `);
+
     // インデックス作成
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_search_history_timestamp ON search_history(timestamp);
       CREATE INDEX IF NOT EXISTS idx_search_patterns_frequency ON search_patterns(frequency DESC);
       CREATE INDEX IF NOT EXISTS idx_search_patterns_last_used ON search_patterns(last_used DESC);
+      CREATE INDEX IF NOT EXISTS idx_file_tracking_last_modified ON file_tracking(last_modified);
+      CREATE INDEX IF NOT EXISTS idx_search_cache_expires_at ON search_cache(expires_at);
     `);
 
     logger.info('SearchLearningEngine database initialized', { dbPath: this.dbPath });
   }
 
-  /**
-   * 検索履歴を記録
-   */
-  recordSearch(searchHistory: Omit<SearchHistory, 'id'>): string {
-    const id = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const stmt = this.db.prepare(`
-      INSERT INTO search_history 
-      (id, query, pattern_type, directory, results_count, success, timestamp, response_time_ms, user_selected)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
 
-    stmt.run(
-      id,
-      searchHistory.query,
-      searchHistory.pattern_type,
-      searchHistory.directory,
-      searchHistory.results_count,
-      searchHistory.success ? 1 : 0,
-      searchHistory.timestamp.getTime(),
-      searchHistory.response_time_ms,
-      searchHistory.user_selected ? JSON.stringify(searchHistory.user_selected) : null
-    );
-
-    logger.info('Search history recorded', { id, query: searchHistory.query });
-    return id;
-  }
 
   /**
    * 検索パターンから学習してクエリを最適化
@@ -427,6 +491,297 @@ export class SearchLearningEngine {
     return 900; // 15分
   }
 
+  // ==================== Phase2: 高速化機能 ====================
+
+  /**
+   * ファイル追跡の初期化
+   */
+  private initializeFileTracking(): void {
+    try {
+      // 既存の追跡データを読み込み
+      const stmt = this.db.prepare('SELECT path, hash FROM file_tracking');
+      const rows = stmt.all();
+      
+      for (const row of rows) {
+        const r = row as any;
+        this.fileHashes.set(r.path, r.hash);
+      }
+      
+      logger.info('File tracking initialized', { trackedFiles: this.fileHashes.size });
+    } catch (error) {
+      logger.error('Failed to initialize file tracking', error as Error);
+    }
+  }
+
+  /**
+   * ファイルのハッシュ値を計算
+   */
+  private calculateFileHash(filePath: string): string | null {
+    try {
+      if (!fs.existsSync(filePath)) return null;
+      const content = fs.readFileSync(filePath);
+      return crypto.createHash('md5').update(content).digest('hex');
+    } catch (error) {
+      logger.error(`Failed to calculate hash for ${filePath}`, error as Error);
+      return null;
+    }
+  }
+
+  /**
+   * ディレクトリ内のファイル変更を検知
+   */
+  async detectChanges(directory: string = this.workspaceRoot): Promise<string[]> {
+    const changedFiles: string[] = [];
+    
+    try {
+      const files = this.getAllFiles(directory);
+      
+      for (const file of files) {
+        const currentHash = this.calculateFileHash(file);
+        if (!currentHash) continue;
+        
+        const storedHash = this.fileHashes.get(file);
+        
+        if (!storedHash || storedHash !== currentHash) {
+          changedFiles.push(file);
+          this.fileHashes.set(file, currentHash);
+          
+          // データベースに更新を保存
+          const stats = fs.statSync(file);
+          const stmt = this.db.prepare(`
+            INSERT OR REPLACE INTO file_tracking 
+            (path, hash, last_modified, size, tracked_at)
+            VALUES (?, ?, ?, ?, ?)
+          `);
+          
+          stmt.run(
+            file,
+            currentHash,
+            stats.mtimeMs,
+            stats.size,
+            Date.now()
+          );
+        }
+      }
+      
+      if (changedFiles.length > 0) {
+        logger.info('File changes detected', { count: changedFiles.length });
+      }
+      
+    } catch (error) {
+      logger.error('Failed to detect changes', error as Error);
+    }
+    
+    return changedFiles;
+  }
+
+  /**
+   * ディレクトリ内の全ファイルを取得
+   */
+  private getAllFiles(dir: string): string[] {
+    const files: string[] = [];
+    
+    try {
+      if (!fs.existsSync(dir)) return files;
+      
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        
+        if (entry.isDirectory()) {
+          // .git, node_modules等を除外
+          if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
+            files.push(...this.getAllFiles(fullPath));
+          }
+        } else if (entry.isFile()) {
+          files.push(fullPath);
+        }
+      }
+    } catch (error) {
+      logger.error(`Failed to scan directory ${dir}`, error as Error);
+    }
+    
+    return files;
+  }
+
+  /**
+   * 検索結果のキャッシュキーを生成
+   */
+  private generateCacheKey(query: string, patternType: string, directory: string): string {
+    const data = `${query}:${patternType}:${directory}`;
+    return crypto.createHash('md5').update(data).digest('hex');
+  }
+
+  /**
+   * 検索結果をキャッシュに保存
+   */
+  async cacheSearchResult(
+    query: string, 
+    patternType: string, 
+    directory: string, 
+    results: any[],
+    cacheDurationMs: number = 900000 // 15分
+  ): Promise<void> {
+    try {
+      const cacheKey = this.generateCacheKey(query, patternType, directory);
+      const currentTime = Date.now();
+      const expiresAt = currentTime + cacheDurationMs;
+      
+      // 関連ファイルのハッシュを収集
+      const fileHashes = new Map<string, string>();
+      for (const result of results) {
+        if (result.path) {
+          const hash = this.calculateFileHash(result.path);
+          if (hash) {
+            fileHashes.set(result.path, hash);
+          }
+        }
+      }
+      
+      // メモリキャッシュに保存
+      this.resultCache.set(cacheKey, {
+        query,
+        pattern_type: patternType,
+        directory,
+        results,
+        cached_at: currentTime,
+        expires_at: expiresAt,
+        file_hashes: fileHashes
+      });
+      
+      // データベースに永続化
+      const stmt = this.db.prepare(`
+        INSERT OR REPLACE INTO search_cache 
+        (cache_key, query, pattern_type, directory, results, file_hashes, cached_at, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      stmt.run(
+        cacheKey,
+        query,
+        patternType,
+        directory,
+        JSON.stringify(results),
+        JSON.stringify(Array.from(fileHashes.entries())),
+        currentTime,
+        expiresAt
+      );
+      
+      logger.info('Search result cached', { cacheKey, resultCount: results.length });
+      
+    } catch (error) {
+      logger.error('Failed to cache search result', error as Error);
+    }
+  }
+
+  /**
+   * キャッシュから検索結果を取得
+   */
+  async getCachedSearchResult(query: string, patternType: string, directory: string): Promise<any[] | null> {
+    try {
+      const cacheKey = this.generateCacheKey(query, patternType, directory);
+      const currentTime = Date.now();
+      
+      // メモリキャッシュから確認
+      let cached = this.resultCache.get(cacheKey);
+      
+      // メモリキャッシュにない場合はDBから読み込み
+      if (!cached) {
+        const stmt = this.db.prepare(`
+          SELECT * FROM search_cache 
+          WHERE cache_key = ? AND expires_at > ?
+        `);
+        
+        const row = stmt.get(cacheKey, currentTime) as any;
+        if (row) {
+          const fileHashesArray = JSON.parse(row.file_hashes) as [string, string][];
+          const fileHashes = new Map(fileHashesArray);
+          cached = {
+            query: row.query,
+            pattern_type: row.pattern_type,
+            directory: row.directory,
+            results: JSON.parse(row.results),
+            cached_at: row.cached_at,
+            expires_at: row.expires_at,
+            file_hashes: fileHashes
+          };
+          
+          // メモリキャッシュに復元
+          this.resultCache.set(cacheKey, cached);
+        }
+      }
+      
+      if (!cached || cached.expires_at <= currentTime) {
+        return null;
+      }
+      
+      // ファイル変更をチェック
+      for (const [filePath, storedHash] of cached!.file_hashes) {
+        const currentHash = this.calculateFileHash(filePath);
+        if (!currentHash || currentHash !== storedHash) {
+          // ファイルが変更されているのでキャッシュ無効
+          logger.info('Cache invalidated due to file change', { file: filePath, cacheKey });
+          this.invalidateCache(cacheKey);
+          return null;
+        }
+      }
+      
+      logger.info('Cache hit', { cacheKey, resultCount: cached.results.length });
+      return cached.results;
+      
+    } catch (error) {
+      logger.error('Failed to get cached search result', error as Error);
+      return null;
+    }
+  }
+
+  /**
+   * 指定されたキャッシュを無効化
+   */
+  private invalidateCache(cacheKey: string): void {
+    try {
+      // メモリキャッシュから削除
+      this.resultCache.delete(cacheKey);
+      
+      // データベースから削除
+      const stmt = this.db.prepare('DELETE FROM search_cache WHERE cache_key = ?');
+      stmt.run(cacheKey);
+      
+      logger.info('Cache invalidated', { cacheKey });
+      
+    } catch (error) {
+      logger.error('Failed to invalidate cache', error as Error);
+    }
+  }
+
+  /**
+   * 期限切れキャッシュの清掃
+   */
+  async cleanupExpiredCache(): Promise<void> {
+    try {
+      const currentTime = Date.now();
+      
+      // データベースから期限切れキャッシュを削除
+      const stmt = this.db.prepare('DELETE FROM search_cache WHERE expires_at <= ?');
+      const result = stmt.run(currentTime);
+      
+      // メモリキャッシュからも削除
+      for (const [key, cached] of this.resultCache) {
+        if (cached.expires_at <= currentTime) {
+          this.resultCache.delete(key);
+        }
+      }
+      
+      if (result.changes > 0) {
+        logger.info('Expired cache cleaned up', { deletedCount: result.changes });
+      }
+      
+    } catch (error) {
+      logger.error('Failed to cleanup expired cache', error as Error);
+    }
+  }
+
   /**
    * インデックス更新頻度の計算
    */
@@ -468,6 +823,11 @@ export class SearchLearningEngine {
    */
   close(): void {
     if (this.db) {
+      // 期限切れキャッシュを最終清掃
+      this.cleanupExpiredCache().catch(err => {
+        logger.error('Failed to cleanup cache during close', err);
+      });
+      
       this.db.close();
       logger.info('SearchLearningEngine database connection closed');
     }

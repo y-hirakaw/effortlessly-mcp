@@ -1,10 +1,10 @@
 import { ITool } from '../types/common.js';
 import { Logger } from '../services/logger.js';
-import { EchoTool } from './echo.js';
+// import { EchoTool } from './echo.js'; // デバッグ用途のみ
 import { ReadFileTool } from './file-operations/read-file-adapter.js';
 import { ListDirectoryTool } from './file-operations/list-directory-adapter.js';
 import { GetFileMetadataTool } from './file-operations/get-file-metadata-adapter.js';
-import { SearchFilesTool } from './file-operations/search-files-adapter.js';
+// import { SearchFilesTool } from './file-operations/search-files-adapter.js'; // 廃止: search_with_learningで代替
 import { 
   WorkspaceActivateTool, 
   WorkspaceGetInfoTool, 
@@ -38,10 +38,8 @@ import {
 } from './file-operations/index.js';
 import { JavaLSPBasicDiagnosticsTool } from './code-analysis/java-lsp-basic-diagnostics.js';
 import { 
-  searchWithLearning,
-  optimizeSearchQuery,
-  getSearchStatistics,
-  updateSearchPatterns
+  searchWithLearning
+  // optimizeSearchQuery, getSearchStatistics, updateSearchPatterns は廃止済み
 } from './project-memory/search-learning-engine.js';
 
 /**
@@ -68,13 +66,13 @@ export class ToolRegistry {
    */
   private registerDefaultTools(): void {
     // 基本ツール
-    this.registerTool(new EchoTool());
+    // this.registerTool(new EchoTool()); // デバッグ・接続テスト用途のみ
     
     // ファイル操作ツール
     this.registerTool(new ReadFileTool());
     this.registerTool(new ListDirectoryTool());
     this.registerTool(new GetFileMetadataTool());
-    this.registerTool(new SearchFilesTool());
+    // this.registerTool(new SearchFilesTool()); // → search_with_learningで代替
     
     // プロジェクト管理ツール
     this.registerTool(new WorkspaceActivateTool());
@@ -114,9 +112,8 @@ export class ToolRegistry {
     
     // 🆕 AI強化検索機能（v2.0新機能・最高ROI：350%）
     this.registerTool(searchWithLearning);
-    this.registerTool(optimizeSearchQuery);
-    this.registerTool(getSearchStatistics);
-    this.registerTool(updateSearchPatterns);
+    // 廃止済み: optimizeSearchQuery, getSearchStatistics, updateSearchPatterns
+    // → search_with_learningに統合・自動化
   }
 
   /**

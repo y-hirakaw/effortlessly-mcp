@@ -64,23 +64,74 @@ export class SearchWithLearningTool extends BaseTool {
     const searchEngine = await getSearchLearningEngine();
     const startTime = Date.now();
     
-    // 既存のsearch_filesツールを使用して実際の検索を実行
-    const searchResults = await this.performActualSearch(validatedParams);
+    // Phase2: キャッシュから検索結果を取得を試行
+    const directory = validatedParams.directory || process.cwd();
+    const patternType = validatedParams.content_pattern ? 'content_pattern' : 'file_pattern';
+    
+    // 自動クエリ最適化の実行
+    let optimizedQuery = validatedParams.query;
+    let optimizationSuggestions: any[] = [];
+    if (validatedParams.learn_patterns) {
+      const optimizations = searchEngine.optimizeQuery(validatedParams.query, directory);
+      if (optimizations && optimizations.length > 0) {
+        const bestOptimization = optimizations[0];
+        if (bestOptimization.confidence > 0.7) {
+          optimizedQuery = bestOptimization.optimized_query;
+        }
+        optimizationSuggestions = optimizations;
+      }
+    }
+    
+    // 期限切れキャッシュを清掃
+    await searchEngine.cleanupExpiredCache();
+    
+    // キャッシュから結果を取得（最適化されたクエリを使用）
+    let searchResults = await searchEngine.getCachedSearchResult(
+      optimizedQuery,
+      patternType,
+      directory
+    );
+    
+    let fromCache = true;
+    if (!searchResults) {
+      // キャッシュにない場合は実際に検索実行
+      fromCache = false;
+      
+      // ファイル変更検知（将来の増分更新で使用予定）
+      await searchEngine.detectChanges(directory);
+      
+      // 実際の検索を実行（最適化されたクエリを使用）
+      const optimizedParams = { ...validatedParams, query: optimizedQuery };
+      searchResults = await this.performActualSearch(optimizedParams);
+      
+      // 結果をキャッシュに保存
+      if (searchResults && validatedParams.learn_patterns) {
+        await searchEngine.cacheSearchResult(
+          optimizedQuery,
+          patternType,
+          directory,
+          searchResults
+        );
+      }
+    }
     
     const executionTime = Date.now() - startTime;
     const resultCount = Array.isArray(searchResults) ? searchResults.length : 0;
     
-    // 検索実行結果を学習データとして記録
-    if (validatedParams.learn_patterns) {
+    // 検索実行結果を学習データとして記録（実際に検索した場合のみ）
+    if (!fromCache && validatedParams.learn_patterns) {
       await searchEngine.recordSearch({
-        query: validatedParams.query,
-        pattern_type: validatedParams.content_pattern ? 'content_pattern' : 'file_pattern',
-        directory: validatedParams.directory || process.cwd(),
+        query: optimizedQuery,
+        pattern_type: patternType,
+        directory: directory,
         results_count: resultCount,
         success: true,
         timestamp: new Date(),
         response_time_ms: executionTime
       });
+      
+      // 自動でパターン更新も実行
+      searchEngine.learnSearchPatterns();
     }
     
     return {
@@ -92,7 +143,12 @@ export class SearchWithLearningTool extends BaseTool {
             executionTime: `${executionTime}ms`,
             resultCount,
             learnedPatterns: validatedParams.learn_patterns,
-            optimizationApplied: false
+            optimizationApplied: optimizedQuery !== validatedParams.query,
+            originalQuery: validatedParams.query,
+            optimizedQuery: optimizedQuery !== validatedParams.query ? optimizedQuery : undefined,
+            optimizationSuggestions: optimizationSuggestions.length > 0 ? optimizationSuggestions : undefined,
+            cacheHit: fromCache,
+            searchType: fromCache ? 'cached' : 'full_scan'
           }
         }, null, 2)
       }],
@@ -138,151 +194,11 @@ export class SearchWithLearningTool extends BaseTool {
   }
 }
 
-/**
- * 検索クエリ最適化ツール
- */
-const OptimizeSearchQuerySchema = z.object({
-  query: z.string().describe('最適化したい検索クエリ'),
-  context: z.string().optional().describe('検索の文脈や目的'),
-  includeAlternatives: z.boolean().optional().default(true).describe('代替クエリ提案を含めるか')
-});
+// optimize_search_query機能は search_with_learning に統合されました
 
-type OptimizeSearchQueryParams = z.infer<typeof OptimizeSearchQuerySchema>;
 
-export class OptimizeSearchQueryTool extends BaseTool {
-  readonly metadata: IToolMetadata = {
-    name: 'optimize_search_query',
-    description: '過去の検索履歴に基づいて検索クエリを最適化し、改善提案を提供します。',
-    parameters: {
-      query: { type: 'string', description: '最適化したい検索クエリ', required: true },
-      context: { type: 'string', description: '検索の文脈や目的', required: false },
-      includeAlternatives: { type: 'boolean', description: '代替クエリ提案を含めるか', required: false }
-    },
-  };
 
-  protected readonly schema = OptimizeSearchQuerySchema;
 
-  protected async executeInternal(validatedParams: OptimizeSearchQueryParams): Promise<IToolResult> {
-    const searchEngine = await getSearchLearningEngine();
-    
-    const optimizationResult = searchEngine.optimizeQuery(validatedParams.query, validatedParams.context || '');
-    
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          originalQuery: validatedParams.query,
-          optimizedQuery: optimizationResult && optimizationResult.length > 0 ? optimizationResult[0].original_query : validatedParams.query,
-          improvements: optimizationResult && optimizationResult.length > 0 ? [optimizationResult[0].optimization_type] : [],
-          alternatives: [],
-          confidence: optimizationResult && optimizationResult.length > 0 ? optimizationResult[0].confidence : 0,
-          reasoning: optimizationResult && optimizationResult.length > 0 ? `Applied ${optimizationResult[0].optimization_type} optimization` : 'No optimization available'
-        }, null, 2)
-      }],
-      isError: false
-    };
-  }
-}
-
-/**
- * 検索統計取得ツール
- */
-const GetSearchStatisticsSchema = z.object({
-  period: z.enum(['day', 'week', 'month', 'all']).optional().default('week').describe('統計期間'),
-  includePatterns: z.boolean().optional().default(true).describe('学習パターンを含めるか'),
-  includePerformance: z.boolean().optional().default(true).describe('パフォーマンス統計を含めるか')
-});
-
-type GetSearchStatisticsParams = z.infer<typeof GetSearchStatisticsSchema>;
-
-export class GetSearchStatisticsTool extends BaseTool {
-  readonly metadata: IToolMetadata = {
-    name: 'get_search_statistics',
-    description: '検索使用パターンの統計情報を取得し、パフォーマンス分析を提供します。',
-    parameters: {
-      period: { type: 'string', description: '統計期間', required: false },
-      includePatterns: { type: 'boolean', description: '学習パターンを含めるか', required: false },
-      includePerformance: { type: 'boolean', description: 'パフォーマンス統計を含めるか', required: false }
-    },
-  };
-
-  protected readonly schema = GetSearchStatisticsSchema;
-
-  protected async executeInternal(validatedParams: GetSearchStatisticsParams): Promise<IToolResult> {
-    const searchEngine = await getSearchLearningEngine();
-    
-    const statistics = searchEngine.getStatistics();
-    
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          period: validatedParams.period,
-          totalSearches: statistics.total_searches,
-          averageExecutionTime: statistics.avg_response_time,
-          averageResultCount: 0, // 統計から計算
-          mostCommonQueries: [],
-          mostCommonDirectories: [],
-          learnedPatterns: statistics.learned_patterns,
-          performanceMetrics: {
-            successRate: statistics.success_rate,
-            avgResponseTime: statistics.avg_response_time
-          },
-          recommendations: ['Consider using more specific search patterns for better performance']
-        }, null, 2)
-      }],
-      isError: false
-    };
-  }
-}
-
-/**
- * 検索パターン学習更新ツール
- */
-const UpdateSearchPatternsSchema = z.object({
-  forceRelearn: z.boolean().optional().default(false).describe('強制的に全データを再学習するか'),
-  minPatternSupport: z.number().optional().default(3).describe('パターン認識の最小サポート数'),
-  analysisDepth: z.enum(['basic', 'detailed', 'comprehensive']).optional().default('detailed').describe('分析の深度')
-});
-
-type UpdateSearchPatternsParams = z.infer<typeof UpdateSearchPatternsSchema>;
-
-export class UpdateSearchPatternsTool extends BaseTool {
-  readonly metadata: IToolMetadata = {
-    name: 'update_search_patterns',
-    description: '蓄積された検索履歴から新しいパターンを学習し、検索最適化を更新します。',
-    parameters: {
-      forceRelearn: { type: 'boolean', description: '強制的に全データを再学習するか', required: false },
-      minPatternSupport: { type: 'number', description: 'パターン認識の最小サポート数', required: false },
-      analysisDepth: { type: 'string', description: '分析の深度', required: false }
-    },
-  };
-
-  protected readonly schema = UpdateSearchPatternsSchema;
-
-  protected async executeInternal(validatedParams: UpdateSearchPatternsParams): Promise<IToolResult> {
-    const searchEngine = await getSearchLearningEngine();
-    
-    const learningResult = searchEngine.learnSearchPatterns(validatedParams.minPatternSupport);
-    
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          patternsLearned: learningResult.length,
-          patternsUpdated: learningResult.length,
-          newOptimizations: learningResult.map(p => p.pattern),
-          analysisTime: '< 1s',
-          recommendations: ['Patterns updated successfully', 'Consider running this periodically for optimal performance']
-        }, null, 2)
-      }],
-      isError: false
-    };
-  }
-}
 
 // ツールインスタンスのエクスポート
 export const searchWithLearning = new SearchWithLearningTool();
-export const optimizeSearchQuery = new OptimizeSearchQueryTool();
-export const getSearchStatistics = new GetSearchStatisticsTool();
-export const updateSearchPatterns = new UpdateSearchPatternsTool();

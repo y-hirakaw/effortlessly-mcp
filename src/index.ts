@@ -41,7 +41,8 @@ function registerTools(): void {
   for (const [name, tool] of tools) {
     // Register tool based on its name with appropriate schema
     switch (name) {
-      case 'echo':
+      // case 'echo': // デバッグ・接続テスト用途のみ、エンドユーザー不要
+        /*
         server.tool(
           name,
           tool.metadata.description,
@@ -52,6 +53,7 @@ function registerTools(): void {
           createToolHandler(name, tool)
         );
         break;
+        */
         
       case 'read_file':
         server.tool(
@@ -92,7 +94,8 @@ function registerTools(): void {
         );
         break;
         
-      case 'search_files':
+      // case 'search_files': // → search_with_learningで代替可能（learn_patterns: false で軽量実行）
+        /*
         server.tool(
           name,
           tool.metadata.description,
@@ -109,6 +112,7 @@ function registerTools(): void {
           createToolHandler(name, tool)
         );
         break;
+        */
         
       case 'workspace_activate':
         server.tool(
@@ -422,16 +426,17 @@ function registerTools(): void {
       //   );
       //   break;
 
-      case 'java_lsp_basic_diagnostics':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            detailed: z.boolean().optional().default(false).describe('詳細情報を含めるか')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
+      // LSP機能廃止予定のため一時無効化
+      // case 'java_lsp_basic_diagnostics':
+      //   server.tool(
+      //     name,
+      //     tool.metadata.description,
+      //     {
+      //       detailed: z.boolean().optional().default(false).describe('詳細情報を含めるか')
+      //     },
+      //     createToolHandler(name, tool)
+      //   );
+      //   break;
         
       // 🆕 Search Learning Engine ツール群 (v2.0 AI強化機能)
       case 'search_with_learning':
@@ -451,46 +456,7 @@ function registerTools(): void {
           createToolHandler(name, tool)
         );
         break;
-        
-      case 'optimize_search_query':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            query: z.string().describe('最適化したい検索クエリ'),
-            context: z.string().optional().describe('検索の文脈や目的'),
-            includeAlternatives: z.boolean().optional().default(true).describe('代替クエリ提案を含めるか')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'get_search_statistics':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            period: z.enum(['day', 'week', 'month', 'all']).optional().default('week').describe('統計期間'),
-            includePatterns: z.boolean().optional().default(true).describe('学習パターンを含めるか'),
-            includePerformance: z.boolean().optional().default(true).describe('パフォーマンス統計を含めるか')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'update_search_patterns':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            forceRelearn: z.boolean().optional().default(false).describe('強制的に全データを再学習するか'),
-            minPatternSupport: z.number().optional().default(3).describe('パターン認識の最小サポート数'),
-            analysisDepth: z.enum(['basic', 'detailed', 'comprehensive']).optional().default('detailed').describe('分析の深度')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
+
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);
         continue;
