@@ -60,11 +60,11 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            file_path: z.string().describe('読み取るファイルのパス'),
-            encoding: z.string().optional().default('utf-8').describe('ファイルのエンコーディング（デフォルト: utf-8）'),
-            offset: z.number().optional().describe('読み取り開始行番号（1から始まる）'),
-            limit: z.number().optional().describe('読み取る行数'),
-            include_line_numbers: z.boolean().optional().default(false).describe('行番号を含めるかどうか'),
+            file_path: z.string().describe('Path to the file to read'),
+            encoding: z.string().optional().default('utf-8').describe('File encoding (default: utf-8)'),
+            offset: z.number().optional().describe('Starting line number (1-based)'),
+            limit: z.number().optional().describe('Number of lines to read'),
+            include_line_numbers: z.boolean().optional().default(false).describe('Whether to include line numbers'),
           },
           createToolHandler(name, tool)
         );
@@ -75,9 +75,9 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            directory_path: z.string().describe('一覧表示するディレクトリのパス'),
-            recursive: z.boolean().optional().default(false).describe('再帰的に一覧表示するかどうか'),
-            pattern: z.string().optional().describe('ファイル名のフィルタパターン（正規表現）'),
+            directory_path: z.string().describe('Path to the directory to list'),
+            recursive: z.boolean().optional().default(false).describe('Whether to list recursively'),
+            pattern: z.string().optional().describe('File name filter pattern (regex)'),
           },
           createToolHandler(name, tool)
         );
@@ -88,7 +88,7 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            file_path: z.string().describe('メタデータを取得するファイル/ディレクトリのパス'),
+            file_path: z.string().describe('Path to the file/directory to get metadata'),
           },
           createToolHandler(name, tool)
         );
@@ -119,9 +119,9 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            workspace_path: z.string().describe('ワークスペースのルートディレクトリパス'),
-            name: z.string().optional().describe('ワークスペース名（オプション、未指定時はディレクトリ名から自動生成）'),
-            index_enabled: z.boolean().optional().describe('インデックス機能を有効にするか（デフォルト: true）'),
+            workspace_path: z.string().describe('Root directory path of the workspace'),
+            name: z.string().optional().describe('Workspace name (optional, auto-generated from directory name if not specified)'),
+            index_enabled: z.boolean().optional().describe('Enable indexing functionality (default: true)'),
             lsp_servers: z.array(z.string()).optional().describe('使用するLSPサーバーのリスト（デフォルト: ["typescript", "python"]）'),
             auto_save_logs: z.boolean().optional().describe('ログの自動保存を有効にするか（デフォルト: true）'),
             log_retention_days: z.number().optional().describe('ログの保持日数（デフォルト: 30）'),
@@ -217,14 +217,14 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            file_path: z.string().describe('編集対象ファイルパス'),
-            old_text: z.string().describe('置換対象の文字列'),
-            new_text: z.string().describe('置換後の文字列'),
-            preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の変更は行わない）'),
-            create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成（デフォルト: true）'),
-            case_sensitive: z.boolean().optional().default(true).describe('大文字小文字を区別（デフォルト: true）'),
-            replace_all: z.boolean().optional().default(false).describe('すべての出現箇所を置換（デフォルト: false）'),
-            max_file_size: z.number().optional().default(1048576).describe('最大ファイルサイズ（バイト、デフォルト: 1MB）'),
+            file_path: z.string().describe('Target file path to edit'),
+            old_text: z.string().describe('Text to be replaced'),
+            new_text: z.string().describe('Replacement text'),
+            preview_mode: z.boolean().optional().default(false).describe('Preview mode (no actual changes)'),
+            create_backup: z.boolean().optional().default(true).describe('Create backup file (default: true)'),
+            case_sensitive: z.boolean().optional().default(true).describe('Case sensitive match (default: true)'),
+            replace_all: z.boolean().optional().default(false).describe('Replace all occurrences (default: false)'),
+            max_file_size: z.number().optional().default(1048576).describe('Maximum file size in bytes (default: 1MB)'),
           },
           createToolHandler(name, tool)
         );
@@ -235,9 +235,9 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            file_path: z.string().describe('編集対象ファイルパス'),
-            text: z.string().describe('挿入するテキスト'),
-            position_type: z.enum(['line_number', 'after_text', 'before_text', 'start', 'end']).describe('挿入位置の指定方法'),
+            file_path: z.string().describe('Target file path to edit'),
+            text: z.string().describe('Text to insert'),
+            position_type: z.enum(['line_number', 'after_text', 'before_text', 'start', 'end']).describe('Position specification method'),
             line_number: z.number().optional().describe('行番号（1から開始、position_type="line_number"の場合）'),
             reference_text: z.string().optional().describe('参照テキスト（after_text/before_textの場合）'),
             auto_indent: z.boolean().optional().default(true).describe('自動インデント調整（デフォルト: true）'),
