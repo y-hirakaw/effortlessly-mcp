@@ -238,13 +238,13 @@ function registerTools(): void {
             file_path: z.string().describe('Target file path to edit'),
             text: z.string().describe('Text to insert'),
             position_type: z.enum(['line_number', 'after_text', 'before_text', 'start', 'end']).describe('Position specification method'),
-            line_number: z.number().optional().describe('行番号（1から開始、position_type="line_number"の場合）'),
-            reference_text: z.string().optional().describe('参照テキスト（after_text/before_textの場合）'),
-            auto_indent: z.boolean().optional().default(true).describe('自動インデント調整（デフォルト: true）'),
-            preserve_empty_lines: z.boolean().optional().default(true).describe('空行を保持（デフォルト: true）'),
-            preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の挿入は行わない）'),
-            create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成（デフォルト: true）'),
-            max_file_size: z.number().optional().default(1048576).describe('最大ファイルサイズ（バイト、デフォルト: 1MB）'),
+            line_number: z.number().optional().describe('Line number (1-based, when position_type="line_number")'),
+            reference_text: z.string().optional().describe('Reference text (for after_text/before_text)'),
+            auto_indent: z.boolean().optional().default(true).describe('Auto indent adjustment (default: true)'),
+            preserve_empty_lines: z.boolean().optional().default(true).describe('Preserve empty lines (default: true)'),
+            preview_mode: z.boolean().optional().default(false).describe('Preview mode (no actual insertion)'),
+            create_backup: z.boolean().optional().default(true).describe('Create backup file (default: true)'),
+            max_file_size: z.number().optional().default(1048576).describe('Maximum file size in bytes (default: 1MB)'),
           },
           createToolHandler(name, tool)
         );
@@ -255,13 +255,13 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            file_path: z.string().describe('対象ファイルパス'),
-            text: z.string().describe('新しいファイル内容（完全置換）'),
-            preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の変更は行わない）'),
-            create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成'),
-            max_file_size: z.number().optional().default(10485760).describe('最大ファイルサイズ（バイト、デフォルト: 10MB）'),
-            confirm_override: z.boolean().optional().default(false).describe('上書き意図の明示的確認'),
-            allow_new_file: z.boolean().optional().default(true).describe('新規ファイル作成を許可'),
+            file_path: z.string().describe('Target file path'),
+            text: z.string().describe('New file content (complete replacement)'),
+            preview_mode: z.boolean().optional().default(false).describe('Preview mode (no actual changes)'),
+            create_backup: z.boolean().optional().default(true).describe('Create backup file'),
+            max_file_size: z.number().optional().default(10485760).describe('Maximum file size in bytes (default: 10MB)'),
+            confirm_override: z.boolean().optional().default(false).describe('Explicit confirmation of override intent'),
+            allow_new_file: z.boolean().optional().default(true).describe('Allow new file creation'),
           },
           createToolHandler(name, tool)
         );
@@ -444,14 +444,14 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            query: z.string().describe('検索クエリ'),
-            directory: z.string().optional().describe('検索対象ディレクトリ（デフォルト: カレントディレクトリ）'),
-            file_pattern: z.string().optional().describe('ファイル名パターン（glob形式）'),
-            content_pattern: z.string().optional().describe('ファイル内容の検索パターン（正規表現）'),
-            case_sensitive: z.boolean().optional().default(false).describe('大文字小文字を区別するか'),
-            recursive: z.boolean().optional().default(true).describe('再帰的に検索するか'),
-            max_results: z.number().optional().default(100).describe('最大結果数'),
-            learn_patterns: z.boolean().optional().default(true).describe('検索パターンを学習するか')
+            query: z.string().describe('Search query'),
+            directory: z.string().optional().describe('Search target directory (default: current directory)'),
+            file_pattern: z.string().optional().describe('File name pattern (glob format)'),
+            content_pattern: z.string().optional().describe('File content search pattern (regex)'),
+            case_sensitive: z.boolean().optional().default(false).describe('Case sensitive search'),
+            recursive: z.boolean().optional().default(true).describe('Recursive search'),
+            max_results: z.number().optional().default(100).describe('Maximum number of results'),
+            learn_patterns: z.boolean().optional().default(true).describe('Learn search patterns')
           },
           createToolHandler(name, tool)
         );
