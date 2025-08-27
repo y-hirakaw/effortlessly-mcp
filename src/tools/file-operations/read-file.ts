@@ -15,6 +15,11 @@ const ReadFileParams = z.object({
   offset: z.number().optional().describe('読み取り開始行番号（1から始まる）'),
   limit: z.number().optional().describe('読み取る行数'),
   include_line_numbers: z.boolean().optional().default(false).describe('行番号を含めるかどうか'),
+  ranges: z.array(z.object({
+    start: z.number().describe('開始行番号（1から始まる）'),
+    end: z.number().describe('終了行番号（1から始まる）'),
+    label: z.string().optional().describe('範囲のラベル')
+  })).optional().describe('複数の読み取り範囲を指定（offset/limitより優先）'),
 });
 
 type ReadFileParamsType = z.infer<typeof ReadFileParams>;
@@ -30,6 +35,12 @@ const ReadFileResult = z.object({
     start: z.number(),
     end: z.number()
   }).optional().describe('読み取り範囲（行番号）'),
+  ranges: z.array(z.object({
+    start: z.number(),
+    end: z.number(),
+    label: z.string().optional(),
+    content: z.string()
+  })).optional().describe('複数範囲読み取りの結果'),
 });
 
 type ReadFileResultType = z.infer<typeof ReadFileResult>;
@@ -86,11 +97,47 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
       let totalLines: number | undefined;
       let linesRead: number | undefined;
       let range: { start: number; end: number } | undefined;
+      let ranges: Array<{ start: number; end: number; label?: string; content: string }> | undefined;
       
       const lines = content.split('\n');
       totalLines = lines.length;
       
-      if (params.offset !== undefined || params.limit !== undefined) {
+      // 複数範囲読み取りが指定されている場合（最優先）
+      if (params.ranges && params.ranges.length > 0) {
+        ranges = [];
+        linesRead = 0;
+        
+        for (const r of params.ranges) {
+          const startLine = Math.max(1, r.start) - 1; // 0-indexed
+          const endLine = Math.min(lines.length, r.end); // endLineは包含的
+          const selectedLines = lines.slice(startLine, endLine);
+          linesRead += selectedLines.length;
+          
+          const rangeContent = params.include_line_numbers
+            ? selectedLines
+                .map((line, index) => `${String(startLine + index + 1).padStart(4)}→${line}`)
+                .join('\n')
+            : selectedLines.join('\n');
+          
+          ranges.push({
+            start: r.start,
+            end: r.end,
+            label: r.label,
+            content: rangeContent
+          });
+        }
+        
+        // 統合コンテンツの作成
+        content = ranges
+          .map(r => {
+            const header = r.label 
+              ? `\n### ${r.label} (lines ${r.start}-${r.end})\n`
+              : `\n### Lines ${r.start}-${r.end}\n`;
+            return header + r.content;
+          })
+          .join('\n');
+          
+      } else if (params.offset !== undefined || params.limit !== undefined) {
         const startLine = Math.max(1, params.offset || 1) - 1; // 0-indexed
         const endLine = params.limit 
           ? Math.min(lines.length, startLine + params.limit)
@@ -140,6 +187,7 @@ export const readFileTool: MdcToolImplementation<ReadFileParamsType, ReadFileRes
         total_lines: totalLines,
         lines_read: linesRead,
         range,
+        ranges,
       };
 
     } catch (error) {

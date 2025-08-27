@@ -44,6 +44,7 @@
     "express": "^4.21.2",
     "glob": "^11.0.3",
     "js-yaml": "^4.1.0",
+    "onnxruntime-node": "^1.22.0-rev",
     "vscode-languageserver-protocol": "^3.17.5",
     "zod": "^3.25.76"
   },

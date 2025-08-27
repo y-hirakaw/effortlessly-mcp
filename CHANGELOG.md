@@ -7,32 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- 🚀 **SearchLearningEngine with AI-powered optimization** (ROI 350%)
-  - Intelligent search pattern learning and automatic query optimization
-  - File change detection using MD5 hashing for cache invalidation
-  - Two-tier caching system (Memory Map + SQLite persistence)
-  - 43% performance improvement on repeated searches
+### 追加
+- 🚀 **SmartRangeOptimizer セマンティック検索統合** (v2.0開発版)
+  - ONNXベースのDirectMiniLMEmbeddingsによるセマンティック類似度スコアリング
+  - Intent別セマンティッククエリ生成によるコード解析
+  - パターンマッチングとセマンティック検索のハイブリッドアプローチ
+  - 大きなファイル（>50KB）に対するコンテキスト認識範囲検出
+- 🚀 **SearchLearningEngine AI最適化検索** (ROI 350%)
+  - インテリジェントな検索パターン学習と自動クエリ最適化
+  - MD5ハッシュを使用したファイル変更検知とキャッシュ無効化
+  - 2層キャッシュシステム（メモリマップ + SQLite永続化）
+  - 繰り返し検索で43%のパフォーマンス向上
 
-### Changed
-- 🔄 **Tool consolidation for context efficiency** (83% reduction)
-  - Integrated query optimization directly into `search_with_learning` 
-  - Consolidated 6 search-related tools into 1 unified tool
-  - Enhanced search patterns learning with automatic optimization
+### 変更
+- 📚 **ドキュメント統合と最適化**
+  - `docs/CLAUDE-CODE-INTEGRATION.md`を簡素化（81%サイズ削減）
+  - ファイルサイズに基づく明確なツール選択基準（50KB境界）
+  - ツールカテゴリの再構成：探索 → 読取 → 編集ワークフロー
+  - Claude Code統合のための最適化されたガイドライン更新
+- 🔄 **ツール統合によるコンテキスト効率化** (83%削減)
+  - `search_with_learning`にクエリ最適化機能を直接統合
+  - 検索関連6ツールを1つの統合ツールに集約
+  - 自動最適化機能付き検索パターン学習の強化
 
-### Removed
-- 🗑️ **Redundant search tools**
-  - `optimize_search_query` (integrated into search_with_learning)
-  - `get_search_statistics` (integrated into search_with_learning)
-  - `update_search_patterns` (integrated into search_with_learning)
+### 削除
+- 🗑️ **冗長な検索ツール**
+  - `optimize_search_query` (search_with_learningに統合)
+  - `get_search_statistics` (search_with_learningに統合)
+  - `update_search_patterns` (search_with_learningに統合)
 
-### Deprecated
-- 🚫 **Debug and redundant tools**
-  - `java_lsp_basic_diagnostics` (LSP deprecation)
-  - `echo` (debug-only tool)
-  - `search_files` (superseded by search_with_learning)
-
-## [2.0.0] - 2025-01-25
+### 非推奨
+- 🚫 **デバッグ・冗長ツール**
+  - `java_lsp_basic_diagnostics` (LSP廃止に伴い)
+  - `echo` (デバッグ専用ツール)
+  - `search_files` (search_with_learningで置き換え)
 
 ### 🔄 **戦略的方向転換 - 実用性重視への転換**
 

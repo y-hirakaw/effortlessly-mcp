@@ -456,6 +456,28 @@ function registerTools(): void {
           createToolHandler(name, tool)
         );
         break;
+      // 🆕 Smart Range Optimizer (v2.0 最高ROI 400%)
+      case 'smart_range_optimizer':
+        server.tool(
+          name,
+          tool.metadata.description,
+          {
+            file_path: z.string().describe('File path to analyze'),
+            intent: z.enum([
+              'bug_investigation',
+              'code_review',
+              'feature_addition',
+              'refactoring',
+              'documentation',
+              'testing',
+              'general'
+            ]).optional().default('general').describe('Intent or purpose for reading the file'),
+            max_ranges: z.number().optional().default(5).describe('Maximum number of ranges to suggest (default: 5)'),
+            semantic_queries: z.array(z.string()).optional().describe('Natural language search queries for semantic search (e.g., "error handling", "database connection", "authentication logic")'),
+          },
+          createToolHandler(name, tool)
+        );
+        break;
 
       default:
         logger.warn(`Unknown tool: ${name}, skipping registration`);

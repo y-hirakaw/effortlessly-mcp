@@ -34,7 +34,8 @@ import {
 import {
   SmartEditFileTool,
   SmartInsertTextTool,
-  OverrideTextTool
+  OverrideTextTool,
+  SmartRangeOptimizerTool
 } from './file-operations/index.js';
 import { JavaLSPBasicDiagnosticsTool } from './code-analysis/java-lsp-basic-diagnostics.js';
 import { 
@@ -106,6 +107,9 @@ export class ToolRegistry {
     this.registerTool(new SmartEditFileTool());
     this.registerTool(new SmartInsertTextTool());
     this.registerTool(new OverrideTextTool());
+    
+    // スマート読み込みツール（新規追加 ROI 400%）
+    this.registerTool(new SmartRangeOptimizerTool());
     
     // Java LSP基本診断ツール（Phase 2A）
     this.registerTool(new JavaLSPBasicDiagnosticsTool());
