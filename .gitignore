@@ -151,3 +151,4 @@ test-*/
 tests/test-projects/
 
 .vscode/
+.DS_Store

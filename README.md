@@ -119,6 +119,16 @@ effortlessly-mcpをClaude Codeで使用するには、Claude Codeの設定ファ
 - **Issues**: [GitHub Issues](https://github.com/y-hirakaw/effortlessly-mcp/issues)
 - **ドキュメント**: [docs/](docs/)
 
+## Third-Party Models
+
+このプロジェクトには以下のサードパーティモデルが含まれています：
+
+- **all-MiniLM-L6-v2**: sentence-transformers 埋め込みモデル
+  - ライセンス: Apache License 2.0
+  - 元モデル: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+  - 用途: セマンティック検索・類似度計算
+  - ファイル: `models/all-MiniLM-L6-v2/`
+
 ## ライセンス
 
 MIT License
