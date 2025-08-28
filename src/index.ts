@@ -122,8 +122,8 @@ function registerTools(): void {
             workspace_path: z.string().describe('Root directory path of the workspace'),
             name: z.string().optional().describe('Workspace name (optional, auto-generated from directory name if not specified)'),
             index_enabled: z.boolean().optional().describe('Enable indexing functionality (default: true)'),
-            auto_save_logs: z.boolean().optional().describe('ログの自動保存を有効にするか（デフォルト: true）'),
-            log_retention_days: z.number().optional().describe('ログの保持日数（デフォルト: 30）'),
+            auto_save_logs: z.boolean().optional().describe('Enable automatic log saving (default: true)'),
+            log_retention_days: z.number().optional().describe('Log retention days (default: 30)'),
           },
           createToolHandler(name, tool)
         );
@@ -271,10 +271,10 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            task: z.string().optional().describe('更新タスクの種類'),
-            scope: z.enum(['full', 'incremental', 'targeted']).optional().default('full').describe('更新の範囲'),
-            focus_areas: z.array(z.string()).optional().describe('特定のフォーカスエリア'),
-            preview: z.boolean().optional().default(false).describe('手順のプレビューのみ表示')
+            task: z.string().optional().describe('Type of update task'),
+            scope: z.enum(['full', 'incremental', 'targeted']).optional().default('full').describe('Update scope'),
+            focus_areas: z.array(z.string()).optional().describe('Specific focus areas'),
+            preview: z.boolean().optional().default(false).describe('Preview workflow only')
           },
           createToolHandler(name, tool)
         );
@@ -285,10 +285,10 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            memory_name: z.string().describe('メモリファイル名'),
-            content: z.string().describe('保存する内容'),
-            tags: z.array(z.string()).optional().describe('タグのリスト'),
-            overwrite: z.boolean().optional().default(false).describe('既存ファイルを上書きするか')
+            memory_name: z.string().describe('Memory file name'),
+            content: z.string().describe('Content to save'),
+            tags: z.array(z.string()).optional().describe('List of tags'),
+            overwrite: z.boolean().optional().default(false).describe('Whether to overwrite existing file')
           },
           createToolHandler(name, tool)
         );
@@ -299,7 +299,7 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            memory_name: z.string().describe('読み取るメモリファイル名')
+            memory_name: z.string().describe('Memory file name to read')
           },
           createToolHandler(name, tool)
         );
@@ -310,8 +310,8 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            tag_filter: z.string().optional().describe('タグによるフィルタリング'),
-            include_statistics: z.boolean().optional().default(false).describe('統計情報を含める')
+            tag_filter: z.string().optional().describe('Filter by tag'),
+            include_statistics: z.boolean().optional().default(false).describe('Include statistics')
           },
           createToolHandler(name, tool)
         );
