@@ -27,9 +27,10 @@ describe('WorkspaceConfigValidator', () => {
       expect(result.settings.index_enabled).toBe(true);
 
       expect(result.settings.follow_symlinks).toBe(false);
-      // optional フィールドは設定されていないのでチェックしない
-      expect(result.settings.max_file_size).toBeUndefined();
-      expect(result.settings.excluded_patterns).toBeUndefined();
+      // max_file_sizeはデフォルト値が設定される
+      expect(result.settings.max_file_size).toBe(1048576); // 1MB
+      // excluded_patternsもデフォルト値が設定される
+      expect(result.settings.excluded_patterns).toEqual(['*.env', '*.key', '*.pem', 'node_modules/**', '.git/**']);
     });
 
     it('無効な名前で失敗する', () => {

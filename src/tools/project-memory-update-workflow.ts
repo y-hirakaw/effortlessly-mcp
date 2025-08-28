@@ -36,6 +36,8 @@ interface WorkflowPlan {
   description: string;
   estimated_time: string;
   steps: WorkflowStep[];
+  final_prompt: string;
+  target_file: string;
   next_actions?: string[];
   notes?: string[];
 }
@@ -87,6 +89,37 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
   protected readonly schema = ProjectMemoryUpdateWorkflowSchema;
   /**
+   * プロジェクトサイズを判定（ファイル数とディレクトリ構造ベース）
+   */
+  private getProjectScale(): 'small' | 'medium' | 'large' {
+    try {
+      const srcPath = path.join(process.cwd(), 'src');
+      if (!fs.existsSync(srcPath)) return 'small';
+      
+      const countFiles = (dir: string): number => {
+        if (!fs.existsSync(dir)) return 0;
+        let count = 0;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isFile() && entry.name.endsWith('.ts')) count++;
+          if (entry.isDirectory()) count += countFiles(path.join(dir, entry.name));
+        }
+        return count;
+      };
+      
+      const fileCount = countFiles(srcPath);
+      const directories = fs.readdirSync(srcPath, { withFileTypes: true })
+        .filter(entry => entry.isDirectory()).length;
+      
+      if (fileCount > 100 || directories > 10) return 'large';
+      if (fileCount > 30 || directories > 5) return 'medium';
+      return 'small';
+    } catch {
+      return 'small';
+    }
+  }
+
+  /**
    * プロジェクト情報を取得
    */
   private getProjectInfo(): { name: string; version: string } {
@@ -106,88 +139,146 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   }
 
   /**
-   * セルフドキュメンティング型のファイル名を生成
-   * AIが内容を理解しやすい説明的な名前を生成する
+   * トークン効率重視のJSON出力プロンプト生成
    */
-  private generateDescriptiveFileName(
-    taskType: string,
-    category?: string,
-    context?: string
-  ): string {
+  private generateJSONPrompt(taskType: string, category?: string): string {
+    const scale = this.getProjectScale();
     const projectInfo = this.getProjectInfo();
-    const version = `v${projectInfo.version}`;
-
-    // タスクタイプに応じた説明的な名前のマッピング
-    const nameMapping: Record<string, { category: string; detail: string; description: string }> = {
-      'meta_index': {
-        category: 'navigation',
-        detail: 'knowledge-index',
-        description: 'プロジェクト全体の知識ナビゲーションインデックス'
-      },
-      'project_structure_index': {
-        category: 'structure',
-        detail: 'project-overview',
-        description: 'プロジェクト構造の包括的な概要'
-      },
-      'dependencies_map': {
-        category: 'dependencies',
-        detail: 'analysis-map',
-        description: '依存関係の詳細分析マップ'
-      },
-      'tech_stack_inventory': {
-        category: 'tech-stack',
-        detail: 'comprehensive-audit',
-        description: '技術スタックの包括的な監査レポート'
-      },
-      'development_context': {
-        category: 'development',
-        detail: 'environment-setup',
-        description: '開発環境セットアップとコンテキスト情報'
-      },
-      // カテゴリ別インデックス
-      'architecture_index': {
-        category: 'architecture',
-        detail: 'design-patterns-index',
-        description: 'アーキテクチャ設計パターンのインデックス'
-      },
-      'code_structure_index': {
-        category: 'structure',
-        detail: 'code-organization-index',
-        description: 'コード構造と組織化のインデックス'
-      },
-      'data_index': {
-        category: 'data',
-        detail: 'management-strategy-index',
-        description: 'データ管理戦略のインデックス'
-      },
-      'security_index': {
-        category: 'security',
-        detail: 'implementation-status',
-        description: 'セキュリティ実装状況レポート'
-      },
-      'integration_index': {
-        category: 'integration',
-        detail: 'external-systems-index',
-        description: '外部システム統合のインデックス'
-      }
-    };
-
-    const mapping = nameMapping[taskType] || {
-      category: category || 'general',
-      detail: taskType.replace(/_/g, '-'),
-      description: taskType
-    };
-
-    // ファイル名の組み立て（プロジェクト名のプレフィックスを除去）
-    let fileName = `${mapping.category}-${mapping.detail}-${version}`;
     
-    // コンテキストがある場合は追加
-    if (context) {
-      fileName += `-${context}`;
-    }
+    // プロジェクトサイズに応じた出力戦略
+    const outputStrategy = {
+      small: {
+        fileName: 'project_index.json',
+        approach: 'unified'  // 1ファイルに全情報統合
+      },
+      medium: {
+        fileName: category ? `${category}.json` : `${taskType}.json`,
+        approach: 'selective'  // 中規模は選択的分割
+      },
+      large: {
+        fileName: category ? `${category}.json` : `${taskType}.json`, 
+        approach: 'modular'  // 完全モジュール分割
+      }
+    }[scale];
 
-    return fileName;
+    const basePrompt = `Analyze ${projectInfo.name} project and create lightweight JSON index:
+
+**Project Scale**: ${scale}
+**Output Strategy**: ${outputStrategy.approach}
+**Target File**: ${outputStrategy.fileName}
+
+**Core Analysis Areas:**
+- Framework/runtime: TypeScript, Node.js, MCP protocol
+- Dependencies: production & development
+- Architecture: core modules, services, tools
+- Entry points: main files, configuration
+- Security: access control, audit systems
+
+**Output Format:**`;
+
+    // プロジェクトサイズ別のJSON構造定義
+    const jsonTemplates = {
+      small: `
+\`\`\`json
+{
+  "project": "${projectInfo.name}",
+  "framework": "Node.js + TypeScript",
+  "scale": "${scale}",
+  "architecture": {
+    "core": ["mcp_protocol", "tool_handlers", "security"],
+    "services": ["file_system", "project_memory", "search_engine"],
+    "tools": ["read_file", "search_with_learning", "project_memory_*"]
+  },
+  "dependencies": {
+    "runtime": {"@modelcontextprotocol/sdk": "^0.5.0", "sqlite3": "^5.1.0"},
+    "dev": {"vitest": "^2.0.0", "typescript": "^5.5.0"}
+  },
+  "entry_points": ["src/index.ts"],
+  "config": ["tsconfig.json", "package.json"],
+  "security": ["whitelist", "audit_logs", "data_filter"]
+}
+\`\`\``,
+
+      medium: category === 'architecture' ? `
+\`\`\`json
+{
+  "architecture": {
+    "layers": ["protocol", "tools", "services", "utils"],
+    "patterns": ["factory", "observer", "strategy"],
+    "core_modules": [
+      {"name": "SecurityManager", "path": "src/services/", "role": "access_control"},
+      {"name": "FileSystemService", "path": "src/services/", "role": "file_operations"},
+      {"name": "SearchLearningEngine", "path": "src/tools/", "role": "ai_search"}
+    ],
+    "data_flow": ["request → validation → processing → response"],
+    "dependencies": {"internal": 16, "external": 8}
   }
+}
+\`\`\`` : `
+\`\`\`json
+{
+  "${taskType}": {
+    "summary": "focused_${taskType}_analysis",
+    "key_components": [],
+    "relationships": [],
+    "metrics": {}
+  }
+}
+\`\`\``,
+
+      large: `
+\`\`\`json
+{
+  "${category || taskType}": {
+    "scope": "${category || taskType}",
+    "components": [],
+    "interfaces": [],
+    "dependencies": [],
+    "patterns": [],
+    "metrics": {
+      "complexity": 0.0,
+      "maintainability": 0.0,
+      "coverage": 0.0
+    }
+  }
+}
+\`\`\``
+    };
+
+    return `${basePrompt}
+${jsonTemplates[scale]}
+
+**Requirements:**
+- JSON only, no explanations
+- Under 1500 tokens
+- English keys/values only
+- Focus on structural information
+- Omit redundant descriptions`;
+  }
+
+  /**
+   * プロジェクトサイズに応じたJSON出力ファイル名を生成
+   * 小規模：統合JSON、大規模：分割JSON
+   */
+  private generateJSONFileName(
+    taskType: string,
+    category?: string
+  ): string {
+    const scale = this.getProjectScale();
+
+    // プロジェクトサイズに応じたファイル名戦略
+    switch (scale) {
+      case 'small':
+        return 'project_index';  // 統合インデックス
+      case 'medium':
+        return category ? `${category}_index` : `${taskType}_index`;
+      case 'large':
+        return category ? category : taskType;  // モジュール別分割
+      default:
+        return 'project_index';
+    }
+  }
+
 
   /**
    * プロンプトに説明的なファイル名の生成指示を追加
@@ -207,7 +298,6 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   *生成日時: ${new Date().toISOString().split('T')[0]}*
   *バージョン: ${this.getProjectInfo().version}*`;
   }
-
   protected async executeInternal(_validatedParameters: unknown): Promise<IToolResult> {
     const params = _validatedParameters as ProjectMemoryUpdateWorkflowParams;
 
@@ -327,13 +417,13 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
         return this.generateHierarchicalIndexWorkflow(scope, focusAreas, preview, classification);
       
       case 'structure_index':
-        return this.generateStructureIndexWorkflow(scope, focusAreas, preview, classification);
+        return this.generateStructureIndexWorkflow(scope, focusAreas);
       
       case 'dependencies_map':
-        return this.generateDependenciesMapWorkflow(scope, focusAreas, preview, classification);
+        return this.generateDependenciesMapWorkflow(scope, focusAreas);
       
       case 'tech_stack_inventory':
-        return this.generateTechStackInventoryWorkflow(scope, focusAreas, preview, classification);
+        return this.generateTechStackInventoryWorkflow(scope, focusAreas);
       
       case 'development_context':
         return this.generateDevelopmentContextWorkflow(scope, focusAreas, preview, classification);
@@ -373,7 +463,7 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
     // メタインデックスを生成・保存
     if (!preview) {
-      const fileName = this.generateDescriptiveFileName('meta_index');
+      const fileName = this.generateJSONFileName('meta_index');
       const description = 'プロジェクト全体の知識ナビゲーションインデックス';
       
       steps.push({
@@ -426,11 +516,15 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
       });
     }
 
+    const fileName = this.generateJSONFileName('meta_index');
+
     return {
       workflow_name: 'メタインデックス（目次）生成',
       description: `プロジェクト知識全体の${scope === 'full' ? '完全な' : '差分'}目次を生成します`,
       estimated_time: '1-2分',
       steps,
+      final_prompt: this.generateJSONPrompt('meta_index'),
+      target_file: `.claude/workspace/effortlessly/project_memory/${fileName}.json`,
       next_actions: [
         '特定カテゴリの詳細が必要な場合: project_memory_update_workflow task="hierarchical_index" scope="architecture"',
         'カテゴリ別インデックスの生成: hierarchical_index タスクを各カテゴリで実行'
@@ -475,7 +569,7 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
     // カテゴリ別インデックスを保存
     if (!preview) {
-      const fileName = this.generateDescriptiveFileName(`${category}_index`, category);
+      const fileName = this.generateJSONFileName(`${category}_index`, category);
       const nameMapping: Record<string, string> = {
         'architecture': 'アーキテクチャ設計パターンのインデックス',
         'code_structure': 'コード構造と組織化のインデックス',
@@ -499,11 +593,15 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
       });
     }
 
+    const fileName = this.generateJSONFileName(`${category}_index`, category);
+
     return {
       workflow_name: `階層別インデックス生成 (${category})`,
       description: `${category}カテゴリの詳細な階層的インデックスを生成します`,
       estimated_time: '3-6分',
       steps,
+      final_prompt: this.generateJSONPrompt(`${category}_index`, category),
+      target_file: `.claude/workspace/effortlessly/project_memory/${fileName}.json`,
       next_actions: [
         'メタインデックスの更新: project_memory_update_workflow task="meta_index"',
         '他のカテゴリも生成: hierarchical_index の scope を変更して実行'
@@ -734,7 +832,7 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   /**
    * プロジェクト構造インデックス更新ワークフロー
    */
-  private generateStructureIndexWorkflow(scope: string, focusAreas?: string[], preview: boolean = false, classification?: string): WorkflowPlan {
+  private generateStructureIndexWorkflow(scope: string, focusAreas?: string[]): WorkflowPlan {
     const steps: WorkflowStep[] = [];
     let stepCounter = 1;
 
@@ -789,41 +887,20 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
       });
     }
 
-    // 結果をプロジェクトメモリに保存
-    if (!preview) {
-      const fileName = this.generateDescriptiveFileName('project_structure_index');
-      const description = 'プロジェクト構造の包括的な概要';
-      
-      steps.push({
-        step: stepCounter++,
-        tool: 'project_memory_write',
-        params: {
-          memory_name: fileName,
-          content: this.enhancePromptWithNamingGuidance(
-            this.generateClassificationPrompt(classification, 'project_structure_index', 'Markdown形式のプロジェクト構造インデックス'),
-            fileName,
-            description
-          ),
-          tags: ['index', 'structure', 'auto-generated', scope, ...(classification ? [classification] : [])]
-        },
-        purpose: 'プロジェクト構造情報をメモリに保存',
-        expected_output: 'プロジェクトメモリへの保存完了確認'
-      });
-    }
+    const fileName = this.generateJSONFileName('structure_index');
 
     return {
       workflow_name: 'プロジェクト構造インデックス更新',
       description: `プロジェクトの${scope === 'full' ? '完全な' : scope === 'incremental' ? '差分' : '指定された'}構造情報を最新化します`,
       estimated_time: scope === 'full' ? '3-5分' : '2-3分',
       steps,
+      final_prompt: this.generateJSONPrompt('structure_index'),
+      target_file: `.claude/workspace/effortlessly/project_memory/${fileName}.json`,
       next_actions: [
         '依存関係の詳細が必要な場合: project_memory_update_workflow task="dependencies_map"',
         '技術スタック情報が必要な場合: project_memory_update_workflow task="tech_stack_inventory"'
       ],
-      notes: preview ? [
-        'これはプレビューです。実際の実行時は各ステップを順番に実行してください。',
-        'project_memory_writeの際は、前のステップで得られた実際の情報を使用してください。'
-      ] : [
+      notes: [
         '各ステップを順番に実行し、最後のproject_memory_writeで統合された情報を保存してください。',
         'エラーが発生した場合は、該当ステップをスキップして次に進んでも構いません。'
       ]
@@ -833,7 +910,7 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   /**
    * 依存関係マップ更新ワークフロー
    */
-  private generateDependenciesMapWorkflow(scope: string, focusAreas?: string[], preview: boolean = false, classification?: string): WorkflowPlan {
+  private generateDependenciesMapWorkflow(scope: string, focusAreas?: string[]): WorkflowPlan {
     const steps: WorkflowStep[] = [];
     let stepCounter = 1;
 
@@ -875,32 +952,15 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
       });
     }
 
-    // 結果保存
-    if (!preview) {
-      const fileName = this.generateDescriptiveFileName('dependencies_map');
-      const description = '依存関係の詳細分析マップ';
-      
-      steps.push({
-        step: stepCounter++,
-        tool: 'project_memory_write',
-        params: {
-          memory_name: fileName,
-          content: this.enhancePromptWithNamingGuidance(
-            this.generateClassificationPrompt(classification, 'dependencies_map', '依存関係分析結果をまとめたMarkdown'),
-            fileName,
-            description
-          ),
-          tags: ['dependencies', 'analysis', 'auto-generated', scope, ...(classification ? [classification] : [])]
-        },
-        purpose: '依存関係マップをプロジェクトメモリに保存'
-      });
-    }
+    const fileName = this.generateJSONFileName('dependencies_map');
 
     return {
       workflow_name: '依存関係マップ更新',
       description: 'プロジェクトの依存関係情報を最新化し、循環依存などの問題を検出します',
       estimated_time: '3-5分',
       steps,
+      final_prompt: this.generateJSONPrompt('dependencies_map'),
+      target_file: `.claude/workspace/effortlessly/project_memory/${fileName}.json`,
       next_actions: [
         '構造情報も必要な場合: project_memory_update_workflow task="structure_index"'
       ]
@@ -910,7 +970,7 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
   /**
    * 技術スタック棚卸しワークフロー
    */
-  private generateTechStackInventoryWorkflow(_scope: string, _focusAreas?: string[], preview: boolean = false, _classification?: string): WorkflowPlan {
+  private generateTechStackInventoryWorkflow(_scope: string, _focusAreas?: string[]): WorkflowPlan {
     const steps: WorkflowStep[] = [];
     let stepCounter = 1;
 
@@ -939,32 +999,15 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
       expected_output: 'ファイル種別ごとの統計情報'
     });
 
-    // 結果保存
-    if (!preview) {
-      const fileName = this.generateDescriptiveFileName('tech_stack_inventory');
-      const description = '技術スタックの包括的な監査レポート';
-      
-      steps.push({
-        step: stepCounter++,
-        tool: 'project_memory_write',
-        params: {
-          memory_name: fileName,
-          content: this.enhancePromptWithNamingGuidance(
-            '技術スタック棚卸し結果のMarkdown',
-            fileName,
-            description
-          ),
-          tags: ['tech-stack', 'inventory', 'auto-generated']
-        },
-        purpose: '技術スタック情報をプロジェクトメモリに保存'
-      });
-    }
+    const fileName = this.generateJSONFileName('tech_stack_inventory');
 
     return {
       workflow_name: '技術スタック棚卸し',
       description: 'プロジェクトで使用されている技術・ツール・ライブラリを整理します',
       estimated_time: '4-6分',
-      steps
+      steps,
+      final_prompt: this.generateJSONPrompt('tech_stack_inventory'),
+      target_file: `.claude/workspace/effortlessly/project_memory/${fileName}.json`
     };
   }
 
@@ -1004,30 +1047,29 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
 
     // 開発コンテキスト保存
     if (!preview) {
-      const fileName = this.generateDescriptiveFileName('development_context');
-      const description = '開発環境セットアップとコンテキスト情報';
+      const fileName = this.generateJSONFileName('development_context');
       
       steps.push({
         step: stepCounter++,
         tool: 'project_memory_write',
         params: {
           memory_name: fileName,
-          content: this.enhancePromptWithNamingGuidance(
-            '開発コンテキスト情報を統合したMarkdown',
-            fileName,
-            description
-          ),
-          tags: ['context', 'development', 'onboarding', 'auto-generated']
+          content: this.generateJSONPrompt('development_context'),
+          tags: ['context', 'development', 'onboarding', 'json-index', 'auto-generated']
         },
         purpose: '開発コンテキストをプロジェクトメモリに保存'
       });
     }
+
+    const fileName = this.generateJSONFileName('development_context');
 
     return {
       workflow_name: '開発コンテキスト整備',
       description: '新規開発者の参画や開発再開時に必要な情報を整備します',
       estimated_time: '5-8分',
       steps,
+      final_prompt: this.generateJSONPrompt('development_context'),
+      target_file: `.claude/workspace/effortlessly/project_memory/${fileName}.json`,
       notes: [
         '新規参画者向けの包括的な情報が生成されます',
         '既存の知識と重複する場合は、より新しい情報で更新されます'
@@ -1035,120 +1077,4 @@ export class ProjectMemoryUpdateWorkflowTool extends BaseTool {
     };
   }
 
-  /**
-   * 分類に応じたプロンプトを生成
-   */
-  private generateClassificationPrompt(classification: string | undefined, memoryType: string, taskContext: string): string {
-    const basePrompt = `前のステップで収集した情報を統合した${taskContext}`;
-    
-    if (!classification) {
-      return basePrompt;
-    }
-
-    const prompts = {
-      template: this.getTemplatePrompts(),
-      generic: this.getGenericPrompts(), 
-      project_specific: this.getProjectSpecificPrompts()
-    };
-
-    const promptMap = prompts[classification as keyof typeof prompts];
-    return promptMap[memoryType as keyof typeof promptMap] || basePrompt;
-  }
-
-  /**
-   * テンプレート用プロンプト
-   */
-  private getTemplatePrompts() {
-    return {
-      project_structure_index: `
-テンプレート(.claude/workspace/effortlessly/memory/templates/project_structure_template.md)を使用して、
-このプロジェクトの構造インデックスを作成してください。
-
-以下のプレースホルダーを実際のプロジェクト情報で置換してください：
-- [PROJECT_NAME] → 検出されたプロジェクト名
-- [PROJECT_TYPE] → プロジェクトタイプ（MCP Server等）
-- [TECH_STACK] → 使用技術スタック
-- [PROJECT_DIRECTORY_TREE] → 実際のディレクトリ構造
-- [TOTAL_FILES] → ファイル総数
-- [LANGUAGE_BREAKDOWN] → 言語構成比率
-
-前のステップで収集した実際の情報を基に、具体的で有用なドキュメントを作成してください。
-      `,
-
-      dependencies_map: `
-プロジェクトの依存関係マップをテンプレート形式で作成してください。
-外部ライブラリの選択理由、バージョン情報、セキュリティ評価を含めて
-他のプロジェクトでも参考になる形式で記録してください。
-      `
-    };
-  }
-
-  /**
-   * 汎用プロンプト
-   */
-  private getGenericPrompts() {
-    return {
-      project_structure_index: `
-このプロジェクトの汎用的な構造インデックスをMarkdown形式で作成してください。
-
-含めるべき情報：
-- プロジェクト全体のアーキテクチャ概要
-- 主要ディレクトリとその役割
-- 重要なファイルとその説明
-- 開発・ビルド・テストの手順
-- 他のプロジェクトでも参考になる設計パターン
-
-プロジェクト固有の詳細は最小限に抑え、
-再利用可能な知識として価値のある内容を重視してください。
-      `,
-
-      dependencies_map: `
-汎用的な依存関係分析ドキュメントを作成してください。
-
-分析観点：
-- 各ライブラリの選択基準と理由
-- セキュリティ・ライセンス観点での評価
-- パフォーマンス・保守性への影響
-- 代替ライブラリとの比較検討結果
-- 他プロジェクトでの採用可能性
-
-技術選定のベストプラクティスとして活用できる形式で記録してください。
-      `
-    };
-  }
-
-  /**
-   * プロジェクト固有プロンプト
-   */
-  private getProjectSpecificPrompts() {
-    return {
-      project_structure_index: `
-effortlessly-mcpプロジェクトの実装固有の構造情報を記録してください。
-
-このプロジェクト特有の内容：
-- LSP統合の実装アプローチ
-- セキュリティ機能の実装状況
-- MCP仕様への準拠状況
-- 開発中の機能と未実装箇所
-- プロジェクト固有の設計判断と背景
-- 今後の開発計画と課題
-
-開発者が実装を継続するために必要な
-具体的で実用的な情報を重視してください。
-      `,
-
-      lsp_integration_status: `
-effortlessly-mcpのLSP統合機能について、
-現在の実装状況と今後のタスクを詳細に記録してください。
-
-含める情報：
-- TypeScript/Swift LSPの実装状況
-- LSPクライアント統合の設計と実装詳細
-- 自動起動システムの開発状況
-- パフォーマンス最適化の進捗
-- 未対応言語の対応計画
-- 発見された技術的課題と解決方法
-      `
-    };
-  }
 }

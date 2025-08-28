@@ -32,7 +32,7 @@ Claude Code向けのMCP（Model Context Protocol）サーバーです。セキ�
   - パターンマッチングとセマンティック検索のハイブリッド
 
 ### ワークスペース管理（3個） **再検討中**
-- **workspace_activate**: ワークスペース有効化
+- **workspace_setup**: ワークスペースセットアップ
 - **workspace_get_info**: 現在のワークスペース情報取得
 - **workspace_list_all**: 全ワークスペース一覧
 

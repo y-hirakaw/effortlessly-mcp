@@ -51,8 +51,8 @@ describe('Workspace Tools', () => {
 
     describe('metadata', () => {
       it('正しいメタデータを持つ', () => {
-        expect(workspaceSetupTool.metadata.name).toBe('workspace_activate');
-        expect(workspaceSetupTool.metadata.description).toContain('ワークスペースを活性化');
+        expect(workspaceSetupTool.metadata.name).toBe('workspace_setup');
+        expect(workspaceSetupTool.metadata.description).toContain('ワークスペースをセットアップ');
         expect(workspaceSetupTool.metadata.parameters.workspace_path).toBeDefined();
         expect(workspaceSetupTool.metadata.parameters.workspace_path.required).toBe(true);
       });
@@ -347,8 +347,8 @@ logging:
     describe('WorkspaceSetupTool', () => {
       it('正しいメタデータを持つ', () => {
         const tool = new WorkspaceSetupTool();
-        expect(tool.metadata.name).toBe('workspace_activate');
-        expect(tool.metadata.description).toContain('ワークスペースを活性化');
+        expect(tool.metadata.name).toBe('workspace_setup');
+        expect(tool.metadata.description).toContain('ワークスペースをセットアップ');
       });
 
       it('execute メソッドが動作する', async () => {

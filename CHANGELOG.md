@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 変更
+- 🔧 **ツール名変更**
+  - `workspace_activate` → `workspace_setup` に名称変更
+  - より明確な命名による使いやすさの向上
+  - テストカバレッジ維持（397テスト合格）
+
 ### 追加
 - 🚀 **SmartRangeOptimizer セマンティック検索統合** (v2.0開発版)
   - ONNXベースのDirectMiniLMEmbeddingsによるセマンティック類似度スコアリング
