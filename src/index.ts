@@ -532,7 +532,10 @@ function createToolHandler(name: string, tool: ITool) {
  */
 async function main(): Promise<void> {
   try {
-    logger.info(`Starting ${SERVER_NAME} v${SERVER_VERSION}`);
+    // 起動ログの強制出力（ファイルとコンソール両方）
+    const startMessage = `Starting ${SERVER_NAME} v${SERVER_VERSION}`;
+    logger.info(startMessage);
+    console.error(`[${new Date().toISOString()}] ${startMessage}`);
     
     // Register tools
     registerTools();
@@ -541,15 +544,79 @@ async function main(): Promise<void> {
     const transport = new StdioServerTransport();
     await server.connect(transport);
     
-    logger.info(`${SERVER_NAME} v${SERVER_VERSION} running on stdio`);
+    const runningMessage = `${SERVER_NAME} v${SERVER_VERSION} running on stdio`;
+    logger.info(runningMessage);
+    console.error(`[${new Date().toISOString()}] ${runningMessage}`);
   } catch (error) {
-    logger.error('Failed to start server', error instanceof Error ? error : new Error(String(error)));
+    const errorMessage = `Failed to start server: ${error instanceof Error ? error.message : String(error)}`;
+    const errorStack = error instanceof Error && error.stack ? error.stack : '';
+    
+    // エラーログの強制出力（ファイルとコンソール両方）
+    logger.error(errorMessage, error instanceof Error ? error : new Error(String(error)));
+    console.error(`[${new Date().toISOString()}] ERROR: ${errorMessage}`);
+    if (errorStack) {
+      console.error(errorStack);
+    }
+    
+    // エラーファイルに直接書き込み（ログシステムが初期化されていない場合のフォールバック）
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const os = await import('os');
+      
+      const errorLogDir = path.join(os.homedir(), '.claude', 'workspace', 'effortlessly', 'logs', 'startup-errors');
+      await fs.mkdir(errorLogDir, { recursive: true });
+      
+      const errorLogFile = path.join(errorLogDir, `startup-error-${Date.now()}.txt`);
+      const errorContent = `
+========================================
+MCP Server Startup Error
+========================================
+Time: ${new Date().toISOString()}
+Server: ${SERVER_NAME} v${SERVER_VERSION}
+Node Version: ${process.version}
+Platform: ${process.platform}
+Current Directory: ${process.cwd()}
+
+Error Message:
+${errorMessage}
+
+Stack Trace:
+${errorStack || 'No stack trace available'}
+
+Environment Variables:
+${JSON.stringify(process.env, null, 2)}
+========================================
+`;
+      
+      await fs.writeFile(errorLogFile, errorContent, 'utf-8');
+      console.error(`[${new Date().toISOString()}] Error details written to: ${errorLogFile}`);
+    } catch (writeError) {
+      console.error(`[${new Date().toISOString()}] Failed to write error log file:`, writeError);
+    }
+    
     throw error;
   }
 }
 
 // Run the server
 main().catch((error: unknown) => {
-  logger.error('Fatal error in main()', error instanceof Error ? error : new Error(String(error)));
+  const fatalMessage = `Fatal error in main(): ${error instanceof Error ? error.message : String(error)}`;
+  const errorStack = error instanceof Error && error.stack ? error.stack : '';
+  
+  // 致命的エラーの強制出力
+  logger.error(fatalMessage, error instanceof Error ? error : new Error(String(error)));
+  console.error(`[${new Date().toISOString()}] FATAL: ${fatalMessage}`);
+  if (errorStack) {
+    console.error(errorStack);
+  }
+  
+  // プロセス情報も出力
+  console.error(`[${new Date().toISOString()}] Process Info:`);
+  console.error(`  - Node Version: ${process.version}`);
+  console.error(`  - Platform: ${process.platform}`);
+  console.error(`  - Current Directory: ${process.cwd()}`);
+  console.error(`  - Exit Code: 1`);
+  
   process.exit(1);
 });
