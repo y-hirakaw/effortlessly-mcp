@@ -3,7 +3,7 @@ import * as os from 'os';
 import { Logger } from '../../services/logger.js';
 import { FileSystemService } from '../../services/FileSystemService.js';
 import { ConfigManager } from '../../services/ConfigManager.js';
-import { LSPServerManager } from '../../services/LSPServerManager.js';
+
 
 import { ValidationError, FileSystemError } from '../../types/errors.js';
 import { 
@@ -24,16 +24,14 @@ export class WorkspaceManager {
   private readonly workspaceBaseDir: string;
   private currentWorkspace: WorkspaceInfo | null = null;
   private configManager: ConfigManager;
-  private static lspServerManager: LSPServerManager;
+
 
 
   private constructor() {
     // ワークスペースのベースディレクトリを.claude/workspace/effortlessly/に設定
     this.workspaceBaseDir = path.join(os.homedir(), '.claude', 'workspace', 'effortlessly');
     this.configManager = new ConfigManager();
-    if (!WorkspaceManager.lspServerManager) {
-      WorkspaceManager.lspServerManager = new LSPServerManager();
-    }
+
 
   }
 
@@ -224,17 +222,7 @@ project_memory_update_workflow task="hierarchical_index" scope="<category>"
       // 統合設定への保存
       await this.configManager.setWorkspaceConfig(validatedName, config);
 
-      // LSP サーバーの自動起動（バックグラウンド）
-      const lspConfig = await this.configManager.getLSPServerConfig();
-      if (lspConfig?.proxy_server?.auto_start && lspConfig.proxy_server.enabled) {
-        this.logger.info('Starting LSP proxy server in background');
-        WorkspaceManager.lspServerManager.startLSPProxy(validatedPath).catch(error => {
-          this.logger.warn('Failed to auto-start LSP proxy server', { error });
-        });
-      }
-
-      // インデックス作成機能は現在無効化（LSP直接使用に移行）
-      // 注：将来的にSymbolIndexer相当の機能が必要になった場合は再実装
+      // LSP機能は v2.0 戦略転換により廃止済み
 
       // 現在のワークスペースを先にセット（loadWorkspaceInfoでstatusが正しく決定されるため）
       this.currentWorkspace = {

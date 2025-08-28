@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import { 
-  workspaceActivateTool,
+  workspaceSetupTool,
   workspaceGetInfoTool,
   workspaceListAllTool,
-  WorkspaceActivateTool,
+  WorkspaceSetupTool,
   WorkspaceGetInfoTool,
   WorkspaceListAllTool
 } from './index.js';
@@ -42,7 +42,7 @@ describe('Workspace Tools', () => {
     vi.resetAllMocks();
   });
 
-  describe('workspaceActivateTool', () => {
+  describe('workspaceSetupTool', () => {
     beforeEach(() => {
       mockFs.stat.mockResolvedValue({
         isDirectory: () => true,
@@ -51,10 +51,10 @@ describe('Workspace Tools', () => {
 
     describe('metadata', () => {
       it('正しいメタデータを持つ', () => {
-        expect(workspaceActivateTool.metadata.name).toBe('workspace_activate');
-        expect(workspaceActivateTool.metadata.description).toContain('ワークスペースを活性化');
-        expect(workspaceActivateTool.metadata.parameters.workspace_path).toBeDefined();
-        expect(workspaceActivateTool.metadata.parameters.workspace_path.required).toBe(true);
+        expect(workspaceSetupTool.metadata.name).toBe('workspace_activate');
+        expect(workspaceSetupTool.metadata.description).toContain('ワークスペースを活性化');
+        expect(workspaceSetupTool.metadata.parameters.workspace_path).toBeDefined();
+        expect(workspaceSetupTool.metadata.parameters.workspace_path.required).toBe(true);
       });
     });
 
@@ -81,7 +81,7 @@ workspace:
           index_enabled: true,
         };
 
-        const result = await workspaceActivateTool.execute(input);
+        const result = await workspaceSetupTool.execute(input);
 
         expect(result.success).toBe(true);
         expect(result.workspace.name).toBe('test-workspace');
@@ -92,7 +92,7 @@ workspace:
       it('workspace_pathが未指定でValidationErrorを投げる', async () => {
         const input = {};
 
-        await expect(workspaceActivateTool.execute(input as any))
+        await expect(workspaceSetupTool.execute(input as any))
           .rejects.toThrow(ValidationError);
       });
 
@@ -103,7 +103,7 @@ workspace:
           workspace_path: '/nonexistent',
         };
 
-        await expect(workspaceActivateTool.execute(input))
+        await expect(workspaceSetupTool.execute(input))
           .rejects.toThrow('指定されたディレクトリが存在しません');
       });
 
@@ -132,7 +132,7 @@ workspace:
           log_retention_days: 60,
         };
 
-        const result = await workspaceActivateTool.execute(input);
+        const result = await workspaceSetupTool.execute(input);
 
         expect(result.success).toBe(true);
         expect(result.workspace.settings.index_enabled).toBe(false);
@@ -182,7 +182,7 @@ workspace:
     follow_symlinks: false
 `);
 
-        await workspaceActivateTool.execute({
+        await workspaceSetupTool.execute({
           workspace_path: mockProjectPath,
           name: 'active-workspace',
         });
@@ -330,7 +330,7 @@ logging:
           return Promise.reject(new Error('File not found'));
         });
 
-        await workspaceActivateTool.execute({
+        await workspaceSetupTool.execute({
           workspace_path: mockProjectPath,
           name: 'active-workspace',
         });
@@ -344,9 +344,9 @@ logging:
   });
 
   describe('Tool Classes', () => {
-    describe('WorkspaceActivateTool', () => {
+    describe('WorkspaceSetupTool', () => {
       it('正しいメタデータを持つ', () => {
-        const tool = new WorkspaceActivateTool();
+        const tool = new WorkspaceSetupTool();
         expect(tool.metadata.name).toBe('workspace_activate');
         expect(tool.metadata.description).toContain('ワークスペースを活性化');
       });
@@ -371,7 +371,7 @@ workspace:
     follow_symlinks: false
 `);
 
-        const tool = new WorkspaceActivateTool();
+        const tool = new WorkspaceSetupTool();
         const args = {
           workspace_path: mockProjectPath,
           name: 'test-workspace',

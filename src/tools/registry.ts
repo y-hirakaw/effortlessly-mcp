@@ -6,7 +6,7 @@ import { ListDirectoryTool } from './file-operations/list-directory-adapter.js';
 import { GetFileMetadataTool } from './file-operations/get-file-metadata-adapter.js';
 // import { SearchFilesTool } from './file-operations/search-files-adapter.js'; // 廃止: search_with_learningで代替
 import { 
-  WorkspaceActivateTool, 
+  WorkspaceSetupTool, 
   WorkspaceGetInfoTool, 
   WorkspaceListAllTool 
 } from './project-management/index.js';
@@ -76,7 +76,7 @@ export class ToolRegistry {
     // this.registerTool(new SearchFilesTool()); // → search_with_learningで代替
     
     // プロジェクト管理ツール
-    this.registerTool(new WorkspaceActivateTool());
+    this.registerTool(new WorkspaceSetupTool());
     this.registerTool(new WorkspaceGetInfoTool());
     this.registerTool(new WorkspaceListAllTool());
     

@@ -5,9 +5,9 @@ import { LogManager } from '../../utils/log-manager.js';
 import { WorkspaceCreateOptions, WorkspaceActivationResult } from './types.js';
 
 /**
- * ワークスペース活性化の入力パラメータ
+ * ワークスペースセットアップの入力パラメータ
  */
-export interface WorkspaceActivateInput {
+export interface WorkspaceSetupInput {
   /** ワークスペースのルートパス */
   workspace_path: string;
   /** ワークスペース名（オプション、未指定時はパスから自動生成） */
@@ -16,8 +16,6 @@ export interface WorkspaceActivateInput {
   intent?: string;
   /** インデックス機能を有効にするか */
   index_enabled?: boolean;
-  /** 使用するLSPサーバー */
-  lsp_servers?: string[];
   /** ログの自動保存 */
   auto_save_logs?: boolean;
   /** ログ保持日数 */
@@ -25,13 +23,13 @@ export interface WorkspaceActivateInput {
 }
 
 /**
- * ワークスペース活性化ツール
+ * ワークスペースセットアップツール
  * 指定されたパスをワークスペースとして設定し、プロジェクト管理を開始する
  */
-export const workspaceActivateTool = {
+export const workspaceSetupTool = {
   metadata: {
-    name: 'workspace_activate',
-    description: 'ワークスペースを活性化し、プロジェクト管理を開始します',
+    name: 'workspace_setup',
+    description: 'ワークスペースをセットアップし、プロジェクト管理を開始します',
     parameters: {
       workspace_path: {
         type: 'string',
@@ -67,12 +65,12 @@ export const workspaceActivateTool = {
   },
 
   /**
-   * ワークスペースを活性化
+   * ワークスペースをセットアップ
    */
-  async execute(input: WorkspaceActivateInput): Promise<WorkspaceActivationResult> {
+  async execute(input: WorkspaceSetupInput): Promise<WorkspaceActivationResult> {
     const logger = Logger.getInstance();
     
-    logger.info('Starting workspace activation', {
+    logger.info('Starting workspace setup', {
       workspace_path: input.workspace_path,
       name: input.name,
     });
@@ -91,7 +89,6 @@ export const workspaceActivateTool = {
         name: input.name,
         settings: {
           index_enabled: input.index_enabled,
-          lsp_servers: input.lsp_servers,
           auto_save_logs: input.auto_save_logs,
           log_retention_days: input.log_retention_days,
         },
@@ -100,7 +97,7 @@ export const workspaceActivateTool = {
       // ワークスペースを活性化
       const result = await workspaceManager.activateWorkspace(input.workspace_path, options);
 
-      logger.info('Workspace activation completed', {
+      logger.info('Workspace setup completed', {
         success: result.success,
         workspace_name: result.workspace.name,
         workspace_path: result.workspace.root_path,
@@ -109,16 +106,16 @@ export const workspaceActivateTool = {
       // 操作ログ記録
       const logManager = LogManager.getInstance();
       await logManager.logOperation(
-        'WORKSPACE_ACTIVATE',
+        'WORKSPACE_SETUP',
         result.workspace.root_path,
-        `Workspace "${result.workspace.name}" activated | Path: ${result.workspace.root_path}`,
+        `Workspace "${result.workspace.name}" setup completed | Path: ${result.workspace.root_path}`,
         // metadata is not available in this function context
         undefined
       );
 
       return result;
     } catch (error) {
-      logger.error('Workspace activation failed', {
+      logger.error('Workspace setup failed', {
         error_message: error instanceof Error ? error.message : String(error),
         workspace_path: input.workspace_path,
       } as any);
@@ -127,7 +124,7 @@ export const workspaceActivateTool = {
         throw error;
       }
       
-      throw new Error(`ワークスペースの活性化に失敗しました: ${(error as Error).message}`);
+      throw new Error(`ワークスペースのセットアップに失敗しました: ${(error as Error).message}`);
     }
   },
 };

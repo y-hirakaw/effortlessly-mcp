@@ -114,7 +114,7 @@ function registerTools(): void {
         break;
         */
         
-      case 'workspace_activate':
+      case 'workspace_setup':
         server.tool(
           name,
           tool.metadata.description,
@@ -122,7 +122,6 @@ function registerTools(): void {
             workspace_path: z.string().describe('Root directory path of the workspace'),
             name: z.string().optional().describe('Workspace name (optional, auto-generated from directory name if not specified)'),
             index_enabled: z.boolean().optional().describe('Enable indexing functionality (default: true)'),
-            lsp_servers: z.array(z.string()).optional().describe('使用するLSPサーバーのリスト（デフォルト: ["typescript", "python"]）'),
             auto_save_logs: z.boolean().optional().describe('ログの自動保存を有効にするか（デフォルト: true）'),
             log_retention_days: z.number().optional().describe('ログの保持日数（デフォルト: 30）'),
           },

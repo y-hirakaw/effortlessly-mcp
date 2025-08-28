@@ -1,15 +1,15 @@
 import { z } from 'zod';
 import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
-import { workspaceActivateTool, WorkspaceActivateInput } from './workspace-activate.js';
+import { workspaceSetupTool, WorkspaceSetupInput } from './workspace-setup.js';
 
 /**
- * ワークスペース活性化ツールのアダプター（ITool互換）
+ * ワークスペースセットアップツールのアダプター（ITool互換）
  */
-export class WorkspaceActivateTool extends BaseTool {
+export class WorkspaceSetupTool extends BaseTool {
   readonly metadata: IToolMetadata = {
-    name: 'workspace_activate',
-    description: 'ワークスペースを活性化し、プロジェクト管理を開始します',
+    name: 'workspace_setup',
+    description: 'ワークスペースをセットアップし、プロジェクト管理を開始します',
     parameters: {
       workspace_path: {
         type: 'string',
@@ -53,16 +53,15 @@ export class WorkspaceActivateTool extends BaseTool {
     workspace_path: z.string().min(1, 'workspace_pathは必須です'),
     name: z.string().optional(),
     index_enabled: z.boolean().optional(),
-    lsp_servers: z.array(z.string()).optional(),
     auto_save_logs: z.boolean().optional(),
     log_retention_days: z.number().positive().optional(),
   });
 
   protected async executeInternal(validatedParameters: unknown): Promise<IToolResult> {
-    const params = validatedParameters as WorkspaceActivateInput;
+    const params = validatedParameters as WorkspaceSetupInput;
     
     try {
-      const result = await workspaceActivateTool.execute(params);
+      const result = await workspaceSetupTool.execute(params);
       
       return this.createTextResult(JSON.stringify({
         success: result.success,

@@ -3,7 +3,7 @@ import * as fs from 'fs/promises'
 import { WorkspaceManager } from '../tools/project-management/workspace-manager.js'
 import { AutoWorkspaceConfigManager } from './AutoWorkspaceConfigManager.js'
 import { AutoWorkspaceConfig } from '../types/auto-workspace-config.js'
-import { LSPManager } from './lsp/index.js'
+
 
 export class AutoWorkspaceManager {
   private isInitialized = false
@@ -64,81 +64,25 @@ export class AutoWorkspaceManager {
     // プロジェクトタイプの決定（設定 > 自動検出）
     const projectType = this.config.project.type || await this.detectProjectType(currentDir)
     
-    // LSPサーバーの決定（設定 > プロジェクトタイプベース）
-    const lspServers = this.config.project.lsp_servers || this.getLSPServersForProject(projectType)
-    
     this.log(`📁 Project: ${path.basename(currentDir)}`)
     this.log(`🔍 Project type: ${projectType}${this.config.project.type ? ' (configured)' : ' (detected)'}`)
-    this.log(`⚙️  LSP servers: ${lspServers.join(', ')}${this.config.project.lsp_servers ? ' (configured)' : ' (auto-selected)'}`)
     
     await this.workspaceManager.activateWorkspace(currentDir, {
       name: path.basename(currentDir),
       settings: {
-        lsp_servers: lspServers,
         index_enabled: this.config.project.index_enabled,
         auto_save_logs: this.config.project.auto_save_logs
       }
     })
     
-    // LSP自動起動の実行
-    await this.initializeLSPServers(currentDir, lspServers)
-    
     // バナー表示（設定に基づいて）
     if (this.config.display.show_banner) {
-      this.showReadyBanner(projectType, lspServers)
+      this.showReadyBanner(projectType)
     }
   }
   
-  /**
-   * LSPサーバーの自動初期化
-   */
-  private async initializeLSPServers(workspaceRoot: string, lspServers: string[]): Promise<void> {
-    if (!lspServers.length) {
-      this.log('⚠️  No LSP servers configured, skipping auto-initialization')
-      return
-    }
-
-    try {
-      this.log('🚀 Initializing LSP servers...')
-
-      // LSPManagerの初期化
-      const lspManager = LSPManager.getInstance()
-      await lspManager.initialize(workspaceRoot)
-
-      // 設定された言語の自動起動
-      const results = await lspManager.enableMultipleLanguages(lspServers)
-
-      // 結果の集計とログ出力
-      const successful: string[] = []
-      const failed: string[] = []
-      
-      for (const [language, success] of results.entries()) {
-        if (success) {
-          successful.push(language)
-        } else {
-          failed.push(language)
-        }
-      }
-
-      if (successful.length > 0) {
-        this.log(`✅ LSP servers started: ${successful.join(', ')}`)
-      }
-      if (failed.length > 0) {
-        this.log(`⚠️  LSP servers failed: ${failed.join(', ')}`)
-      }
-
-      // 依存関係レポート
-      const depReport = lspManager.getDependencyReport()
-      if (depReport) {
-        this.log(`📦 Dependencies: ${depReport.successful} installed, ${depReport.failed} failed`)
-      }
-
-    } catch (error) {
-      this.log(`❌ LSP initialization error: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      // エラーでも続行（LSPなしでも動作可能）
-    }
-  }
-  private showReadyBanner(projectType: string, lspServers: string[]) {
+  // LSP機能は v2.0 戦略転換により廃止済み
+  private showReadyBanner(projectType: string) {
     if (!this.config) return
     
     // カスタムバナーがある場合はそれを使用
@@ -151,7 +95,7 @@ export class AutoWorkspaceManager {
     const emoji = this.config.display.use_emojis
     const sparkles = emoji ? '✨' : '*'
     const target = emoji ? '🎯' : '-'
-    const wrench = emoji ? '🔧' : '+'
+
     const folder = emoji ? '📂' : '[]'
     const search = emoji ? '🔍' : '?'
     const shield = emoji ? '🛡️' : '#'
@@ -170,7 +114,7 @@ export class AutoWorkspaceManager {
 ║                                                              ║
 ║                 ${sparkles} WORKSPACE READY! ${sparkles}                      ║
 ║                                                              ║
-║   ${target} Project Type: ${projectType.padEnd(15)} ${wrench} LSP: ${lspServers.join(', ').padEnd(15)} ║
+║   ${target} Project Type: ${projectType.padEnd(30)}                    ║
 ║   ${folder} Semantic search enabled    ${search} Symbol analysis ready    ║
 ║   ${shield}  Security features active   ${chart} Audit logging enabled   ║
 ║                                                              ║
@@ -228,29 +172,7 @@ export class AutoWorkspaceManager {
     }
   }
   
-  private getLSPServersForProject(projectType: string): string[] {
-    const detectionRules = this.configManager.getDetectionRules()
-    
-    // 混合プロジェクトの場合は複数のLSPサーバーを返す
-    if (projectType === 'mixed') {
-      const detectedServers: string[] = []
-      for (const rule of detectionRules) {
-        if (['swift', 'typescript', 'go', 'rust', 'python'].includes(rule.type)) {
-          detectedServers.push(...rule.lsp_servers)
-        }
-      }
-      return [...new Set(detectedServers)] // 重複除去
-    }
-    
-    // 該当するルールからLSPサーバーを取得
-    const rule = detectionRules.find(r => r.type === projectType)
-    if (rule) {
-      return rule.lsp_servers
-    }
-    
-    // デフォルトはTypeScript
-    return ['typescript']
-  }
+  // LSP機能は v2.0 戦略転換により廃止済み
 
   /**
    * ログ出力（設定に基づいて詳細ログを制御）
