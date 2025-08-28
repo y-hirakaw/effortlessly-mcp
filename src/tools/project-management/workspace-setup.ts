@@ -46,11 +46,7 @@ export const workspaceSetupTool = {
         description: 'インデックス機能を有効にするか（デフォルト: true）',
         required: false,
       },
-      lsp_servers: {
-        type: 'array',
-        description: '使用するLSPサーバーのリスト（デフォルト: ["typescript", "python"]）',
-        required: false,
-      },
+
       auto_save_logs: {
         type: 'boolean',
         description: 'ログの自動保存を有効にするか（デフォルト: true）',

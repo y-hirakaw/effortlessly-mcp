@@ -26,20 +26,7 @@ export interface IntegratedConfig {
     current: string | null;
     configurations: Record<string, WorkspaceConfig>;
   };
-  lsp_servers: {
-    proxy_server: {
-      enabled: boolean;
-      host: string;
-      port: number;
-      auto_start: boolean;
-      startup_timeout: number;
-    };
-    supported_languages: Record<string, {
-      enabled: boolean;
-      server_command: string;
-      server_args: string[];
-    }>;
-  };
+
 
 }
 
@@ -144,32 +131,7 @@ export class ConfigManager {
           },
         },
       },
-      lsp_servers: {
-        proxy_server: {
-          enabled: true,
-          host: 'localhost',
-          port: 3001,
-          auto_start: true,
-          startup_timeout: 10000,
-        },
-        supported_languages: {
-          typescript: {
-            enabled: workspaceConfig.settings?.lsp_servers?.includes('typescript') ?? true,
-            server_command: 'typescript-language-server',
-            server_args: ['--stdio'],
-          },
-          python: {
-            enabled: workspaceConfig.settings?.lsp_servers?.includes('python') ?? false,
-            server_command: 'pylsp',
-            server_args: [],
-          },
-          swift: {
-            enabled: workspaceConfig.settings?.lsp_servers?.includes('swift') ?? false,
-            server_command: 'sourcekit-lsp',
-            server_args: [],
-          },
-        },
-      },
+
 
     };
 
@@ -214,13 +176,7 @@ export class ConfigManager {
     return config.workspaces.configurations[currentName] || null;
   }
 
-  /**
-   * LSPサーバー設定を取得
-   */
-  async getLSPServerConfig() {
-    const config = await this.loadConfig();
-    return config.lsp_servers;
-  }
+
 
 
 
@@ -255,32 +211,7 @@ export class ConfigManager {
         current: null,
         configurations: {},
       },
-      lsp_servers: {
-        proxy_server: {
-          enabled: true,
-          host: 'localhost',
-          port: 3001,
-          auto_start: true,
-          startup_timeout: 10000,
-        },
-        supported_languages: {
-          typescript: {
-            enabled: true,
-            server_command: 'typescript-language-server',
-            server_args: ['--stdio'],
-          },
-          python: {
-            enabled: true,
-            server_command: 'pylsp',
-            server_args: [],
-          },
-          swift: {
-            enabled: true,
-            server_command: 'sourcekit-lsp',
-            server_args: [],
-          },
-        },
-      },
+
 
     };
   }
@@ -296,7 +227,7 @@ export class ConfigManager {
         current: config.workspaces?.current || defaults.workspaces.current,
         configurations: { ...defaults.workspaces.configurations, ...config.workspaces?.configurations },
       },
-      lsp_servers: { ...defaults.lsp_servers, ...config.lsp_servers },
+
 
     };
   }

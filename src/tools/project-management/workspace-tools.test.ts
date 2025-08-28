@@ -69,7 +69,7 @@ workspace:
   last_accessed: "2024-01-01T00:00:00.000Z"
   settings:
     index_enabled: true
-    lsp_servers: []
+
     auto_save_logs: true
     log_retention_days: 30
     follow_symlinks: false
@@ -117,7 +117,7 @@ workspace:
   last_accessed: "2024-01-01T00:00:00.000Z"
   settings:
     index_enabled: false
-    lsp_servers: ["rust", "go"]
+
     auto_save_logs: false
     log_retention_days: 60
     follow_symlinks: false
@@ -127,7 +127,7 @@ workspace:
           workspace_path: mockProjectPath,
           name: 'custom-workspace',
           index_enabled: false,
-          lsp_servers: ['rust', 'go'],
+
           auto_save_logs: false,
           log_retention_days: 60,
         };
@@ -136,7 +136,7 @@ workspace:
 
         expect(result.success).toBe(true);
         expect(result.workspace.settings.index_enabled).toBe(false);
-        expect(result.workspace.settings.lsp_servers).toEqual(['rust', 'go']);
+
         expect(result.workspace.settings.auto_save_logs).toBe(false);
         expect(result.workspace.settings.log_retention_days).toBe(60);
       });
@@ -176,7 +176,7 @@ workspace:
   last_accessed: "2024-01-01T00:00:00.000Z"
   settings:
     index_enabled: true
-    lsp_servers: []
+
     auto_save_logs: true
     log_retention_days: 30
     follow_symlinks: false
@@ -240,7 +240,7 @@ workspaces:
       status: inactive
       file_count: 150
 
-lsp_servers:
+
   proxy_server:
     enabled: true
     host: localhost
@@ -301,7 +301,7 @@ workspaces:
       status: active
       file_count: 100
 
-lsp_servers:
+
   proxy_server:
     enabled: true
     host: localhost
@@ -365,7 +365,7 @@ workspace:
   last_accessed: "2024-01-01T00:00:00.000Z"
   settings:
     index_enabled: true
-    lsp_servers: []
+
     auto_save_logs: true
     log_retention_days: 30
     follow_symlinks: false

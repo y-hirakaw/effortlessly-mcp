@@ -14,7 +14,7 @@ export interface WorkspaceConfig {
  */
 export interface WorkspaceSettings {
   index_enabled: boolean;
-  lsp_servers: string[];
+
   auto_save_logs: boolean;
   log_retention_days: number;
   max_file_size?: number;

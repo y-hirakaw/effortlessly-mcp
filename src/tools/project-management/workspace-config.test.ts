@@ -10,7 +10,7 @@ describe('WorkspaceConfigValidator', () => {
     last_accessed: '2024-01-01T00:00:00.000Z',
     settings: {
       index_enabled: true,
-      lsp_servers: ['typescript', 'python'],
+
       auto_save_logs: true,
       log_retention_days: 30,
     },
@@ -25,7 +25,7 @@ describe('WorkspaceConfigValidator', () => {
       expect(result.name).toBe(validConfig.name);
       expect(result.root_path).toBe(validConfig.root_path);
       expect(result.settings.index_enabled).toBe(true);
-      expect(result.settings.lsp_servers).toEqual(['typescript', 'python']);
+
       expect(result.settings.follow_symlinks).toBe(false);
       // optional フィールドは設定されていないのでチェックしない
       expect(result.settings.max_file_size).toBeUndefined();
@@ -67,7 +67,7 @@ describe('WorkspaceConfigValidator', () => {
       const result = WorkspaceConfigValidator.validateConfig(minimalConfig);
       
       expect(result.settings.index_enabled).toBe(true);
-      expect(result.settings.lsp_servers).toEqual(['typescript', 'python']);
+
       expect(result.settings.auto_save_logs).toBe(true);
       expect(result.settings.log_retention_days).toBe(30);
       expect(result.settings.follow_symlinks).toBe(false);
@@ -85,7 +85,7 @@ describe('WorkspaceConfigValidator', () => {
       
       expect(result.index_enabled).toBe(false);
       expect(result.log_retention_days).toBe(60);
-      expect(result.lsp_servers).toBeUndefined();
+
     });
 
     it('空のオブジェクトを許可する', () => {
@@ -177,7 +177,7 @@ describe('WorkspaceConfigValidator', () => {
       
       expect(defaults).toEqual({
         index_enabled: true,
-        lsp_servers: ['typescript', 'python'],
+
         auto_save_logs: true,
         log_retention_days: 30,
         max_file_size: 1048576,
@@ -201,7 +201,7 @@ describe('WorkspaceConfigValidator', () => {
       expect(result.log_retention_days).toBe(60);
       
       // デフォルト値が保持される
-      expect(result.lsp_servers).toEqual(['typescript', 'python']);
+
       expect(result.auto_save_logs).toBe(true);
       expect(result.follow_symlinks).toBe(false);
     });
@@ -215,13 +215,13 @@ describe('WorkspaceConfigValidator', () => {
 
     it('配列の上書きを正しく処理する', () => {
       const customSettings: Partial<WorkspaceSettings> = {
-        lsp_servers: ['rust', 'go'],
+
         excluded_patterns: ['*.tmp'],
       };
 
       const result = WorkspaceConfigValidator.mergeWithDefaults(customSettings);
       
-      expect(result.lsp_servers).toEqual(['rust', 'go']);
+
       expect(result.excluded_patterns).toEqual(['*.tmp']);
     });
   });
