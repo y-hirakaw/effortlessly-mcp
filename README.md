@@ -90,6 +90,24 @@ effortlessly-mcpをClaude Codeで使用するには、Claude Codeの設定ファ
 ```
 
 > **📝 注意**: `/path/to/your/effortlessly-mcp/build/index.js` は実際のクローンしたディレクトリのパスに置き換えてください。
+## トラブルシューティング
+
+### 起動時エラーのデバッグ
+
+MCPサーバーが起動時にエラーになった場合、以下の場所に詳細なエラーログが自動的に保存されます：
+
+```
+~/.claude/workspace/effortlessly/logs/startup-errors/startup-error-[timestamp].txt
+```
+
+エラーログには以下の情報が含まれます：
+- エラーメッセージとスタックトレース
+- Node.jsバージョンとプラットフォーム情報
+- 現在のディレクトリ
+- 環境変数（デバッグ用）
+
+また、コンソール（標準エラー出力）にもタイムスタンプ付きのリアルタイムログが出力されます。
+
 
 ## 技術仕様
 
