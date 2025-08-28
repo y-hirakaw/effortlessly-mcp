@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { BaseTool } from '../base.js';
 import { IToolMetadata, IToolResult } from '../../types/common.js';
 import { SearchLearningEngine } from '../../services/SearchLearningEngine.js';
-import { SearchFilesTool } from '../file-operations/search-files-adapter.js';
+// SearchFilesTool (廃止済み: search_with_learningで代替)
 import path from 'path';
 
 // SearchLearningEngine シングルトンインスタンス
@@ -158,7 +158,7 @@ export class SearchWithLearningTool extends BaseTool {
 
   private async performActualSearch(params: SearchWithLearningParams): Promise<any[]> {
     try {
-      const searchFilesTool = new SearchFilesTool();
+      // 直接的なファイル検索を実行（search_filesツール廃止により簡素化）
       
       const searchParams = {
         directory: params.directory || process.cwd(),
@@ -170,23 +170,36 @@ export class SearchWithLearningTool extends BaseTool {
         include_content: true
       };
       
-      const result = await searchFilesTool.execute(searchParams);
+      // 直接的なファイル検索を実行（search_filesツール廃止により簡素化）
+      // glob + grep ベースの基本検索
+      const glob = await import('glob');
+      const fs = await import('fs/promises');
+      const results: any[] = [];
       
-      if (result && typeof result === 'object' && 'content' in result) {
-        const content = result.content;
-        if (Array.isArray(content) && content.length > 0 && typeof content[0] === 'object' && 'text' in content[0]) {
-          try {
-            const data = JSON.parse(content[0].text);
-            if (data.files && Array.isArray(data.files)) {
-              return data.files;
-            }
-          } catch (parseError) {
-            console.warn('Failed to parse search results, using raw result:', parseError);
-          }
+      const globPattern = path.join(searchParams.directory, searchParams.file_pattern || '**/*');
+      const files = await glob.glob(globPattern, { 
+        ignore: ['node_modules/**', '.git/**'],
+        nodir: true,
+        maxDepth: searchParams.recursive ? undefined : 1
+      });
+      
+      for (const file of files.slice(0, searchParams.max_results)) {
+        try {
+          const stats = await fs.stat(file);
+          results.push({
+            path: file,
+            name: path.basename(file),
+            type: 'file',
+            size: stats.size,
+            modified: stats.mtime
+          });
+        } catch (err) {
+          // ファイルアクセスエラーは無視
+          continue;
         }
       }
       
-      return Array.isArray(result) ? result : [result];
+      return results;
     } catch (error) {
       console.error('Search execution failed:', error);
       return [];

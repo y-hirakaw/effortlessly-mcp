@@ -1,24 +1,16 @@
 import { ITool } from '../types/common.js';
 import { Logger } from '../services/logger.js';
-// import { EchoTool } from './echo.js'; // デバッグ用途のみ
+
 import { ReadFileTool } from './file-operations/read-file-adapter.js';
 import { ListDirectoryTool } from './file-operations/list-directory-adapter.js';
 import { GetFileMetadataTool } from './file-operations/get-file-metadata-adapter.js';
-// import { SearchFilesTool } from './file-operations/search-files-adapter.js'; // 廃止: search_with_learningで代替
+
 import { 
   WorkspaceSetupTool, 
   WorkspaceGetInfoTool, 
   WorkspaceListAllTool 
 } from './project-management/index.js';
-import { 
-  CodeFindSymbolTool, 
-  CodeFindReferencesTool,
-  CodeGetSymbolHierarchyTool,
-  CodeAnalyzeDependenciesTool,
-  CodeSearchPatternTool,
-  CodeFindReferencingSymbolsTool,
-  CodeGetSymbolsOverviewTool
-} from './code-analysis/index.js';
+// LSP関連ツール (v2.0 戦略転換により廃止済み)
 import {
   ProjectMemoryWriteTool,
   ProjectMemoryReadTool,
@@ -26,18 +18,14 @@ import {
   ProjectMemorySmartReadTool
 } from './project-memory/index.js';
 import { ProjectMemoryUpdateWorkflowTool } from './project-memory-update-workflow.js';
-import {
-  CodeReplaceSymbolBodyTool,
-  CodeInsertAtSymbolTool,
-  CodeReplaceWithRegexTool
-} from './code-editing/index.js';
+// LSP関連コード編集ツール (v2.0 戦略転換により廃止済み)
 import {
   SmartEditFileTool,
   SmartInsertTextTool,
   OverrideTextTool,
   SmartRangeOptimizerTool
 } from './file-operations/index.js';
-import { JavaLSPBasicDiagnosticsTool } from './code-analysis/java-lsp-basic-diagnostics.js';
+// JavaLSP基本診断ツール (v2.0 戦略転換により廃止済み)
 import { 
   searchWithLearning
   // optimizeSearchQuery, getSearchStatistics, updateSearchPatterns は廃止済み
@@ -67,27 +55,19 @@ export class ToolRegistry {
    */
   private registerDefaultTools(): void {
     // 基本ツール
-    // this.registerTool(new EchoTool()); // デバッグ・接続テスト用途のみ
     
     // ファイル操作ツール
     this.registerTool(new ReadFileTool());
     this.registerTool(new ListDirectoryTool());
     this.registerTool(new GetFileMetadataTool());
-    // this.registerTool(new SearchFilesTool()); // → search_with_learningで代替
+
     
     // プロジェクト管理ツール
     this.registerTool(new WorkspaceSetupTool());
     this.registerTool(new WorkspaceGetInfoTool());
     this.registerTool(new WorkspaceListAllTool());
     
-    // コード解析ツール
-    this.registerTool(new CodeFindSymbolTool());
-    this.registerTool(new CodeFindReferencesTool());
-    this.registerTool(new CodeGetSymbolHierarchyTool());
-    this.registerTool(new CodeAnalyzeDependenciesTool());
-    this.registerTool(new CodeSearchPatternTool());
-    this.registerTool(new CodeFindReferencingSymbolsTool());
-    this.registerTool(new CodeGetSymbolsOverviewTool());
+    // コード解析ツール (LSP機能は v2.0 戦略転換により廃止済み)
     
     // プロジェクト知識管理ツール
     this.registerTool(new ProjectMemoryWriteTool());
@@ -98,10 +78,7 @@ export class ToolRegistry {
     // プロジェクト更新ワークフローツール
     this.registerTool(new ProjectMemoryUpdateWorkflowTool());
     
-    // 精密コード編集ツール
-    this.registerTool(new CodeReplaceSymbolBodyTool());
-    this.registerTool(new CodeInsertAtSymbolTool());
-    this.registerTool(new CodeReplaceWithRegexTool());
+    // 精密コード編集ツール (LSP機能は v2.0 戦略転換により廃止済み)
     
     // スマート編集ツール
     this.registerTool(new SmartEditFileTool());
@@ -111,8 +88,7 @@ export class ToolRegistry {
     // スマート読み込みツール（新規追加 ROI 400%）
     this.registerTool(new SmartRangeOptimizerTool());
     
-    // Java LSP基本診断ツール（Phase 2A）
-    this.registerTool(new JavaLSPBasicDiagnosticsTool());
+    // Java LSP基本診断ツール (LSP機能は v2.0 戦略転換により廃止済み)
     
     // 🆕 AI強化検索機能（v2.0新機能・最高ROI：350%）
     this.registerTool(searchWithLearning);

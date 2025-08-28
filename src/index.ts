@@ -41,20 +41,7 @@ function registerTools(): void {
   for (const [name, tool] of tools) {
     // Register tool based on its name with appropriate schema
     switch (name) {
-      // case 'echo': // デバッグ・接続テスト用途のみ、エンドユーザー不要
-        /*
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            message: z.string().describe('The message to echo back'),
-            prefix: z.string().optional().describe('Optional prefix for the message'),
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        */
-        
+
       case 'read_file':
         server.tool(
           name,
@@ -94,26 +81,7 @@ function registerTools(): void {
         );
         break;
         
-      // case 'search_files': // → search_with_learningで代替可能（learn_patterns: false で軽量実行）
-        /*
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            directory: z.string().describe('検索対象のディレクトリパス'),
-            file_pattern: z.string().optional().describe('ファイル名のパターン（glob形式）'),
-            content_pattern: z.string().optional().describe('ファイル内容の検索パターン（正規表現）'),
-            recursive: z.boolean().optional().default(false).describe('再帰的に検索するかどうか'),
-            case_sensitive: z.boolean().optional().default(false).describe('大文字小文字を区別するかどうか'),
-            max_depth: z.number().optional().describe('最大検索深度'),
-            max_results: z.number().optional().default(100).describe('最大結果数'),
-            include_content: z.boolean().optional().default(false).describe('マッチした内容を含めるかどうか'),
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        */
-        
+
       case 'workspace_setup':
         server.tool(
           name,
@@ -147,70 +115,7 @@ function registerTools(): void {
         );
         break;
         
-      // LSP機能無効化 (v2.0方針転換) - code_find_symbol
-      // case 'code_find_symbol':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       symbol_name: z.string().min(1).describe('検索するシンボル名'),
-      //       search_type: z.enum(['exact', 'fuzzy']).optional().default('fuzzy').describe('検索タイプ'),
-      //       symbol_kind: z.number().optional().describe('シンボルの種類（SymbolKind）'),
-      //       file_pattern: z.string().optional().describe('ファイルパターン（部分マッチ）'),
-      //       max_results: z.number().min(1).max(1000).optional().default(100).describe('最大結果数'),
-      //       enable_fallback: z.boolean().optional().default(true).describe('フォールバック検索を有効にするか（デフォルト: true）')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_find_references
-      // case 'code_find_references':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       file_path: z.string().min(1).describe('ファイルパス'),
-      //       line: z.number().min(0).describe('行番号（0から開始）'),
-      //       column: z.number().min(0).describe('列番号（0から開始）'),
-      //       include_declaration: z.boolean().optional().default(true).describe('宣言も含めるかどうか')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_get_symbol_hierarchy
-      // case 'code_get_symbol_hierarchy':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       file_path: z.string().optional().describe('特定のファイルのシンボル階層を取得（省略時はディレクトリ全体）'),
-      //       directory_path: z.string().optional().describe('特定のディレクトリのシンボル階層を取得（省略時は全体）'),
-      //       max_depth: z.number().min(1).max(10).optional().default(3).describe('最大階層深度'),
-      //       include_private: z.boolean().optional().default(false).describe('プライベートシンボルも含めるか'),
-      //       symbol_kinds: z.array(z.number()).optional().describe('含めるシンボル種類の配列（SymbolKind）')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_analyze_dependencies
-      // case 'code_analyze_dependencies':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       file_path: z.string().min(1).describe('分析対象のファイルパス'),
-      //       depth: z.number().min(1).max(10).optional().default(3).describe('依存関係の追跡深度'),
-      //       include_external: z.boolean().optional().default(true).describe('外部ライブラリの依存関係も含めるか'),
-      //       include_dev_dependencies: z.boolean().optional().default(false).describe('開発依存関係も含めるか'),
-      //       resolve_imports: z.boolean().optional().default(true).describe('インポートパスを解決するか')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
+
       case 'smart_edit_file':
         server.tool(
           name,
@@ -330,113 +235,7 @@ function registerTools(): void {
         );
         break;
         
-      // LSP機能無効化 (v2.0方針転換) - code_search_pattern
-      // case 'code_search_pattern':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       pattern: z.string().describe('検索パターン（正規表現）'),
-      //       file_pattern: z.string().optional().describe('対象ファイルのパターン（glob形式）'),
-      //       directory_path: z.string().optional().describe('検索対象ディレクトリ'),
-      //       max_results: z.number().optional().default(100).describe('最大結果数'),
-      //       include_context: z.boolean().optional().default(true).describe('コンテキストを含める'),
-      //       case_sensitive: z.boolean().optional().default(false).describe('大文字小文字を区別')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_find_referencing_symbols
-      // case 'code_find_referencing_symbols':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       target_file: z.string().describe('対象ファイルパス'),
-      //       target_symbol: z.string().describe('対象シンボル名'),
-      //       search_scope: z.enum(['workspace', 'project', 'directory']).optional().default('workspace').describe('検索範囲'),
-      //       max_results: z.number().optional().default(100).describe('最大結果数'),
-      //       include_context: z.boolean().optional().default(true).describe('コンテキストを含める')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_get_symbols_overview
-      // case 'code_get_symbols_overview':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       relative_path: z.string().describe('対象パス（ファイルまたはディレクトリ）'),
-      //       max_depth: z.number().optional().default(3).describe('最大階層深度'),
-      //       include_private: z.boolean().optional().default(false).describe('プライベートシンボルを含める'),
-      //       symbol_kinds: z.array(z.number()).optional().describe('含めるシンボル種類')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_replace_symbol_body
-      // case 'code_replace_symbol_body':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       file_path: z.string().describe('対象ファイルパス'),
-      //       symbol_name: z.string().describe('置換対象のシンボル名'),
-      //       new_body: z.string().describe('新しいシンボル本体'),
-      //       backup: z.boolean().optional().default(true).describe('バックアップを作成')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_insert_at_symbol
-      // case 'code_insert_at_symbol':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       file_path: z.string().describe('対象ファイルパス'),
-      //       symbol_name: z.string().describe('挿入位置のシンボル名'),
-      //       content: z.string().describe('挿入するコンテンツ'),
-      //       position: z.enum(['before', 'after', 'inside']).describe('挿入位置'),
-      //       backup: z.boolean().optional().default(true).describe('バックアップを作成')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
-      // LSP機能無効化 (v2.0方針転換) - code_replace_with_regex
-      // case 'code_replace_with_regex':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       file_path: z.string().describe('対象ファイルパス'),
-      //       search_pattern: z.string().describe('検索パターン（正規表現）'),
-      //       replacement: z.string().describe('置換文字列'),
-      //       flags: z.string().optional().describe('正規表現フラグ'),
-      //       backup: z.boolean().optional().default(true).describe('バックアップを作成')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
 
-      // LSP機能廃止予定のため一時無効化
-      // case 'java_lsp_basic_diagnostics':
-      //   server.tool(
-      //     name,
-      //     tool.metadata.description,
-      //     {
-      //       detailed: z.boolean().optional().default(false).describe('詳細情報を含めるか')
-      //     },
-      //     createToolHandler(name, tool)
-      //   );
-      //   break;
-        
       // 🆕 Search Learning Engine ツール群 (v2.0 AI強化機能)
       case 'search_with_learning':
         server.tool(
