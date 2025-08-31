@@ -6,9 +6,7 @@ import { ListDirectoryTool } from './file-operations/list-directory-adapter.js';
 import { GetFileMetadataTool } from './file-operations/get-file-metadata-adapter.js';
 
 import { 
-  WorkspaceSetupTool, 
-  WorkspaceGetInfoTool, 
-  WorkspaceListAllTool 
+  WorkspaceSetupTool
 } from './project-management/index.js';
 // LSP関連ツール (v2.0 戦略転換により廃止済み)
 import {
@@ -64,8 +62,6 @@ export class ToolRegistry {
     
     // プロジェクト管理ツール
     this.registerTool(new WorkspaceSetupTool());
-    this.registerTool(new WorkspaceGetInfoTool());
-    this.registerTool(new WorkspaceListAllTool());
     
     // コード解析ツール (LSP機能は v2.0 戦略転換により廃止済み)
     

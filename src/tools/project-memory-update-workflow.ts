@@ -1027,14 +1027,7 @@ ${jsonTemplates[scale]}
       expected_output: '保存済みメモリの一覧と統計情報'
     });
 
-    // ワークスペース情報取得
-    steps.push({
-      step: stepCounter++,
-      tool: 'workspace_get_info',
-      params: {},
-      purpose: '現在のワークスペース設定を確認',
-      expected_output: 'アクティブなワークスペースの詳細情報'  
-    });
+
 
     // プロジェクト構造の概要
     steps.push({

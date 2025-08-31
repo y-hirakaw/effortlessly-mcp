@@ -97,24 +97,8 @@ function registerTools(): void {
         );
         break;
         
-      case 'workspace_get_info':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {},
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'workspace_list_all':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {},
-          createToolHandler(name, tool)
-        );
-        break;
-        
+
+
 
       case 'smart_edit_file':
         server.tool(

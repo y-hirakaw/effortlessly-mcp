@@ -4,13 +4,9 @@ export { WorkspaceConfigValidator } from './workspace-config.js';
 
 // ツールの実装（関数版）
 export { workspaceSetupTool } from './workspace-setup.js';
-export { workspaceGetInfoTool } from './workspace-get-info.js';
-export { workspaceListAllTool } from './workspace-list-all.js';
 
 // ツールアダプター（ITool互換クラス版）
 export { WorkspaceSetupTool } from './workspace-setup-adapter.js';
-export { WorkspaceGetInfoTool } from './workspace-get-info-adapter.js';
-export { WorkspaceListAllTool } from './workspace-list-all-adapter.js';
 
 // 型定義
 export type { 
@@ -23,5 +19,3 @@ export type {
 } from './types.js';
 
 export type { WorkspaceSetupInput } from './workspace-setup.js';
-export type { WorkspaceInfoResult } from './workspace-get-info.js';
-export type { WorkspaceListResult } from './workspace-list-all.js';
