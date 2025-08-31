@@ -46,7 +46,8 @@ export class ProjectMemoryListTool extends BaseTool {
 
     this.logger.info('Listing project memories', {
       filterTags: filter_tags?.join(', ') || 'none',
-      includeStatistics: include_statistics
+      includeStatistics: include_statistics,
+      rawParams: JSON.stringify(params)
     });
 
     // ワークスペースの取得

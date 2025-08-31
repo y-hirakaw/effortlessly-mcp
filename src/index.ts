@@ -97,9 +97,6 @@ function registerTools(): void {
         );
         break;
         
-
-
-
       case 'smart_edit_file':
         server.tool(
           name,
@@ -199,8 +196,8 @@ function registerTools(): void {
           name,
           tool.metadata.description,
           {
-            tag_filter: z.string().optional().describe('Filter by tag'),
-            include_statistics: z.boolean().optional().default(false).describe('Include statistics')
+            filter_tags: z.array(z.string()).optional().describe('Filter memories by tags'),
+            include_statistics: z.boolean().optional().default(false).describe('Include detailed statistics')
           },
           createToolHandler(name, tool)
         );
