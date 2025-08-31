@@ -336,10 +336,10 @@ export class ProjectMemoryService {
       const index = await this.loadIndex();
       let memories = Object.values(index.memories);
 
-      // タグフィルタリング
+      // タグフィルタリング (AND条件: すべての指定タグを持つメモリのみ)
       if (filterTags && filterTags.length > 0) {
         memories = memories.filter(memory =>
-          filterTags.some(tag => memory.tags.includes(tag))
+          filterTags.every(tag => memory.tags.includes(tag))
         );
       }
 
