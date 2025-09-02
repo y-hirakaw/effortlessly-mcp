@@ -1,8 +1,9 @@
-# Claude Code Integration Guide
+# Claude Code統合設定
 
-プロジェクトの`CLAUDE.md`ファイルに以下をコピー&ペーストしてください。
+プロジェクトの`CLAUDE.md`ファイルに以下をコピー&ペーストしてください：
 
----
+```markdown
+# ファイル操作について
 
 ## effortlessly-mcp ツール必須使用設定
 
@@ -22,7 +23,22 @@
 
 **Large (>50KB)**: `smart_range_optimizer` 使用
 **Small (<50KB)**: `read_file` 使用
+```
 
----
+## 主な機能
 
-**重要**: この設定により、Claude Codeは自動的にeffortlessly-mcpツールを優先使用し、より高性能で安全なファイル操作が実現されます。
+- **AI検索**: `search_with_learning` - 学習型高速検索
+- **プロジェクトメモリ**: `project_memory_*` - AI駆動知識管理
+- **安全編集**: `smart_edit_file` - バックアップ付き編集
+- **ワークスペース**: `workspace_setup` - プロジェクト環境管理
+
+## トラブルシューティング
+
+問題が発生した場合は、プロジェクトルートで以下を実行：
+
+```bash
+npm run build  # ビルド
+node build/index.js  # 直接実行テスト
+```
+
+詳細なエラーは`.claude/workspace/effortlessly/logs/`に保存されます。
