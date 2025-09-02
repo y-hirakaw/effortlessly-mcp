@@ -18,9 +18,9 @@ let searchLearningEngineInstance: SearchLearningEngine | null = null;
  */
 async function getSearchLearningEngine(): Promise<SearchLearningEngine> {
   if (!searchLearningEngineInstance) {
-    // .claude/workspace/effortlessly/search_learning.db に保存
-    const dbPath = path.join(process.cwd(), '.claude', 'workspace', 'effortlessly', 'search_learning.db');
-    searchLearningEngineInstance = new SearchLearningEngine(dbPath);
+    // SearchLearningEngineはプロジェクトルートパスを受け取り、内部でワークスペースディレクトリを設定
+    const projectRoot = process.cwd();
+    searchLearningEngineInstance = new SearchLearningEngine(projectRoot);
     await searchLearningEngineInstance.initialize();
   }
   return searchLearningEngineInstance;

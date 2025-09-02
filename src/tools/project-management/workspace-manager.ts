@@ -57,12 +57,10 @@ export class WorkspaceManager {
   private async ensureWorkspaceStructure(): Promise<void> {
     const directories = [
       this.workspaceBaseDir,
-      // 新しい階層型インデックス構造
-      path.join(this.workspaceBaseDir, 'index'),
-      path.join(this.workspaceBaseDir, 'index', 'knowledge'),
-      path.join(this.workspaceBaseDir, 'index', 'project'),
-      path.join(this.workspaceBaseDir, 'index', 'lsp_symbols'),
-      path.join(this.workspaceBaseDir, 'index', 'meta'),
+      // プロジェクトメモリ用ディレクトリ
+      path.join(this.workspaceBaseDir, 'memory'),
+      // 検索インデックス用ディレクトリ
+      path.join(this.workspaceBaseDir, 'search_index'),
       // ログディレクトリ
       path.join(this.workspaceBaseDir, 'logs', 'audit'),
       path.join(this.workspaceBaseDir, 'logs', 'error'),

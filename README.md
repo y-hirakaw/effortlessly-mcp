@@ -88,6 +88,25 @@ effortlessly-mcpをClaude Codeで使用するには、Claude Codeの設定ファ
 ```
 
 > **📝 注意**: `/path/to/your/effortlessly-mcp/build/index.js` は実際のクローンしたディレクトリのパスに置き換えてください。
+
+### ワークスペースディレクトリ構造
+
+effortlessly-mcpは以下のディレクトリ構造でデータを管理します：
+
+```
+.claude/workspace/effortlessly/
+├── memory/              # プロジェクトメモリ（知識・ドキュメント）
+├── search_index/        # AI検索インデックス（SQLite）
+├── config/              # 設定ファイル（YAML）
+├── logs/                # 監査・エラー・デバッグログ
+├── backups/             # ファイルバックアップ
+└── temp/                # 一時ファイル
+```
+
+**v2.0での改善**:
+- 階層型の複雑なディレクトリ構造を廃止
+- フラットで理解しやすい構造に変更
+- プロジェクトメモリとAI検索の配置を最適化
 ## トラブルシューティング
 
 ### 起動時エラーのデバッグ
@@ -95,7 +114,7 @@ effortlessly-mcpをClaude Codeで使用するには、Claude Codeの設定ファ
 MCPサーバーが起動時にエラーになった場合、以下の場所に詳細なエラーログが自動的に保存されます：
 
 ```
-~/.claude/workspace/effortlessly/logs/startup-errors/startup-error-[timestamp].txt
+.claude/workspace/effortlessly/logs/startup-errors/startup-error-[timestamp].txt
 ```
 
 エラーログには以下の情報が含まれます：

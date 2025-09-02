@@ -79,16 +79,23 @@ export class SearchLearningEngine {
   constructor(workspaceRoot: string) {
     this.workspaceRoot = workspaceRoot;
     
-    // SQLiteデータベースのパス設定
-    const workspaceDir = path.join(workspaceRoot, '.claude', 'workspace', 'effortlessly');
-    const indexDir = path.join(workspaceDir, 'index');
-    
-    // ディレクトリ作成
-    if (!fs.existsSync(indexDir)) {
-      fs.mkdirSync(indexDir, { recursive: true });
+    // workspaceRootが既に.claude/workspace/effortlessly配下の場合はそのまま使用
+    // そうでない場合は追加のパスを構築
+    let workspaceDir: string;
+    if (workspaceRoot.includes('.claude/workspace/effortlessly')) {
+      // 既に正しいワークスペースパスの場合はそのまま使用
+      workspaceDir = workspaceRoot;
+    } else {
+      // プロジェクトルートの場合は.claude/workspace/effortlesslyを追加
+      workspaceDir = path.join(workspaceRoot, '.claude', 'workspace', 'effortlessly');
     }
     
-    this.dbPath = path.join(indexDir, 'search_learning.db');
+    // ディレクトリ作成
+    if (!fs.existsSync(workspaceDir)) {
+      fs.mkdirSync(workspaceDir, { recursive: true });
+    }
+    
+    this.dbPath = path.join(workspaceDir, 'search_learning.db');
     this.db = new Database(this.dbPath);
     this.initializeDatabase();
     this.initializeFileTracking();

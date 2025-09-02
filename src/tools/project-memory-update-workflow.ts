@@ -454,10 +454,10 @@ ${jsonTemplates[scale]}
       step: stepCounter++,
       tool: 'list_directory',
       params: {
-        directory_path: '.claude/workspace/effortlessly/index/knowledge',
+        directory_path: '.claude/workspace/effortlessly/memory',
         recursive: false
       },
-      purpose: 'index/knowledge/ディレクトリ内のカテゴリ別インデックスを確認',
+      purpose: 'memoryディレクトリ内の保存済みメモリを確認',
       expected_output: 'カテゴリ別知識インデックスファイルの存在状況'
     });
 
@@ -561,9 +561,9 @@ ${jsonTemplates[scale]}
       step: stepCounter++,
       tool: 'list_directory',
       params: {
-        directory_path: '.claude/workspace/effortlessly/index/knowledge'
+        directory_path: '.claude/workspace/effortlessly/memory'
       },
-      purpose: 'index/knowledge/ディレクトリの存在確認（作成が必要かチェック）',
+      purpose: 'memoryディレクトリの存在確認（作成が必要かチェック）',
       expected_output: 'knowledge/ディレクトリの状況'
     });
 
@@ -610,7 +610,7 @@ ${jsonTemplates[scale]}
         'これはプレビューです。実際の実行時は各ステップを順番に実行してください。',
         `${category}カテゴリに特化した詳細情報が生成されます。`
       ] : [
-        `${category}カテゴリの階層的インデックスが index/knowledge/ ディレクトリに保存されます。`,
+        `${category}カテゴリのインデックスが memory/ ディレクトリに保存されます。`,
         'メタインデックスからこのカテゴリインデックスにリンクされます。'
       ]
     };

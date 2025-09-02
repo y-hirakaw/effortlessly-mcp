@@ -7,12 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 変更
+- 🏗️ **ワークスペースディレクトリ構造の合理化**
+  - `.claude/workspace/effortlessly/index/knowledge/` → `.claude/workspace/effortlessly/memory/`
+  - `.claude/workspace/effortlessly/index/` → `.claude/workspace/effortlessly/search_index/` (SQLite)
+  - 階層型ディレクトリの複雑性を排除し、フラットで理解しやすい構造に変更
+  - プロジェクトメモリとSearchLearningEngineの配置を最適化
+  - 既存データの自動移行完了
+
 ### 削除
 - 🗑️ **実用性の低いワークスペース管理ツール削除**
   - `workspace_get_info` - 単純な情報取得のみで付加価値なし
   - `workspace_list_all` - 重複データが多く管理機能不足
   - ワークスペース管理を`workspace_setup`に一本化
   - コードベースの簡素化と保守性向上
+- 🗑️ **冗長な階層型ディレクトリ作成処理**
+  - `index/project/`, `index/lsp_symbols/`, `index/meta/`ディレクトリの作成を削除
+  - 必要最小限のディレクトリのみ作成（memory/, search_index/）
 
 ### 変更
 - 🔧 **ツール名変更**

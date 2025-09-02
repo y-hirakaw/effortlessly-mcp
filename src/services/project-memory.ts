@@ -52,47 +52,38 @@ export class ProjectMemoryService {
   private logger: Logger;
   private memoryIndex: MemoryIndex | null = null;
 
-  // 階層型ディレクトリ構造の定義
-  private readonly hierarchicalDirs = {
-    knowledge: 'knowledge',     // 一般的なプロジェクト知識
-    project: 'project',         // プロジェクト固有情報
-    lsp_symbols: 'lsp_symbols', // LSPシンボル情報
-    meta: 'meta'               // メタデータ・設定情報
+  // カテゴリ定義（将来的な拡張用）
+  private readonly categories = {
+    general: 'general',     // 一般的なプロジェクト知識
+    project: 'project',     // プロジェクト固有情報
+    meta: 'meta'           // メタデータ・設定情報
   };
 
   constructor(workspaceRoot: string, logger?: Logger) {
     this.workspaceRoot = workspaceRoot;
-    this.baseIndexDir = path.join(this.workspaceRoot, '.claude', 'workspace', 'effortlessly', 'index');
+    this.baseIndexDir = path.join(this.workspaceRoot, '.claude', 'workspace', 'effortlessly', 'memory');
     this.indexPath = path.join(this.baseIndexDir, 'memory_index.json');
     this.logger = logger || Logger.getInstance();
   }
 
   /**
-   * カテゴリに基づいてメモリディレクトリのパスを取得
+   * メモリディレクトリのパスを取得（すべて同一ディレクトリに保存）
    */
-  private getMemoryDirectory(category: string = 'knowledge'): string {
-    // カテゴリが階層型ディレクトリにない場合はknowledgeをデフォルトに
-    const validCategory = Object.values(this.hierarchicalDirs).includes(category) 
-      ? category 
-      : this.hierarchicalDirs.knowledge;
-    
-    return path.join(this.baseIndexDir, validCategory);
+  private getMemoryDirectory(): string {
+    return this.baseIndexDir;
   }
 
   /**
-   * タグに基づいてカテゴリを推定
+   * タグに基づいてカテゴリを推定（将来の拡張用）
    */
   private inferCategoryFromTags(tags: string[]): string {
-    if (tags.includes('architecture') || tags.includes('design') || tags.includes('system')) {
-      return this.hierarchicalDirs.project;
-    }
-    if (tags.includes('symbols') || tags.includes('lsp') || tags.includes('code')) {
-      return this.hierarchicalDirs.lsp_symbols;
-    }
     if (tags.includes('config') || tags.includes('meta') || tags.includes('settings')) {
-      return this.hierarchicalDirs.meta;
+      return this.categories.meta;
     }
-    return this.hierarchicalDirs.knowledge; // デフォルト
+    if (tags.includes('project') || tags.includes('architecture') || tags.includes('design')) {
+      return this.categories.project;
+    }
+    return this.categories.general; // デフォルト
   }
 
   /**
@@ -107,16 +98,7 @@ export class ProjectMemoryService {
       await fs.mkdir(this.baseIndexDir, { recursive: true });
     }
 
-    // 階層型サブディレクトリを作成
-    for (const dirName of Object.values(this.hierarchicalDirs)) {
-      const dirPath = path.join(this.baseIndexDir, dirName);
-      try {
-        await fs.access(dirPath);
-      } catch {
-        this.logger.info(`Creating hierarchical directory: ${dirPath}`);
-        await fs.mkdir(dirPath, { recursive: true });
-      }
-    }
+    // サブディレクトリは作成しない（すべて同一ディレクトリに保存）
   }
 
   /**
@@ -221,9 +203,8 @@ export class ProjectMemoryService {
 
       const normalizedName = this.normalizeMemoryName(memoryName);
       
-      // カテゴリを決定（指定されていなければタグから推定）
-      const finalCategory = category || this.inferCategoryFromTags(tags);
-      const memoryDir = this.getMemoryDirectory(finalCategory);
+      // メモリディレクトリを取得
+      const memoryDir = this.getMemoryDirectory();
       
       const fileName = `${normalizedName}.md`;
       const filePath = path.join(memoryDir, fileName);
@@ -231,6 +212,7 @@ export class ProjectMemoryService {
       // メタデータを作成
       const now = new Date().toISOString();
       const existingMemory = index.memories[normalizedName];
+      const finalCategory = category || this.inferCategoryFromTags(tags);
       const metadata: MemoryMetadata = {
         name: memoryName, // 元の名前を保持（正規化前）
         createdAt: existingMemory?.createdAt || now,
@@ -281,9 +263,8 @@ export class ProjectMemoryService {
         throw new Error(`Memory '${normalizedName}' not found`);
       }
 
-      // カテゴリに基づいてファイルパスを決定
-      const category = metadata.category || this.hierarchicalDirs.knowledge;
-      const memoryDir = this.getMemoryDirectory(category);
+      // メモリディレクトリを取得
+      const memoryDir = this.getMemoryDirectory();
       const fileName = `${normalizedName}.md`;
       const filePath = path.join(memoryDir, fileName);
 
@@ -381,9 +362,8 @@ export class ProjectMemoryService {
         throw new Error(`Memory '${normalizedName}' not found`);
       }
 
-      // カテゴリに基づいてファイルパスを決定
-      const category = index.memories[normalizedName].category || this.hierarchicalDirs.knowledge;
-      const memoryDir = this.getMemoryDirectory(category);
+      // メモリディレクトリを取得
+      const memoryDir = this.getMemoryDirectory();
       const fileName = `${normalizedName}.md`;
       const filePath = path.join(memoryDir, fileName);
 
@@ -442,8 +422,7 @@ export class ProjectMemoryService {
         // 内容検索
         if (searchContent && !matches) {
           try {
-            const category = memory.category || this.hierarchicalDirs.knowledge;
-            const memoryDir = this.getMemoryDirectory(category);
+            const memoryDir = this.getMemoryDirectory();
             const fileName = `${memory.name}.md`;
             const filePath = path.join(memoryDir, fileName);
             const content = await fs.readFile(filePath, 'utf8');
