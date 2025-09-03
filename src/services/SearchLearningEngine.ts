@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import Database from 'better-sqlite3';
+import { glob } from 'fast-glob';
 import { Logger } from './logger.js';
 
 const logger = Logger.getInstance();
@@ -535,57 +536,125 @@ export class SearchLearningEngine {
   }
 
   /**
-   * ディレクトリ内のファイル変更を検知
+   * ディレクトリ内のファイル変更を検知（fast-glob最適化版）
    */
   async detectChanges(directory: string = this.workspaceRoot): Promise<string[]> {
     const changedFiles: string[] = [];
+    const startTime = Date.now();
     
     try {
       const files = this.getAllFiles(directory);
       
-      for (const file of files) {
-        const currentHash = this.calculateFileHash(file);
-        if (!currentHash) continue;
+      // バッチ処理でパフォーマンス向上
+      const batchSize = 100;
+      for (let i = 0; i < files.length; i += batchSize) {
+        const batch = files.slice(i, i + batchSize);
         
-        const storedHash = this.fileHashes.get(file);
-        
-        if (!storedHash || storedHash !== currentHash) {
-          changedFiles.push(file);
-          this.fileHashes.set(file, currentHash);
+        for (const file of batch) {
+          const currentHash = this.calculateFileHash(file);
+          if (!currentHash) continue;
           
-          // データベースに更新を保存
-          const stats = fs.statSync(file);
-          const stmt = this.db.prepare(`
-            INSERT OR REPLACE INTO file_tracking 
-            (path, hash, last_modified, size, tracked_at)
-            VALUES (?, ?, ?, ?, ?)
-          `);
+          const storedHash = this.fileHashes.get(file);
           
-          stmt.run(
-            file,
-            currentHash,
-            stats.mtimeMs,
-            stats.size,
-            Date.now()
-          );
+          if (!storedHash || storedHash !== currentHash) {
+            changedFiles.push(file);
+            this.fileHashes.set(file, currentHash);
+            
+            // データベースに更新を保存（バッチ処理）
+            const stats = fs.statSync(file);
+            const stmt = this.db.prepare(`
+              INSERT OR REPLACE INTO file_tracking 
+              (path, hash, last_modified, size, tracked_at)
+              VALUES (?, ?, ?, ?, ?)
+            `);
+            
+            stmt.run(
+              file,
+              currentHash,
+              stats.mtimeMs,
+              stats.size,
+              Date.now()
+            );
+          }
         }
       }
       
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
       if (changedFiles.length > 0) {
-        logger.info('File changes detected', { count: changedFiles.length });
+        logger.info('File changes detected (fast-glob optimized)', { 
+          count: changedFiles.length,
+          totalFiles: files.length,
+          duration: `${duration}ms`,
+          avgPerFile: `${(duration / files.length).toFixed(2)}ms`
+        });
       }
       
     } catch (error) {
-      logger.error('Failed to detect changes', error as Error);
+      logger.error('Failed to detect changes (fast-glob)', error as Error);
     }
     
     return changedFiles;
   }
 
   /**
-   * ディレクトリ内の全ファイルを取得
+   * ディレクトリ内の全ファイルを取得（fast-glob最適化版）
    */
   private getAllFiles(dir: string): string[] {
+    try {
+      if (!fs.existsSync(dir)) return [];
+      
+      // fast-globを使用した高性能ファイル検索
+      // パフォーマンスを重視した設定
+      const files = glob.sync('**/*', {
+        cwd: dir,
+        absolute: true,
+        onlyFiles: true,
+        dot: false, // .で始まるファイルを除外
+        ignore: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/.vscode/**',
+          '**/.idea/**',
+          '**/build/**',
+          '**/dist/**',
+          '**/coverage/**',
+          '**/.claude/**',
+          '**/*.log',
+          '**/.DS_Store',
+          '**/Thumbs.db'
+        ],
+        // パフォーマンス最適化設定
+        stats: false, // statの無効化で高速化
+        followSymbolicLinks: false, // セキュリティとパフォーマンス
+        throwErrorOnBrokenSymbolicLink: false,
+        suppressErrors: true,
+        braceExpansion: false, // 不要な展開を無効化
+        extglob: false, // 拡張globパターンを無効化
+        globstar: true // **パターンは有効
+      });
+      
+      logger.debug(`Fast-glob scan completed`, { 
+        directory: dir, 
+        filesFound: files.length,
+        pattern: '**/*'
+      });
+      
+      return files;
+      
+    } catch (error) {
+      logger.error(`Fast-glob scan failed for directory ${dir}`, error as Error);
+      
+      // フォールバック：従来のfs.readdirSyncベース実装
+      return this.getAllFilesLegacy(dir);
+    }
+  }
+
+  /**
+   * レガシーファイル取得メソッド（フォールバック用）
+   */
+  private getAllFilesLegacy(dir: string): string[] {
     const files: string[] = [];
     
     try {
@@ -599,7 +668,7 @@ export class SearchLearningEngine {
         if (entry.isDirectory()) {
           // .git, node_modules等を除外
           if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
-            files.push(...this.getAllFiles(fullPath));
+            files.push(...this.getAllFilesLegacy(fullPath));
           }
         } else if (entry.isFile()) {
           files.push(fullPath);
