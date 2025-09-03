@@ -65,21 +65,20 @@ npm run format         # Format code with Prettier
 
 ## Security Design Principles
 
-1. **Security by Default**: All operations are read-only unless explicitly enabled
-2. **Whitelist Access Control**: Only explicitly allowed paths can be accessed
-3. **Sensitive Data Protection**: Automatic detection and masking of credentials, keys, etc.
-4. **Complete Audit Trail**: Every operation is logged to `.claude/workspace/effortlessly/logs/audit/`
-5. **No External Communication**: Fully offline operation
+1. **Security by Default**: All operations include security validation
+2. **Path Validation**: Symlink detection and path traversal attack prevention  
+3. **File Size Limits**: DoS attack prevention through size restrictions
+4. **No External Communication**: Fully offline operation
 
 ## Implementation Status
 
-**✅ v2.0完成済み - 実用性重視の高性能MCPサーバー**
+**✅ v2.0.0リリース完了 - 実用性重視の高性能MCPサーバー**
 
 **🎯 主力機能（高品質・本番対応）:**
 - ✅ **AI搭載SearchLearningEngine** - 43%高速化、ROI 350%実現
 - ✅ **スマート編集システム** - バックアップ・プレビュー・エラーハンドリング完備
 - ✅ **プロジェクトメモリ** - AI駆動知識管理・自動検索最適化
-- ✅ **セキュリティファースト** - ホワイトリスト・監査ログ・機密データ保護
+- ✅ **セキュリティ強化** - パス検証・ファイルサイズ制限・オフライン動作
 - ✅ **ワークスペース管理** - 設定自動生成・分離環境・YAML設定
 
 **🔧 ツール統合完了:**

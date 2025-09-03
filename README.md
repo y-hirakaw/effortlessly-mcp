@@ -4,52 +4,39 @@ Claude Code向けのMCP（Model Context Protocol）サーバーです。セキ�
 
 ## 主な機能
 
-- **ファイル操作**: 高速で確実な読み取り、編集、検索、メタデータ取得 ✅ **本番対応**
-- **プロジェクト管理**: AI駆動のメモリシステム、ワークスペース管理 ✅ **実用レベル**
-- **コード解析**: LSP機能は廃止中（v2.0で実用性重視に方針転換）
+- **セキュアファイル操作**: 読み取り、編集、検索、メタデータ取得
+- **AI搭載プロジェクト管理**: スマートメモリシステム、ワークスペース管理
+- **学習型検索システム**: パターン学習による高速検索
 
-## 利用可能なツール（14個）
+## 利用可能なツール（16個）
 
-### 基本ファイル操作（3個） ✅ **メイン機能**
-- **read_file**: ファイル読み取り（UTF-8対応）
+### 🔍 AI搭載検索システム
+- **search_with_learning**: 学習型高速検索
+  - 検索パターン自動学習
+  - ファイル変更検知・自動キャッシュ更新
+  - 統合検索（ファイル名・内容・パターン）
+
+### 📁 基本ファイル操作
+- **read_file**: ファイル読み取り（UTF-8対応・部分読み取り）
 - **list_directory**: ディレクトリ一覧（再帰・パターン対応）
-- **get_file_metadata**: ファイルメタデータ取得
+- **get_file_metadata**: ファイル詳細情報取得
 
-### スマート編集（3個） ✅ **強化済み**
-- **smart_edit_file**: 安全な置換・バックアップ機能
-- **smart_insert_text**: 位置指定テキスト挿入
-- **override_text**: バックアップ機能付きの安全な上書き
+### ✏️ スマート編集システム
+- **smart_edit_file**: 安全な置換（バックアップ・プレビュー機能付き）
+- **smart_insert_text**: 柔軟な位置指定テキスト挿入
+- **override_text**: ファイル完全置換（バックアップ機能付き）
 
-### AI検索システム（1個） 🚀 **NEW**
-- **search_with_learning**: AI搭載の学習型高速検索
-  - 検索パターン自動学習・最適化
-  - ファイル変更検知による自動キャッシュ無効化
-
-### スマート範囲最適化（1個） 🚀 **NEW**
-- **smart_range_optimizer**: セマンティック検索統合の最適範囲検出
-  - ONNXベースのセマンティック類似度スコアリング
-  - Intent別のセマンティッククエリ生成
-  - パターンマッチングとセマンティック検索のハイブリッド
-
-### ワークスペース管理（1個）
-- **workspace_setup**: ワークスペースセットアップ
-
-### プロジェクトメモリ（5個）**再検討中**
+### 🧠 プロジェクトメモリ
 - **project_memory_write/read**: プロジェクト知識の永続化・取得
-- **project_memory_list**: 保存済みメモリ一覧
-- **project_memory_smart_read**: AI駆動の最適メモリ自動検索・取得  
+- **project_memory_list**: 保存済みメモリ一覧・統計
+- **project_memory_smart_read**: AI駆動の最適メモリ検索
 - **project_memory_update_workflow**: メモリ更新手順生成
 
-### 🚫 廃止・非推奨機能
-- ~~search_files~~ → search_with_learningに統合
-- ~~echo~~ → デバッグ専用のため無効化
-- ~~java_lsp_basic_diagnostics~~ → LSP機能廃止により無効化
-- ~~optimize_search_query, get_search_statistics, update_search_patterns~~ → search_with_learningに統合
-- ~~シンボル検索、参照解析、依存関係分析~~ → v2.0で無効化済み
-- ~~階層構造取得、パターン検索~~ → 軽量化のため廃止
-- ~~LSPベースのコード編集機能~~ → スマート編集機能に統合
+### 🏢 ワークスペース管理
+- **workspace_setup**: ワークスペース初期化・設定
 
-**コンテキスト効率化**: 6個の検索ツールを1個に統合（83%削減）により、Claude Codeでの使用時のトークン消費量を大幅削減
+### 📏 最適化ツール
+- **smart_range_optimizer**: AI駆動の最適読み込み範囲提案
 
 ## セットアップ
 
@@ -89,24 +76,19 @@ effortlessly-mcpをClaude Codeで使用するには、Claude Codeの設定ファ
 
 > **📝 注意**: `/path/to/your/effortlessly-mcp/build/index.js` は実際のクローンしたディレクトリのパスに置き換えてください。
 
-### ワークスペースディレクトリ構造
+### ワークスペース構造
 
-effortlessly-mcpは以下のディレクトリ構造でデータを管理します：
+effortlessly-mcpは `.claude/workspace/effortlessly/` 配下にデータを管理します：
 
 ```
 .claude/workspace/effortlessly/
-├── memory/              # プロジェクトメモリ（知識・ドキュメント）
-├── search_index/        # AI検索インデックス（SQLite）
-├── config/              # 設定ファイル（YAML）
-├── logs/                # 監査・エラー・デバッグログ
-├── backups/             # ファイルバックアップ
+├── config/              # 設定ファイル
+├── memory/              # プロジェクト知識・メモリ
+├── search_index/        # 検索インデックス（SQLite）
+├── logs/                # 監査ログ
+├── backups/             # バックアップファイル
 └── temp/                # 一時ファイル
 ```
-
-**v2.0での改善**:
-- 階層型の複雑なディレクトリ構造を廃止
-- フラットで理解しやすい構造に変更
-- プロジェクトメモリとAI検索の配置を最適化
 ## トラブルシューティング
 
 ### 起動時エラーのデバッグ
@@ -126,28 +108,25 @@ MCPサーバーが起動時にエラーになった場合、以下の場所に�
 また、コンソール（標準エラー出力）にもタイムスタンプ付きのリアルタイムログが出力されます。
 
 
+## セキュリティ
+
+- **パス検証**: シンボリックリンク検知・パストラバーサル攻撃防止
+- **ファイルサイズ制限**: DoS攻撃防止のためのサイズ制限
+- **オフライン動作**: 外部通信なし
+
 ## 技術仕様
 
 - **言語**: TypeScript (ES2022)
 - **ランタイム**: Node.js 20+
-- **MCP SDK**: @modelcontextprotocol/sdk
-- **テストフレームワーク**: Vitest（**551テスト、100%成功**）
-- **リンター**: ESLint v9 + TypeScript strict mode
-- **設定形式**: YAML
-- **データベース**: SQLite（シンボル・ファイルインデックス）
+- **MCP SDK**: @modelcontextprotocol/sdk v1.17+
+- **データベース**: SQLite（検索インデックス）
+- **設定**: YAML形式
 
-## 📚 ドキュメント
+## 詳細情報
 
-- **[Claude Code統合設定](docs/CLAUDE-CODE-INTEGRATION.md)** - CLAUDE.md推奨設定
-- その他は整備中
-
-## ステータス
-
-- ✅ **本番対応**: ファイル操作・プロジェクト管理機能
-- 🚀 **新機能**: SmartRangeOptimizer セマンティック検索統合
-- 🚫 **廃止**: LSP機能（実用性重視の方針転換）
-
-詳細な変更履歴は [CHANGELOG.md](CHANGELOG.md) をご確認ください。
+- **ツールリファレンス**: [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md)
+- **変更履歴**: [CHANGELOG.md](CHANGELOG.md)
+- **Claude Code統合**: [CLAUDE.md](CLAUDE.md)
 
 ## 貢献・サポート
 
