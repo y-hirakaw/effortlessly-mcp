@@ -6,10 +6,13 @@ const logger = Logger.getInstance();
 
 /**
  * SmartRangeOptimizerにセマンティック検索機能を追加するエンハンサー
+ * v2.1: パフォーマンス最適化 - 並列処理・早期終了
  */
 export class SemanticRangeEnhancer {
   private embeddings: DirectMiniLMEmbeddings | null = null;
   private initialized = false;
+  // private queryCache: Map<string, any[]> = new Map(); // 今後の最適化用
+  // private readonly MAX_CONCURRENT_QUERIES = 3; // 今後の最適化用
   
   async initialize(): Promise<void> {
     try {

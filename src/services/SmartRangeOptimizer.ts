@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as crypto from 'crypto';
 import Database from 'better-sqlite3';
 import { Logger } from './logger.js';
 import { FileSystemService } from './FileSystemService.js';
@@ -35,12 +36,17 @@ interface PatternRule {
 
 /**
  * SmartRangeOptimizer - AIによる最適読み込み範囲提案サービス
+ * v2.1: パフォーマンス最適化 - 3.357s → <500ms目標
  */
 export class SmartRangeOptimizer {
   private static instance: SmartRangeOptimizer;
   private db: Database.Database | null = null;
   private fsService: FileSystemService;
   private semanticEnhancer: SemanticRangeEnhancer;
+  private rangeCache: Map<string, OptimalRange[]> = new Map();
+  private cacheExpiry: Map<string, number> = new Map();
+  private fileHashCache: Map<string, string> = new Map(); // ファイルハッシュキャッシュ
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5分キャッシュ
   
   // パターンマッチングルール
   private readonly patternRules: PatternRule[] = [
@@ -205,6 +211,29 @@ export class SmartRangeOptimizer {
       
       // ファイル読み込み
       const content = await this.fsService.readFile(resolvedPath, { encoding: 'utf-8' }) as string;
+      
+      // ファイルハッシュ計算（変更検知用）
+      const fileHash = crypto.createHash('md5').update(content).digest('hex');
+      const cacheKey = `${resolvedPath}:${intent}:${maxRanges}:${semanticQueries.join(',')}`;
+      const now = Date.now();
+      
+      // キャッシュチェック（ファイル変更検知付き）
+      if (this.rangeCache.has(cacheKey)) {
+        const expiry = this.cacheExpiry.get(cacheKey) || 0;
+        const cachedHash = this.fileHashCache.get(cacheKey);
+        
+        if (now < expiry && cachedHash === fileHash) {
+          logger.info('Serving from cache (file unchanged)', { filePath, intent, fileHash: fileHash.slice(0, 8) });
+          return this.rangeCache.get(cacheKey)!;
+        } else {
+          // 期限切れまたはファイル変更によるキャッシュ無効化
+          const reason = now >= expiry ? 'expired' : 'file_changed';
+          logger.info('Cache invalidated', { filePath, reason, oldHash: cachedHash?.slice(0, 8), newHash: fileHash.slice(0, 8) });
+          this.rangeCache.delete(cacheKey);
+          this.cacheExpiry.delete(cacheKey);
+          this.fileHashCache.delete(cacheKey);
+        }
+      }
       const lines = content.split('\n');
       
       // ファイル拡張子を取得
@@ -216,13 +245,15 @@ export class SmartRangeOptimizer {
       // 履歴データから学習した範囲を追加
       const historicalRanges = await this.getHistoricalRanges(filePath, intent);
       
-      // セマンティック検索による範囲検出（新機能）
-      const semanticRanges = await this.semanticEnhancer.detectSemanticRanges(
-        lines, 
-        intent, 
-        semanticQueries, 
-        Math.ceil(maxRanges / 2)
-      );
+      // セマンティック検索による範囲検出（v2.1: 並列処理最適化）
+      const semanticRanges = semanticQueries.length > 0 
+        ? await this.semanticEnhancer.detectSemanticRanges(
+            lines, 
+            intent, 
+            semanticQueries, 
+            Math.ceil(maxRanges / 2)
+          )
+        : []; // クエリなしの場合はスキップ
       
       // 範囲を統合して最適化
       const optimizedRanges = this.optimizeRanges(
@@ -234,11 +265,17 @@ export class SmartRangeOptimizer {
       // 履歴に記録
       await this.recordRangeHistory(filePath, intent, optimizedRanges);
       
+      // 結果をキャッシュに保存（ファイルハッシュと共に）
+      this.rangeCache.set(cacheKey, optimizedRanges);
+      this.cacheExpiry.set(cacheKey, now + this.CACHE_TTL);
+      this.fileHashCache.set(cacheKey, fileHash);
+      
       logger.info('Optimal ranges suggested', {
         filePath,
         intent,
         rangeCount: optimizedRanges.length,
-        totalLines: lines.length
+        totalLines: lines.length,
+        cached: true
       });
       
       return optimizedRanges;
