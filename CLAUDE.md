@@ -188,3 +188,8 @@ npm run format         # Format code with Prettier
 # チャットでのやり取りについて
 
 * 依頼者に忖度せず率直な意見を述べること
+
+# Web検索について
+
+* Web Searchツールではなく、必ず以下コマンドを使ってcodexに調査を依頼すること。{}をWebで調査させたい内容に置き換えてください。
+  * `codex exec --model gpt-5 --sandbox workspace-write --config "sandbox_workspace_write.network_access=true" "{}についてWeb検索した後調査結果を報告してください。Web検索する回数は最大5回までにすること" --skip-git-repo-check`
