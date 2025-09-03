@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
 import Database from 'better-sqlite3';
-import { glob } from 'fast-glob';
+import fg from 'fast-glob';
 import { Logger } from './logger.js';
 
 const logger = Logger.getInstance();
@@ -607,7 +607,7 @@ export class SearchLearningEngine {
       
       // fast-globを使用した高性能ファイル検索
       // パフォーマンスを重視した設定
-      const files = glob.sync('**/*', {
+      const files = fg.sync('**/*', {
         cwd: dir,
         absolute: true,
         onlyFiles: true,
