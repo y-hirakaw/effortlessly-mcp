@@ -45,7 +45,7 @@ type SearchWithLearningParams = z.infer<typeof SearchWithLearningSchema>;
 export class SearchWithLearningTool extends BaseTool {
   readonly metadata: IToolMetadata = {
     name: 'search_with_learning',
-    description: 'AI学習機能付きの高度な検索実行。検索パターンを学習し、将来の検索を最適化します。',
+    description: 'AI-powered learning search engine. Detects file changes for automatic cache invalidation, learns project-specific search patterns to optimize similar searches, and gets smarter with usage.',
     parameters: {
       query: { type: 'string', description: '検索クエリ', required: true },
       directory: { type: 'string', description: '検索対象ディレクトリ（デフォルト: カレントディレクトリ）', required: false },
