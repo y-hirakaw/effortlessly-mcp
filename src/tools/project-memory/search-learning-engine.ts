@@ -1,6 +1,6 @@
 /**
  * AI学習機能付き検索エンジンツール群
- * 検索パターンを学習し、将来の検索を最適化
+ * Learn search patternsし、将来の検索を最適化
  */
 
 import { z } from 'zod';
@@ -30,14 +30,14 @@ async function getSearchLearningEngine(): Promise<SearchLearningEngine> {
  * 検索実行と学習記録ツール
  */
 const SearchWithLearningSchema = z.object({
-  query: z.string().describe('検索クエリ'),
-  directory: z.string().optional().describe('検索対象ディレクトリ（デフォルト: カレントディレクトリ）'),
-  file_pattern: z.string().optional().describe('ファイル名パターン（glob形式）'),
-  content_pattern: z.string().optional().describe('ファイル内容の検索パターン（正規表現）'),
-  case_sensitive: z.boolean().optional().default(false).describe('大文字小文字を区別するか'),
-  recursive: z.boolean().optional().default(true).describe('再帰的に検索するか'),
-  max_results: z.number().optional().default(100).describe('最大結果数'),
-  learn_patterns: z.boolean().optional().default(true).describe('検索パターンを学習するか')
+  query: z.string().describe('Search query'),
+  directory: z.string().optional().describe('Search target directory (default: current directory)'),
+  file_pattern: z.string().optional().describe('File name pattern (glob format)'),
+  content_pattern: z.string().optional().describe('File content search pattern (regex)'),
+  case_sensitive: z.boolean().optional().default(false).describe('Case sensitive search'),
+  recursive: z.boolean().optional().default(true).describe('Recursive search'),
+  max_results: z.number().optional().default(100).describe('Maximum number of results'),
+  learn_patterns: z.boolean().optional().default(true).describe('Learn search patterns')
 });
 
 type SearchWithLearningParams = z.infer<typeof SearchWithLearningSchema>;
@@ -47,14 +47,14 @@ export class SearchWithLearningTool extends BaseTool {
     name: 'search_with_learning',
     description: 'AI-powered learning search engine. Detects file changes for automatic cache invalidation, learns project-specific search patterns to optimize similar searches, and gets smarter with usage.',
     parameters: {
-      query: { type: 'string', description: '検索クエリ', required: true },
-      directory: { type: 'string', description: '検索対象ディレクトリ（デフォルト: カレントディレクトリ）', required: false },
-      file_pattern: { type: 'string', description: 'ファイル名パターン（glob形式）', required: false },
-      content_pattern: { type: 'string', description: 'ファイル内容の検索パターン（正規表現）', required: false },
-      case_sensitive: { type: 'boolean', description: '大文字小文字を区別するか', required: false },
-      recursive: { type: 'boolean', description: '再帰的に検索するか', required: false },
-      max_results: { type: 'number', description: '最大結果数', required: false },
-      learn_patterns: { type: 'boolean', description: '検索パターンを学習するか', required: false }
+      query: { type: 'string', description: 'Search query', required: true },
+      directory: { type: 'string', description: 'Search target directory (default: current directory)', required: false },
+      file_pattern: { type: 'string', description: 'File name pattern (glob format)', required: false },
+      content_pattern: { type: 'string', description: 'File content search pattern (regex)', required: false },
+      case_sensitive: { type: 'boolean', description: 'Case sensitive search', required: false },
+      recursive: { type: 'boolean', description: 'Recursive search', required: false },
+      max_results: { type: 'number', description: 'Maximum number of results', required: false },
+      learn_patterns: { type: 'boolean', description: 'Learn search patterns', required: false }
     },
   };
 

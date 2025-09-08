@@ -13,16 +13,36 @@ import { LogManager } from '../../utils/log-manager.js';
 import * as path from 'path';
 
 const SmartEditFileSchema = z.object({
-  file_path: z.string().describe('編集対象ファイルパス'),
-  old_text: z.string().describe('置換対象の文字列（新規ファイル作成時は空文字列可）'),
-  new_text: z.string().describe('置換後の文字列'),
-  intent: z.string().optional().default('ファイル編集').describe('この操作を行う理由・目的'),
-  preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の変更は行わない）'),
-  create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成'),
-  case_sensitive: z.boolean().optional().default(true).describe('大文字小文字を区別'),
-  replace_all: z.boolean().optional().default(false).describe('すべての出現箇所を置換（falseの場合は最初の1箇所のみ）'),
-  max_file_size: z.number().optional().default(1024 * 1024).describe('最大ファイルサイズ（バイト）'),
-  create_new_file: z.boolean().optional().default(false).describe('新規ファイル作成を許可')
+  file_path: z.string().describe('Target file path to edit'),
+  old_text: z.string().describe('Text to be replaced'),
+  new_text: z.string().describe('Replacement text'),
+  intent: z
+    .string()
+    .optional()
+    .default('File editing')
+    .describe('Intent or purpose of this operation'),
+  preview_mode: z.boolean().optional().default(false).describe('Preview mode (no actual changes)'),
+  create_backup: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Create backup file (default: true)'),
+  case_sensitive: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Case sensitive match (default: true)'),
+  replace_all: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Replace all occurrences (default: false)'),
+  max_file_size: z
+    .number()
+    .optional()
+    .default(1024 * 1024)
+    .describe('Maximum file size in bytes (default: 1MB)'),
+  create_new_file: z.boolean().optional().default(false).describe('Allow new file creation'),
 });
 
 type SmartEditFileParams = z.infer<typeof SmartEditFileSchema>;
@@ -53,59 +73,61 @@ interface EditResult {
 export class SmartEditFileTool extends BaseTool {
   readonly metadata: IToolMetadata = {
     name: 'smart_edit_file',
-    description: '標準的なファイル編集を安全に実行（プレビュー、バックアップ、エラーハンドリング、新規ファイル作成対応）',
+    description:
+      '標準的なファイル編集を安全に実行（プレビュー、バックアップ、エラーハンドリング、新規ファイル作成対応）',
     parameters: {
       file_path: {
         type: 'string',
         description: '編集対象ファイルパス',
-        required: true
+        required: true,
       },
       old_text: {
         type: 'string',
         description: '置換対象の文字列（新規ファイル作成時は空文字列可）',
-        required: true
+        required: true,
       },
       new_text: {
         type: 'string',
         description: '置換後の文字列',
-        required: true
+        required: true,
       },
       intent: {
         type: 'string',
         description: 'この操作を行う理由・目的',
-        required: false
+        required: false,
       },
       preview_mode: {
         type: 'boolean',
         description: 'プレビューモード（実際の変更は行わない）',
-        required: false
+        required: false,
       },
       create_backup: {
         type: 'boolean',
         description: 'バックアップファイルを作成（デフォルト: true）',
-        required: false
+        required: false,
       },
       case_sensitive: {
         type: 'boolean',
         description: '大文字小文字を区別（デフォルト: true）',
-        required: false
+        required: false,
       },
       replace_all: {
         type: 'boolean',
         description: 'すべての出現箇所を置換（デフォルト: false）',
-        required: false
+        required: false,
       },
       max_file_size: {
         type: 'number',
         description: '最大ファイルサイズ（バイト、デフォルト: 1MB）',
-        required: false
+        required: false,
       },
       create_new_file: {
         type: 'boolean',
-        description: '新規ディレクトリも含めて作成を許可（デフォルト: false）。ファイルのみの場合は自動作成されます',
-        required: false
-      }
-    }
+        description:
+          '新規ディレクトリも含めて作成を許可（デフォルト: false）。ファイルのみの場合は自動作成されます',
+        required: false,
+      },
+    },
   };
 
   protected readonly schema = SmartEditFileSchema;
@@ -115,44 +137,56 @@ export class SmartEditFileTool extends BaseTool {
 
     // パラメータの事前検証とサニタイズ
     if (typeof params.new_text === 'undefined') {
-      Logger.getInstance().error('Critical parameter error in smart_edit_file', new Error('new_text parameter is undefined'), { 
-        toolName: this.metadata.name,
-        allParams: params,
-        parameterTypes: Object.fromEntries(
-          Object.entries(params).map(([key, value]) => [key, typeof value])
-        ),
-        stringifiedParams: JSON.stringify(params, null, 2),
-        possibleCause: 'Claude Code parameter transmission issue'
-      });
-      
+      Logger.getInstance().error(
+        'Critical parameter error in smart_edit_file',
+        new Error('new_text parameter is undefined'),
+        {
+          toolName: this.metadata.name,
+          allParams: params,
+          parameterTypes: Object.fromEntries(
+            Object.entries(params).map(([key, value]) => [key, typeof value]),
+          ),
+          stringifiedParams: JSON.stringify(params, null, 2),
+          possibleCause: 'Claude Code parameter transmission issue',
+        },
+      );
+
       return this.createErrorResult(
         '🚨 smart_edit_fileツールのパラメータエラーが発生しました\n\n' +
-        '原因: new_text パラメータが未定義です\n' +
-        '推定要因: Claude Code側でのパラメータ送信エラー\n' +
-        '対処法: 以下の代替手段をお試しください\n' +
-        '  1. 標準のEditツールを使用\n' +
-        '  2. MultiEditツールで複数箇所を一度に編集\n' +
-        '  3. テキストを短く分割して再実行\n\n' +
-        `デバッグ情報:\n` +
-        `- ファイルパス: ${params.file_path || 'undefined'}\n` +
-        `- old_text長: ${typeof params.old_text === 'string' ? params.old_text.length : 'undefined'}文字\n` +
-        `- new_text型: ${typeof params.new_text}\n` +
-        `- 特殊文字含有: ${typeof params.old_text === 'string' && /[`"'\\]/.test(params.old_text) ? 'あり' : 'なし'}`
+          '原因: new_text パラメータが未定義です\n' +
+          '推定要因: Claude Code側でのパラメータ送信エラー\n' +
+          '対処法: 以下の代替手段をお試しください\n' +
+          '  1. 標準のEditツールを使用\n' +
+          '  2. MultiEditツールで複数箇所を一度に編集\n' +
+          '  3. テキストを短く分割して再実行\n\n' +
+          `デバッグ情報:\n` +
+          `- ファイルパス: ${params.file_path || 'undefined'}\n` +
+          `- old_text長: ${typeof params.old_text === 'string' ? params.old_text.length : 'undefined'}文字\n` +
+          `- new_text型: ${typeof params.new_text}\n` +
+          `- 特殊文字含有: ${typeof params.old_text === 'string' && /[`"'\\]/.test(params.old_text) ? 'あり' : 'なし'}`,
       );
     }
 
     // 追加の整合性チェック
     if (typeof params.old_text === 'undefined') {
-      Logger.getInstance().error('old_text parameter is undefined in smart_edit_file', new Error('old_text parameter is undefined'), { params });
+      Logger.getInstance().error(
+        'old_text parameter is undefined in smart_edit_file',
+        new Error('old_text parameter is undefined'),
+        { params },
+      );
       return this.createErrorResult(
-        'old_text パラメータが未定義です。Claude Code側でのパラメータ送信エラーの可能性があります。'
+        'old_text パラメータが未定義です。Claude Code側でのパラメータ送信エラーの可能性があります。',
       );
     }
 
     if (typeof params.file_path === 'undefined' || params.file_path === '') {
-      Logger.getInstance().error('file_path parameter is invalid in smart_edit_file', new Error('file_path parameter is invalid'), { params });
+      Logger.getInstance().error(
+        'file_path parameter is invalid in smart_edit_file',
+        new Error('file_path parameter is invalid'),
+        { params },
+      );
       return this.createErrorResult(
-        'file_path パラメータが無効です。正しいファイルパスを指定してください。'
+        'file_path パラメータが無効です。正しいファイルパスを指定してください。',
       );
     }
 
@@ -162,14 +196,14 @@ export class SmartEditFileTool extends BaseTool {
         file_path: params.file_path,
         old_text_length: params.old_text.length,
         new_text_length: params.new_text.length,
-        preview_mode: params.preview_mode
+        preview_mode: params.preview_mode,
       });
     }
 
     try {
       // FileSystemServiceのインスタンスを取得
       const fsService = FileSystemService.getInstance();
-      
+
       // 1. ファイル存在確認と新規作成対応
       let fileStats;
       let originalContent = '';
@@ -177,11 +211,11 @@ export class SmartEditFileTool extends BaseTool {
 
       try {
         fileStats = await fsService.stat(params.file_path);
-        
+
         // 2. ファイルサイズチェック
         if (fileStats.size > params.max_file_size) {
           return this.createErrorResult(
-            `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`
+            `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`,
           );
         }
 
@@ -191,7 +225,9 @@ export class SmartEditFileTool extends BaseTool {
         }
 
         // 4. ファイル内容読み取り
-        originalContent = await fsService.readFile(params.file_path, { encoding: 'utf-8' }) as string;
+        originalContent = (await fsService.readFile(params.file_path, {
+          encoding: 'utf-8',
+        })) as string;
       } catch (error) {
         // ファイルが存在しない場合
         if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
@@ -202,7 +238,9 @@ export class SmartEditFileTool extends BaseTool {
             // 親ディレクトリが存在すれば自動的に新規ファイル作成
             isNewFile = true;
             originalContent = '';
-            Logger.getInstance().info(`File not found, creating new file automatically: ${params.file_path}`);
+            Logger.getInstance().info(
+              `File not found, creating new file automatically: ${params.file_path}`,
+            );
           } catch {
             // 親ディレクトリが存在しない場合
             if (params.create_new_file) {
@@ -214,29 +252,33 @@ export class SmartEditFileTool extends BaseTool {
             } else {
               return this.createErrorResult(
                 `ファイルまたは親ディレクトリが存在しません: ${params.file_path}. ` +
-                `ディレクトリも作成する場合は create_new_file=true を指定してください。`
+                  `ディレクトリも作成する場合は create_new_file=true を指定してください。`,
               );
             }
           }
         } else {
-          return this.createErrorResult(`ファイルアクセスエラー: ${error instanceof Error ? error.message : String(error)}`);
+          return this.createErrorResult(
+            `ファイルアクセスエラー: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       }
 
       // 5. 検索・置換実行（新規ファイルの場合は特別処理）
       let editResult;
-      
+
       if (isNewFile) {
         // 新規ファイルの場合: old_textが空文字列の場合は直接new_textを内容とする
         if (params.old_text === '') {
           editResult = {
             newContent: params.new_text,
-            matches: [{
-              line_number: 1,
-              line_content: 'New file',
-              match_start: 0,
-              match_end: 0
-            }]
+            matches: [
+              {
+                line_number: 1,
+                line_content: 'New file',
+                match_start: 0,
+                match_end: 0,
+              },
+            ],
           };
         } else {
           // new_fileでもold_textが指定されている場合は通常の置換処理
@@ -245,7 +287,7 @@ export class SmartEditFileTool extends BaseTool {
             params.old_text,
             params.new_text,
             params.case_sensitive,
-            params.replace_all
+            params.replace_all,
           );
         }
       } else {
@@ -255,20 +297,26 @@ export class SmartEditFileTool extends BaseTool {
           params.old_text,
           params.new_text,
           params.case_sensitive,
-          params.replace_all
+          params.replace_all,
         );
-        
+
         if (editResult.matches.length === 0) {
-          return this.createTextResult(JSON.stringify({
-            success: true,
-            file_path: params.file_path,
-            preview_mode: params.preview_mode,
-            changes_made: false,
-            replacement_count: 0,
-            file_size: fileStats?.size || 0,
-            matches_found: [],
-            message: '置換対象の文字列が見つかりませんでした'
-          }, null, 2));
+          return this.createTextResult(
+            JSON.stringify(
+              {
+                success: true,
+                file_path: params.file_path,
+                preview_mode: params.preview_mode,
+                changes_made: false,
+                replacement_count: 0,
+                file_size: fileStats?.size || 0,
+                matches_found: [],
+                message: '置換対象の文字列が見つかりませんでした',
+              },
+              null,
+              2,
+            ),
+          );
         }
       }
 
@@ -276,10 +324,15 @@ export class SmartEditFileTool extends BaseTool {
       if (params.preview_mode) {
         // プレビュー用diff生成（カラーを無効化）
         const { highQualityDiff } = await import('../../utils/high-quality-diff.js');
-        const previewDiff = highQualityDiff.generateDiff(originalContent, editResult.newContent, params.file_path, {
-          contextLines: 3,
-          useColors: false
-        });
+        const previewDiff = highQualityDiff.generateDiff(
+          originalContent,
+          editResult.newContent,
+          params.file_path,
+          {
+            contextLines: 3,
+            useColors: false,
+          },
+        );
 
         const result: EditResult = {
           success: true,
@@ -291,7 +344,7 @@ export class SmartEditFileTool extends BaseTool {
           matches_found: editResult.matches,
           preview_content: editResult.newContent,
           is_new_file: isNewFile,
-          diff_output: previewDiff
+          diff_output: previewDiff,
         };
 
         // プレビュー結果はJSONのみで返す（diffは結果内に含む）
@@ -299,10 +352,13 @@ export class SmartEditFileTool extends BaseTool {
       }
 
       // 7. 置換結果の整合性チェック（既存ファイルのみ）
-      if (!isNewFile && !this.validateReplacement(originalContent, editResult.newContent, editResult.matches.length)) {
+      if (
+        !isNewFile &&
+        !this.validateReplacement(originalContent, editResult.newContent, editResult.matches.length)
+      ) {
         return this.createErrorResult(
           `置換処理でファイルの整合性が損なわれる可能性があります。操作を中止しました。` +
-          `バックアップから復旧してください。`
+            `バックアップから復旧してください。`,
         );
       }
 
@@ -314,14 +370,24 @@ export class SmartEditFileTool extends BaseTool {
 
       // 9. diff生成（コンソール出力用、テスト環境では色なし）
       const { highQualityDiff } = await import('../../utils/high-quality-diff.js');
-      const diffOutput = highQualityDiff.generateDiff(originalContent, editResult.newContent, params.file_path, {
-        contextLines: 3,
-        useColors: false
-      });
+      const diffOutput = highQualityDiff.generateDiff(
+        originalContent,
+        editResult.newContent,
+        params.file_path,
+        {
+          contextLines: 3,
+          useColors: false,
+        },
+      );
 
       // 10. 精密なdiffログ出力（実際の変更箇所のみ）
       const diffLogger = DiffLogger.getInstance();
-      await diffLogger.logPreciseDiff(originalContent, editResult.newContent, params.file_path, 'Smart Edit');
+      await diffLogger.logPreciseDiff(
+        originalContent,
+        editResult.newContent,
+        params.file_path,
+        'Smart Edit',
+      );
 
       // 10.5. 操作ログ記録（意図付き）
       const logManager = LogManager.getInstance();
@@ -329,7 +395,7 @@ export class SmartEditFileTool extends BaseTool {
         'SMART_EDIT',
         params.file_path,
         `${editResult.matches.length} replacements made | Lines: ${editResult.newContent.split('\n').length}`,
-        undefined // metadata
+        undefined, // metadata
       );
 
       // 11. ファイル更新
@@ -346,7 +412,7 @@ export class SmartEditFileTool extends BaseTool {
         file_size: Buffer.byteLength(editResult.newContent, 'utf-8'),
         matches_found: editResult.matches,
         is_new_file: isNewFile,
-        diff_output: diffOutput
+        diff_output: diffOutput,
       };
 
       // 成功時のログも条件付きで出力
@@ -354,25 +420,30 @@ export class SmartEditFileTool extends BaseTool {
         Logger.getInstance().debug('Smart edit completed', {
           file_path: params.file_path,
           replacement_count: editResult.matches.length,
-          is_new_file: isNewFile
+          is_new_file: isNewFile,
         });
       }
 
       return this.createTextResult(JSON.stringify(result, null, 2));
-
     } catch (error) {
       // 詳細なエラー情報をログ記録
-      Logger.getInstance().error('Failed to perform smart edit', error instanceof Error ? error : new Error(String(error)), {
-        toolName: this.metadata.name,
-        parameters: {
-          file_path: params.file_path,
-          old_text_length: typeof params.old_text === 'string' ? params.old_text.length : 'undefined',
-          new_text_length: typeof params.new_text === 'string' ? params.new_text.length : 'undefined',
-          preview_mode: params.preview_mode
+      Logger.getInstance().error(
+        'Failed to perform smart edit',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          toolName: this.metadata.name,
+          parameters: {
+            file_path: params.file_path,
+            old_text_length:
+              typeof params.old_text === 'string' ? params.old_text.length : 'undefined',
+            new_text_length:
+              typeof params.new_text === 'string' ? params.new_text.length : 'undefined',
+            preview_mode: params.preview_mode,
+          },
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          possibleCause: this.analyzePossibleCause(error, params),
         },
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        possibleCause: this.analyzePossibleCause(error, params)
-      });
+      );
 
       // ユーザー向けの詳細なエラーメッセージ
       const userErrorMessage = this.createDetailedErrorMessage(error, params);
@@ -385,7 +456,7 @@ export class SmartEditFileTool extends BaseTool {
     oldText: string,
     newText: string,
     caseSensitive: boolean,
-    replaceAll: boolean
+    replaceAll: boolean,
   ): {
     newContent: string;
     matches: Array<{
@@ -415,8 +486,8 @@ export class SmartEditFileTool extends BaseTool {
       const lineStartIndex = beforeMatch.lastIndexOf('\n') + 1;
       const lineEndIndex = content.indexOf('\n', matchIndex);
       const lineContent = content.substring(
-        lineStartIndex, 
-        lineEndIndex === -1 ? content.length : lineEndIndex
+        lineStartIndex,
+        lineEndIndex === -1 ? content.length : lineEndIndex,
       );
 
       matches.push({
@@ -424,7 +495,7 @@ export class SmartEditFileTool extends BaseTool {
         line_content: lineContent,
         match_start: matchIndex - lineStartIndex,
         match_end: matchIndex - lineStartIndex + oldText.length,
-        absolute_position: matchIndex
+        absolute_position: matchIndex,
       });
 
       searchIndex = matchIndex + oldText.length;
@@ -435,52 +506,54 @@ export class SmartEditFileTool extends BaseTool {
 
     // 実際の置換実行（直接的な絶対位置ベース置換）
     let newContent = content;
-    
+
     if (matches.length > 0) {
       // マッチを後ろから処理してインデックスずれを防ぐ
-      const sortedMatches = [...matches].sort((a, b) => b.absolute_position! - a.absolute_position!);
+      const sortedMatches = [...matches].sort(
+        (a, b) => b.absolute_position! - a.absolute_position!,
+      );
 
       for (const match of sortedMatches) {
         const absoluteStart = match.absolute_position!;
         const absoluteEnd = absoluteStart + oldText.length;
-        
+
         // 置換前に対象テキストを再検証（安全性確保）
         const targetText = newContent.substring(absoluteStart, absoluteEnd);
         const expectedText = caseSensitive ? oldText : oldText.toLowerCase();
         const actualText = caseSensitive ? targetText : targetText.toLowerCase();
-        
+
         if (actualText !== expectedText) {
           // 置換対象が一致しない場合はスキップ（詳細ログ出力）
           Logger.getInstance().warn('Replacement target mismatch, skipping', {
             expected: oldText,
             actual: targetText,
             position: absoluteStart,
-            line: match.line_number
+            line: match.line_number,
           });
           continue;
         }
 
         // コンテキスト境界の安全性チェック
-        if (!this.validateContextBoundary(newContent, absoluteStart, absoluteEnd, oldText, newText)) {
+        if (
+          !this.validateContextBoundary(newContent, absoluteStart, absoluteEnd, oldText, newText)
+        ) {
           Logger.getInstance().warn('Context boundary validation failed, skipping replacement', {
             position: absoluteStart,
             line: match.line_number,
             oldText: oldText.substring(0, 50) + (oldText.length > 50 ? '...' : ''),
-            surroundingContext: this.getSurroundingContext(newContent, absoluteStart, absoluteEnd)
+            surroundingContext: this.getSurroundingContext(newContent, absoluteStart, absoluteEnd),
           });
           continue;
         }
-        
+
         // 安全な置換実行
-        newContent = newContent.substring(0, absoluteStart) + 
-                    newText + 
-                    newContent.substring(absoluteEnd);
+        newContent =
+          newContent.substring(0, absoluteStart) + newText + newContent.substring(absoluteEnd);
       }
     }
 
     return { newContent, matches };
   }
-
 
   /**
    * 置換結果の整合性チェック（拡張版）
@@ -490,13 +563,17 @@ export class SmartEditFileTool extends BaseTool {
     if (result.length === 0 && original.length > 0 && expectedChanges > 0) {
       return false; // 内容が完全に消失
     }
-    
+
     // 構文的な整合性チェック（TypeScript/JavaScript の場合）
     if (original.includes('export class') && !result.includes('export class')) {
       return false; // クラス定義の破損
     }
-    
-    if (original.includes('import ') && result.includes('import ') === false && original.includes('import ')) {
+
+    if (
+      original.includes('import ') &&
+      result.includes('import ') === false &&
+      original.includes('import ')
+    ) {
       // インポート文の不整合チェック（完全消失の場合のみエラー）
       const originalImports = (original.match(/import /g) || []).length;
       const resultImports = (result.match(/import /g) || []).length;
@@ -508,27 +585,25 @@ export class SmartEditFileTool extends BaseTool {
     // 最小限の構文チェックのみ
     const basicPatterns = [
       { name: 'export statements', pattern: /export\s+/g },
-      { name: 'import statements', pattern: /import\s+/g }
+      { name: 'import statements', pattern: /import\s+/g },
     ];
-    
+
     for (const { name, pattern } of basicPatterns) {
       const originalMatches = (original.match(pattern) || []).length;
       const resultMatches = (result.match(pattern) || []).length;
-      
+
       // 大幅な減少のみチェック
       if (originalMatches > 0 && resultMatches === 0) {
         Logger.getInstance().warn(`All ${name} removed during replacement`, {
           original: originalMatches,
-          result: resultMatches
+          result: resultMatches,
         });
         return false;
       }
     }
-    
+
     return true;
   }
-
-
 
   private async createBackup(filePath: string, content: string): Promise<string> {
     const fsService = FileSystemService.getInstance();
@@ -536,10 +611,10 @@ export class SmartEditFileTool extends BaseTool {
     const backupDir = '.claude/workspace/effortlessly/backups';
     const fileName = path.basename(filePath);
     const backupPath = path.join(backupDir, `${fileName}.${timestamp}.backup`);
-    
+
     await fsService.mkdir(backupDir, { recursive: true });
     await fsService.writeFile(backupPath, content, { encoding: 'utf-8' });
-    
+
     return backupPath;
   }
 
@@ -547,25 +622,25 @@ export class SmartEditFileTool extends BaseTool {
    * コンテキスト境界の安全性を検証（最小限）
    */
   private validateContextBoundary(
-    content: string, 
-    startPos: number, 
-    endPos: number, 
-    oldText: string, 
-    newText: string
+    content: string,
+    startPos: number,
+    endPos: number,
+    oldText: string,
+    newText: string,
   ): boolean {
     // 基本的な範囲チェックのみ
     if (startPos < 0 || endPos > content.length || startPos >= endPos) {
       return false;
     }
-    
+
     // 非常に大きな置換は注意
     if (oldText.length > 10000 || newText.length > 10000) {
       Logger.getInstance().warn('Large text replacement detected', {
         oldTextLength: oldText.length,
-        newTextLength: newText.length
+        newTextLength: newText.length,
       });
     }
-    
+
     return true;
   }
 
@@ -576,55 +651,57 @@ export class SmartEditFileTool extends BaseTool {
     const contextStart = Math.max(0, startPos - 100);
     const contextEnd = Math.min(content.length, endPos + 100);
     const context = content.substring(contextStart, contextEnd);
-    
+
     // 置換位置をマークして返す
     const relativeStart = startPos - contextStart;
     const relativeEnd = endPos - contextStart;
-    
-    return context.substring(0, relativeStart) + 
-           '【REPLACE_START】' + 
-           context.substring(relativeStart, relativeEnd) + 
-           '【REPLACE_END】' + 
-           context.substring(relativeEnd);
+
+    return (
+      context.substring(0, relativeStart) +
+      '【REPLACE_START】' +
+      context.substring(relativeStart, relativeEnd) +
+      '【REPLACE_END】' +
+      context.substring(relativeEnd)
+    );
   }
-
-
 
   /**
    * エラーの可能性のある原因を分析
    */
   private analyzePossibleCause(error: any, params: SmartEditFileParams): string {
     const errorMessage = error.message || '';
-    
+
     // ファイルシステムエラー
     if (error.code === 'ENOENT') return 'ファイルまたはディレクトリが見つからない';
     if (error.code === 'EACCES') return 'ファイルアクセス権限不足';
     if (error.code === 'EMFILE' || error.code === 'ENFILE') return 'システムファイル制限';
-    
+
     // メモリ・サイズ関連
     if (errorMessage.includes('Maximum call stack') || errorMessage.includes('out of memory')) {
       return 'メモリ不足（大きなファイルまたは長いテキスト）';
     }
-    
+
     // 文字エンコーディング
     if (errorMessage.includes('invalid character') || errorMessage.includes('encoding')) {
       return '文字エンコーディングの問題';
     }
-    
+
     // パラメータサイズ
     const oldTextSize = typeof params.old_text === 'string' ? params.old_text.length : 0;
     const newTextSize = typeof params.new_text === 'string' ? params.new_text.length : 0;
     if (oldTextSize > 100000 || newTextSize > 100000) {
       return '大きなテキストサイズ（100KB以上）';
     }
-    
+
     // 特殊文字
-    const hasSpecialChars = typeof params.old_text === 'string' && typeof params.new_text === 'string' && 
+    const hasSpecialChars =
+      typeof params.old_text === 'string' &&
+      typeof params.new_text === 'string' &&
       (/[`"'\\]/.test(params.old_text) || /[`"'\\]/.test(params.new_text));
     if (hasSpecialChars) {
       return '特殊文字（バッククォート、引用符、バックスラッシュ）の処理問題';
     }
-    
+
     return '不明なエラー';
   }
 
@@ -635,19 +712,19 @@ export class SmartEditFileTool extends BaseTool {
     const cause = this.analyzePossibleCause(error, params);
     const oldTextSize = typeof params.old_text === 'string' ? params.old_text.length : 0;
     const newTextSize = typeof params.new_text === 'string' ? params.new_text.length : 0;
-    
+
     let message = `🚨 smart_edit_fileツールでエラーが発生しました\n\n`;
     message += `エラー内容: ${error.message}\n`;
     message += `推定原因: ${cause}\n\n`;
-    
+
     message += `📊 パラメータ情報:\n`;
     message += `- ファイル: ${params.file_path}\n`;
     message += `- 置換前テキスト: ${oldTextSize}文字\n`;
     message += `- 置換後テキスト: ${newTextSize}文字\n`;
     message += `- プレビューモード: ${params.preview_mode ? 'はい' : 'いいえ'}\n\n`;
-    
+
     message += `🔧 推奨対処法:\n`;
-    
+
     if (cause.includes('大きな')) {
       message += `1. テキストを小さく分割して複数回に分けて実行\n`;
       message += `2. 標準のEditツールまたはMultiEditツールを使用\n`;
@@ -661,9 +738,9 @@ export class SmartEditFileTool extends BaseTool {
       message += `1. 標準のEditツールを試してください\n`;
       message += `2. ファイルパスと内容を確認してください\n`;
     }
-    
+
     message += `3. 問題が続く場合は、このエラー情報をGitHubのIssueで報告してください\n`;
-    
+
     return message;
   }
 }

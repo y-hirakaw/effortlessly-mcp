@@ -26,28 +26,40 @@ export interface DirectoryEntry {
   permissions?: string;
 }
 
-// ツールのパラメータスキーマ
+// Tool parameter schema
 const ListDirectoryParams = z.object({
-  directory_path: z.string().describe('一覧表示するディレクトリのパス'),
-  recursive: z.boolean().optional().default(false).describe('サブディレクトリも再帰的に表示するか'),
-  pattern: z.string().optional().describe('ファイル名のフィルタパターン（正規表現）'),
-  max_results: z.number().min(1).max(1000).optional().default(100).describe('最大結果数（LLMトークン制限対策: Claude=100推奨, GPT-4=50推奨, Gemini=500可能）'),
+  directory_path: z.string().describe('Path to the directory to list'),
+  recursive: z.boolean().optional().default(false).describe('Whether to list recursively'),
+  pattern: z.string().optional().describe('File name filter pattern (regex)'),
+  max_results: z
+    .number()
+    .min(1)
+    .max(1000)
+    .optional()
+    .default(100)
+    .describe(
+      'Maximum number of results (LLM token limit countermeasure: Claude=100 recommended, GPT-4=50 recommended, Gemini=500 possible)',
+    ),
 });
 
 type ListDirectoryParamsType = z.infer<typeof ListDirectoryParams>;
 
-// ツールの結果スキーマ
+// Tool result schema
 const ListDirectoryResult = z.object({
-  entries: z.array(z.object({
-    name: z.string(),
-    path: z.string(),
-    type: z.enum(['file', 'directory', 'symlink', 'other']),
-    size: z.number(),
-    modified: z.string(),
-    permissions: z.string().optional(),
-  })).describe('ディレクトリエントリの配列'),
-  total_count: z.number().describe('エントリの総数'),
-  directory: z.string().describe('対象ディレクトリのパス'),
+  entries: z
+    .array(
+      z.object({
+        name: z.string(),
+        path: z.string(),
+        type: z.enum(['file', 'directory', 'symlink', 'other']),
+        size: z.number(),
+        modified: z.string(),
+        permissions: z.string().optional(),
+      }),
+    )
+    .describe('Array of directory entries'),
+  total_count: z.number().describe('Total number of entries'),
+  directory: z.string().describe('Path of the target directory'),
 });
 
 type ListDirectoryResultType = z.infer<typeof ListDirectoryResult>;
@@ -56,7 +68,10 @@ type ListDirectoryResultType = z.infer<typeof ListDirectoryResult>;
  * list_directory ツールの実装
  * 指定されたディレクトリ内のファイル・フォルダ一覧を表示
  */
-export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, ListDirectoryResultType> = {
+export const listDirectoryTool: MdcToolImplementation<
+  ListDirectoryParamsType,
+  ListDirectoryResultType
+> = {
   name: 'list_directory',
   description: '指定されたディレクトリ内のファイル・フォルダ一覧を表示します',
   inputSchema: ListDirectoryParams as z.ZodSchema<ListDirectoryParamsType>,
@@ -88,7 +103,7 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
 
       // エントリ一覧を取得
       const entries: DirectoryEntry[] = [];
-      
+
       if (params.recursive) {
         // 再帰的に取得
         await listDirectoryRecursive(dirPath, dirPath, entries, params.pattern);
@@ -105,8 +120,8 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
       const limitedEntries = entries.slice(0, maxResults);
       const wasLimited = entries.length > maxResults;
 
-      logger.info('Directory listed successfully', { 
-        dirPath, 
+      logger.info('Directory listed successfully', {
+        dirPath,
         totalEntries: entries.length,
         returnedEntries: limitedEntries.length,
         wasLimited,
@@ -119,7 +134,7 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
       await logManager.logFileOperation(
         'LIST_DIRECTORY',
         dirPath,
-        `Listed ${limitedEntries.length}/${entries.length} entries${params.recursive ? ' (recursive)' : ''}${params.pattern ? ` with pattern "${params.pattern}"` : ''}`
+        `Listed ${limitedEntries.length}/${entries.length} entries${params.recursive ? ' (recursive)' : ''}${params.pattern ? ` with pattern "${params.pattern}"` : ''}`,
       );
 
       return {
@@ -127,7 +142,6 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
         total_count: entries.length,
         directory: dirPath,
       };
-
     } catch (error) {
       // 既にスローされたエラーはそのまま再スロー
       if (error instanceof Error && error.message.includes('ディレクトリ')) {
@@ -135,8 +149,12 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
       }
 
       // その他のエラー
-      logger.error(`Unexpected error in list_directory: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(`ディレクトリの一覧取得中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Unexpected error in list_directory: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new Error(
+        `ディレクトリの一覧取得中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 };
@@ -145,12 +163,12 @@ export const listDirectoryTool: MdcToolImplementation<ListDirectoryParamsType, L
  * 単一ディレクトリのエントリを取得
  */
 async function listDirectorySingle(
-  dirPath: string, 
-  entries: DirectoryEntry[], 
-  pattern?: string
+  dirPath: string,
+  entries: DirectoryEntry[],
+  pattern?: string,
 ): Promise<void> {
   const fsService = FileSystemService.getInstance();
-  const items = await fsService.readdir(dirPath) as string[];
+  const items = (await fsService.readdir(dirPath)) as string[];
   const regex = pattern ? new RegExp(pattern) : undefined;
 
   for (const item of items) {
@@ -160,7 +178,7 @@ async function listDirectorySingle(
     }
 
     const itemPath = path.join(dirPath, item);
-    
+
     try {
       const stats = await fsService.stat(itemPath);
       const entry: DirectoryEntry = {
@@ -191,14 +209,14 @@ async function listDirectoryRecursive(
   rootPath: string,
   currentPath: string,
   entries: DirectoryEntry[],
-  pattern?: string
+  pattern?: string,
 ): Promise<void> {
   await listDirectorySingle(currentPath, entries, pattern);
 
   // サブディレクトリを取得
   const subDirs = entries
-    .filter(e => e.type === FileType.DIRECTORY && path.dirname(e.path) === currentPath)
-    .map(e => e.path);
+    .filter((e) => e.type === FileType.DIRECTORY && path.dirname(e.path) === currentPath)
+    .map((e) => e.path);
 
   // 各サブディレクトリを再帰的に処理
   for (const subDir of subDirs) {

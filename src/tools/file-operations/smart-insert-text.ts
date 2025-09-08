@@ -1,5 +1,5 @@
 /**
- * スマートテキスト挿入ツール（改良版）
+ * スマートText insertionツール（改良版）
  * 行番号指定、相対位置、インデント自動調整、新規ファイル作成機能付き
  */
 
@@ -13,18 +13,18 @@ import * as path from 'path';
 import { DiffLogger } from '../../utils/diff-logger.js';
 
 const SmartInsertTextSchema = z.object({
-  file_path: z.string().describe('編集対象ファイルパス'),
-  text: z.string().describe('挿入するテキスト'),
-  position_type: z.enum(['line_number', 'after_text', 'before_text', 'start', 'end']).describe('挿入位置の指定方法'),
-  intent: z.string().optional().default('テキスト挿入').describe('この操作を行う理由・目的'),
-  line_number: z.number().optional().describe('行番号（1から開始、position_type="line_number"の場合）'),
-  reference_text: z.string().optional().describe('参照テキスト（after_text/before_textの場合）'),
-  auto_indent: z.boolean().optional().default(true).describe('自動インデント調整'),
-  preserve_empty_lines: z.boolean().optional().default(true).describe('空行を保持'),
-  preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の挿入は行わない）'),
-  create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成'),
-  max_file_size: z.number().optional().default(1024 * 1024).describe('最大ファイルサイズ（バイト）'),
-  create_new_file: z.boolean().optional().default(false).describe('新規ファイル作成を許可')
+  file_path: z.string().describe('Target file path to edit'),
+  text: z.string().describe('Text to insert'),
+  position_type: z.enum(['line_number', 'after_text', 'before_text', 'start', 'end']).describe('Position specification method'),
+  intent: z.string().optional().default('Text insertion').describe('Intent or purpose of this operation'),
+  line_number: z.number().optional().describe('Line number (1-based, when position_type="line_number")'),
+  reference_text: z.string().optional().describe('Reference text (for after_text/before_text)'),
+  auto_indent: z.boolean().optional().default(true).describe('Auto indent adjustment'),
+  preserve_empty_lines: z.boolean().optional().default(true).describe('Preserve empty lines'),
+  preview_mode: z.boolean().optional().default(false).describe('Preview mode (no actual insertion)'),
+  create_backup: z.boolean().optional().default(true).describe('Create backup file (default: true)'),
+  max_file_size: z.number().optional().default(1024 * 1024).describe('Maximum file size in bytes'),
+  create_new_file: z.boolean().optional().default(false).describe('Allow new file creation')
 });
 
 type SmartInsertTextParams = z.infer<typeof SmartInsertTextSchema>;
@@ -46,61 +46,61 @@ interface InsertResult {
 }
 
 /**
- * スマートテキスト挿入ツール
+ * スマートText insertionツール
  */
 export class SmartInsertTextTool extends BaseTool {
   readonly metadata: IToolMetadata = {
     name: 'smart_insert_text',
-    description: '柔軟な位置指定によるテキスト挿入（行番号、相対位置、自動インデント、新規ファイル作成対応）',
+    description: '柔軟な位置指定によるText insertion（行番号、相対位置、自動インデント、新規ファイル作成対応）',
     parameters: {
       file_path: {
         type: 'string',
-        description: '編集対象ファイルパス',
+        description: 'Target file path to edit',
         required: true
       },
       text: {
         type: 'string',
-        description: '挿入するテキスト',
+        description: 'Text to insert',
         required: true
       },
       position_type: {
         type: 'string',
-        description: '挿入位置の指定方法（line_number, after_text, before_text, start, end）',
+        description: 'Position specification method（line_number, after_text, before_text, start, end）',
         required: true
       },
       line_number: {
         type: 'number',
-        description: '行番号（1から開始、position_type="line_number"の場合）',
+        description: 'Line number (1-based, when position_type="line_number")',
         required: false
       },
       reference_text: {
         type: 'string',
-        description: '参照テキスト（after_text/before_textの場合）',
+        description: 'Reference text (for after_text/before_text)',
         required: false
       },
       auto_indent: {
         type: 'boolean',
-        description: '自動インデント調整（デフォルト: true）',
+        description: 'Auto indent adjustment (default: true)',
         required: false
       },
       preserve_empty_lines: {
         type: 'boolean',
-        description: '空行を保持（デフォルト: true）',
+        description: 'Preserve empty lines（デフォルト: true）',
         required: false
       },
       preview_mode: {
         type: 'boolean',
-        description: 'プレビューモード（実際の挿入は行わない）',
+        description: 'Preview mode (no actual insertion)',
         required: false
       },
       create_backup: {
         type: 'boolean',
-        description: 'バックアップファイルを作成（デフォルト: true）',
+        description: 'Create backup file (default: true)（デフォルト: true）',
         required: false
       },
       max_file_size: {
         type: 'number',
-        description: '最大ファイルサイズ（バイト、デフォルト: 1MB）',
+        description: 'Maximum file size in bytes (default: 1MB)',
         required: false
       },
       create_new_file: {
@@ -213,7 +213,7 @@ export class SmartInsertTextTool extends BaseTool {
         return this.createTextResult(JSON.stringify(errorResult, null, 2));
       }
 
-      // 7. テキスト挿入の実行
+      // 7. Text insertionの実行
       const insertResult = this.performInsert(
         lines,
         params.text,
@@ -311,7 +311,7 @@ export class SmartInsertTextTool extends BaseTool {
       Logger.getInstance().error('Failed to perform smart insert', error instanceof Error ? error : new Error(String(error)));
       const errorResult = {
         success: false,
-        error: `テキスト挿入エラー: ${error instanceof Error ? error.message : String(error)}`,
+        error: `Text insertionエラー: ${error instanceof Error ? error.message : String(error)}`,
         file_path: params.file_path || 'unknown'
       };
       return this.createTextResult(JSON.stringify(errorResult, null, 2));

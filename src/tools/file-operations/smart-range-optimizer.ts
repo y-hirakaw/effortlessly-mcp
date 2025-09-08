@@ -7,7 +7,7 @@ const logger = Logger.getInstance();
 
 // ツールのパラメータスキーマ
 const SmartRangeOptimizerParams = z.object({
-  file_path: z.string().describe('分析対象のファイルパス'),
+  file_path: z.string().describe('File path to analyze'),
   intent: z.enum([
     'bug_investigation',
     'code_review',
@@ -16,34 +16,34 @@ const SmartRangeOptimizerParams = z.object({
     'documentation',
     'testing',
     'general'
-  ]).optional().default('general').describe('読み込みの意図・目的'),
-  max_ranges: z.number().optional().default(5).describe('提案する最大範囲数（デフォルト: 5）'),
-  semantic_queries: z.array(z.string()).optional().describe('自然言語での検索クエリ (例: "エラー処理", "データベース接続", "認証ロジック")'),
+  ]).optional().default('general').describe('Intent or purpose for reading the file'),
+  max_ranges: z.number().optional().default(5).describe('Maximum number of ranges to suggest (default: 5)'),
+  semantic_queries: z.array(z.string()).optional().describe('Natural language search queries (e.g., "error handling", "database connection", "authentication logic")'),
 });
 
 type SmartRangeOptimizerParamsType = z.infer<typeof SmartRangeOptimizerParams>;
 
 // ツールの結果スキーマ
 const SmartRangeOptimizerResult = z.object({
-  file_path: z.string().describe('分析対象のファイルパス'),
-  intent: z.string().describe('読み込みの意図'),
+  file_path: z.string().describe('File path to analyze'),
+  intent: z.string().describe('Reading intent'),
   suggested_ranges: z.array(z.object({
-    start: z.number().describe('開始行番号（1-indexed）'),
-    end: z.number().describe('終了行番号（1-indexed）'),
-    label: z.string().describe('範囲のラベル'),
-    relevance: z.number().describe('関連性スコア（0.0-1.0）'),
-    reason: z.string().optional().describe('選択理由')
-  })).describe('提案された読み込み範囲'),
-  total_lines: z.number().describe('ファイル全体の行数'),
+    start: z.number().describe('Starting line number (1-indexed)'),
+    end: z.number().describe('Ending line number (1-indexed)'),
+    label: z.string().describe('Range label'),
+    relevance: z.number().describe('Relevance score (0.0-1.0)'),
+    reason: z.string().optional().describe('Selection reason')
+  })).describe('Suggested reading ranges'),
+  total_lines: z.number().describe('Total lines in file'),
   optimization_info: z.object({
-    pattern_matches: z.number().describe('パターンマッチ数'),
-    historical_data_used: z.boolean().describe('履歴データの使用有無'),
-    confidence: z.number().describe('提案の信頼度（0.0-1.0）')
-  }).optional().describe('最適化情報'),
+    pattern_matches: z.number().describe('Number of pattern matches'),
+    historical_data_used: z.boolean().describe('Whether historical data was used'),
+    confidence: z.number().describe('Confidence of suggestions (0.0-1.0)')
+  }).optional().describe('Optimization information'),
   usage_example: z.object({
-    tool: z.string().describe('使用するツール名'),
-    params: z.any().describe('ツールのパラメータ例')
-  }).optional().describe('使用例')
+    tool: z.string().describe('Tool name to use'),
+    params: z.any().describe('Example tool parameters')
+  }).optional().describe('Usage example')
 });
 
 type SmartRangeOptimizerResultType = z.infer<typeof SmartRangeOptimizerResult>;
@@ -80,7 +80,7 @@ export const smartRangeOptimizerTool: MdcToolImplementation<SmartRangeOptimizerP
       );
       const totalLines = content.split('\n').length;
       
-      // 使用例の生成
+      // Usage exampleの生成
       const usageExample = {
         tool: 'read_file',
         params: {
@@ -93,7 +93,7 @@ export const smartRangeOptimizerTool: MdcToolImplementation<SmartRangeOptimizerP
         }
       };
       
-      // 最適化情報の計算
+      // Optimization informationの計算
       const optimizationInfo = {
         pattern_matches: suggestedRanges.length,
         historical_data_used: suggestedRanges.some(r => 

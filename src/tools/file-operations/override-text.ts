@@ -12,13 +12,21 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 
 const OverrideTextSchema = z.object({
-  file_path: z.string().describe('対象ファイルパス'),
-  text: z.string().describe('新しいファイル内容（完全置換）'),
-  preview_mode: z.boolean().optional().default(false).describe('プレビューモード（実際の変更は行わない）'),
-  create_backup: z.boolean().optional().default(true).describe('バックアップファイルを作成'),
-  max_file_size: z.number().optional().default(10 * 1024 * 1024).describe('最大ファイルサイズ（バイト、デフォルト: 10MB）'),
-  confirm_override: z.boolean().optional().default(false).describe('上書き意図の明示的確認'),
-  allow_new_file: z.boolean().optional().default(true).describe('新規ファイル作成を許可')
+  file_path: z.string().describe('Target file path'),
+  text: z.string().describe('New file content (complete replacement)'),
+  preview_mode: z.boolean().optional().default(false).describe('Preview mode (no actual changes)'),
+  create_backup: z.boolean().optional().default(true).describe('Create backup file'),
+  max_file_size: z
+    .number()
+    .optional()
+    .default(10 * 1024 * 1024)
+    .describe('Maximum file size in bytes (default: 10MB)'),
+  confirm_override: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Explicit confirmation of override intent'),
+  allow_new_file: z.boolean().optional().default(true).describe('Allow new file creation'),
 });
 
 type OverrideTextParams = z.infer<typeof OverrideTextSchema>;
@@ -46,40 +54,40 @@ export class OverrideTextTool extends BaseTool {
     parameters: {
       file_path: {
         type: 'string',
-        description: '対象ファイルパス',
-        required: true
+        description: 'Target file path',
+        required: true,
       },
       text: {
         type: 'string',
-        description: '新しいファイル内容（完全置換）',
-        required: true
+        description: 'New file content (complete replacement)',
+        required: true,
       },
       preview_mode: {
         type: 'boolean',
-        description: 'プレビューモード（実際の変更は行わない）',
-        required: false
+        description: 'Preview mode (no actual changes)',
+        required: false,
       },
       create_backup: {
         type: 'boolean',
-        description: 'バックアップファイルを作成（デフォルト: true）',
-        required: false
+        description: 'Create backup file（デフォルト: true）',
+        required: false,
       },
       max_file_size: {
         type: 'number',
-        description: '最大ファイルサイズ（バイト、デフォルト: 10MB）',
-        required: false
+        description: 'Maximum file size in bytes (default: 10MB)',
+        required: false,
       },
       confirm_override: {
         type: 'boolean',
         description: '上書き意図の明示的確認（重要ファイル用）',
-        required: false
+        required: false,
       },
       allow_new_file: {
         type: 'boolean',
-        description: '新規ファイル作成を許可（デフォルト: true）',
-        required: false
-      }
-    }
+        description: 'Allow new file creation（デフォルト: true）',
+        required: false,
+      },
+    },
   };
 
   protected readonly schema = OverrideTextSchema;
@@ -95,7 +103,7 @@ export class OverrideTextTool extends BaseTool {
 
       try {
         const fileStats = await fs.stat(params.file_path);
-        
+
         // ディレクトリチェック
         if (fileStats.isDirectory()) {
           return this.createErrorResult(`指定されたパスはディレクトリです: ${params.file_path}`);
@@ -104,7 +112,7 @@ export class OverrideTextTool extends BaseTool {
         // ファイルサイズチェック
         if (fileStats.size > params.max_file_size) {
           return this.createErrorResult(
-            `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`
+            `ファイルサイズが制限を超えています: ${fileStats.size} > ${params.max_file_size} bytes`,
           );
         }
 
@@ -116,12 +124,14 @@ export class OverrideTextTool extends BaseTool {
         if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
           if (!params.allow_new_file) {
             return this.createErrorResult(
-              `ファイルが見つかりません: ${params.file_path}. 新規作成を行う場合は allow_new_file=true を指定してください。`
+              `ファイルが見つかりません: ${params.file_path}. 新規作成を行う場合は allow_new_file=true を指定してください。`,
             );
           }
           operation = 'create';
         } else {
-          return this.createErrorResult(`ファイルアクセスエラー: ${error instanceof Error ? error.message : String(error)}`);
+          return this.createErrorResult(
+            `ファイルアクセスエラー: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       }
 
@@ -135,7 +145,7 @@ export class OverrideTextTool extends BaseTool {
       const newSize = Buffer.byteLength(params.text, 'utf-8');
       if (newSize > params.max_file_size) {
         return this.createErrorResult(
-          `新しい内容のサイズが制限を超えています: ${newSize} > ${params.max_file_size} bytes`
+          `新しい内容のサイズが制限を超えています: ${newSize} > ${params.max_file_size} bytes`,
         );
       }
 
@@ -149,7 +159,7 @@ export class OverrideTextTool extends BaseTool {
           original_size: originalSize,
           new_size: newSize,
           preview_content: params.text,
-          security_warning: securityWarning
+          security_warning: securityWarning,
         };
 
         return this.createTextResult(JSON.stringify(result, null, 2));
@@ -158,11 +168,13 @@ export class OverrideTextTool extends BaseTool {
       // 5. 明示的確認チェック（重要ファイル）
       if (!params.confirm_override && operation === 'override' && !params.preview_mode) {
         const sensitivePatterns = ['.env', 'config', 'package.json', 'tsconfig', '.gitignore'];
-        const isSensitiveFile = sensitivePatterns.some(pattern => params.file_path.toLowerCase().includes(pattern));
-        
+        const isSensitiveFile = sensitivePatterns.some((pattern) =>
+          params.file_path.toLowerCase().includes(pattern),
+        );
+
         if (isSensitiveFile) {
           return this.createErrorResult(
-            `機密ファイル上書き保護: ${params.file_path} は重要ファイルです。preview_mode=true で内容を確認後、confirm_override=true で実行してください。`
+            `機密ファイル上書き保護: ${params.file_path} は重要ファイルです。preview_mode=true で内容を確認後、confirm_override=true で実行してください。`,
           );
         }
       }
@@ -191,7 +203,7 @@ export class OverrideTextTool extends BaseTool {
         backup_path: backupPath,
         original_size: originalSize,
         new_size: newSize,
-        security_warning: securityWarning
+        security_warning: securityWarning,
       };
 
       Logger.getInstance().info('File override completed', {
@@ -199,14 +211,16 @@ export class OverrideTextTool extends BaseTool {
         operation,
         original_size: originalSize,
         new_size: newSize,
-        backup_created: !!backupPath
+        backup_created: !!backupPath,
       });
 
       return this.createTextResult(JSON.stringify(result, null, 2));
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      Logger.getInstance().error('Failed to override file', error instanceof Error ? error : new Error(errorMessage));
+      Logger.getInstance().error(
+        'Failed to override file',
+        error instanceof Error ? error : new Error(errorMessage),
+      );
       return this.createErrorResult(`ファイル上書きエラー: ${errorMessage}`);
     }
   }
@@ -216,10 +230,10 @@ export class OverrideTextTool extends BaseTool {
     const backupDir = '.claude/workspace/effortlessly/backups';
     const fileName = path.basename(filePath);
     const backupPath = path.join(backupDir, `${fileName}.${timestamp}.backup`);
-    
+
     await fs.mkdir(backupDir, { recursive: true });
     await fs.writeFile(backupPath, content, 'utf-8');
-    
+
     return backupPath;
   }
 }

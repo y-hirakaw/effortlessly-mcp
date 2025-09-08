@@ -13,8 +13,12 @@ import { LogManager } from '../../utils/log-manager.js';
 const ProjectMemoryWriteSchema = z.object({
   memory_name: z.string().min(1).describe('Name of the memory to save'),
   content: z.string().min(1).describe('Content to store in the memory'),
-  intent: z.string().optional().default('プロジェクト知識保存').describe('この操作を行う理由・目的'),
-  tags: z.array(z.string()).optional().default([]).describe('Optional tags for categorization')
+  intent: z
+    .string()
+    .optional()
+    .default('Project knowledge storage')
+    .describe('Intent or purpose of this operation'),
+  tags: z.array(z.string()).optional().default([]).describe('Optional tags for categorization'),
 });
 
 type ProjectMemoryWriteParams = z.infer<typeof ProjectMemoryWriteSchema>;
@@ -30,24 +34,24 @@ export class ProjectMemoryWriteTool extends BaseTool {
       memory_name: {
         type: 'string',
         description: 'Name of the memory to save',
-        required: true
+        required: true,
       },
       content: {
-        type: 'string', 
+        type: 'string',
         description: 'Content to store in the memory',
-        required: true
+        required: true,
       },
       intent: {
         type: 'string',
         description: 'この操作を行う理由・目的',
-        required: false
+        required: false,
       },
       tags: {
         type: 'array',
         description: 'Optional tags for categorization',
-        required: false
-      }
-    }
+        required: false,
+      },
+    },
   };
 
   protected readonly schema = ProjectMemoryWriteSchema;
@@ -59,7 +63,7 @@ export class ProjectMemoryWriteTool extends BaseTool {
     this.logger.info(`Saving project memory: ${memory_name}`, {
       contentLength: content.length,
       tagsCount: tags.length,
-      tags: tags.join(', ')
+      tags: tags.join(', '),
     });
 
     // ワークスペースの取得
@@ -67,7 +71,9 @@ export class ProjectMemoryWriteTool extends BaseTool {
     const currentWorkspace = await workspaceManager.getCurrentWorkspace();
 
     if (!currentWorkspace) {
-      throw new Error('No active workspace. Please activate a workspace first using workspace_activate.');
+      throw new Error(
+        'No active workspace. Please activate a workspace first using workspace_activate.',
+      );
     }
 
     // プロジェクトメモリサービスを初期化
@@ -78,7 +84,7 @@ export class ProjectMemoryWriteTool extends BaseTool {
 
     this.logger.info(`Project memory saved successfully: ${memory_name}`, {
       filePath: result.filePath,
-      size: result.metadata.size
+      size: result.metadata.size,
     });
 
     const response = {
@@ -90,13 +96,13 @@ export class ProjectMemoryWriteTool extends BaseTool {
         updated_at: result.metadata.updatedAt,
         size: result.metadata.size,
         tags: result.metadata.tags,
-        checksum: result.metadata.checksum
+        checksum: result.metadata.checksum,
       },
       message: result.message,
       workspace: {
         name: currentWorkspace.name,
-        root_path: currentWorkspace.root_path
-      }
+        root_path: currentWorkspace.root_path,
+      },
     };
 
     // 操作ログ記録
@@ -105,7 +111,7 @@ export class ProjectMemoryWriteTool extends BaseTool {
       'PROJECT_MEMORY_WRITE',
       result.filePath,
       `Memory "${result.metadata.name}" written | Size: ${result.metadata.size} bytes | Tags: ${result.metadata.tags?.join(', ') || 'none'}`,
-      this.metadata
+      this.metadata,
     );
 
     // DEBUG: Final response validation

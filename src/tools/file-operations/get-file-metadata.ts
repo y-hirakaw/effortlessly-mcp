@@ -8,7 +8,7 @@ import type { MdcToolImplementation } from '../../types/mcp.js';
 
 const logger = Logger.getInstance();
 
-// ファイルタイプの列挙型
+// File type enumeration
 export enum FileType {
   FILE = 'file',
   DIRECTORY = 'directory',
@@ -20,30 +20,44 @@ export enum FileType {
   UNKNOWN = 'unknown',
 }
 
-// ツールのパラメータスキーマ
+// Tool parameter schema
 const GetFileMetadataParams = z.object({
-  file_path: z.string().describe('メタデータを取得するファイルのパス'),
+  file_path: z.string().describe('Path to the file/directory to get metadata'),
 });
 
 type GetFileMetadataParamsType = z.infer<typeof GetFileMetadataParams>;
 
-// ツールの結果スキーマ
+// Tool result schema
 const GetFileMetadataResult = z.object({
-  path: z.string().describe('ファイルの絶対パス'),
-  name: z.string().describe('ファイル名'),
-  type: z.enum(['file', 'directory', 'symlink', 'block_device', 'character_device', 'fifo', 'socket', 'unknown']).describe('ファイルタイプ'),
-  size: z.number().describe('ファイルサイズ（バイト）'),
-  created: z.string().describe('作成日時（ISO 8601）'),
-  modified: z.string().describe('最終更新日時（ISO 8601）'),
-  accessed: z.string().describe('最終アクセス日時（ISO 8601）'),
-  permissions: z.string().optional().describe('ファイルパーミッション（8進数）'),
-  owner: z.object({
-    uid: z.number().optional().describe('ユーザーID'),
-    gid: z.number().optional().describe('グループID'),
-  }).optional().describe('所有者情報'),
-  is_readable: z.boolean().describe('読み取り可能かどうか'),
-  is_writable: z.boolean().describe('書き込み可能かどうか'),
-  is_executable: z.boolean().describe('実行可能かどうか'),
+  path: z.string().describe('Absolute path of the file'),
+  name: z.string().describe('File name'),
+  type: z
+    .enum([
+      'file',
+      'directory',
+      'symlink',
+      'block_device',
+      'character_device',
+      'fifo',
+      'socket',
+      'unknown',
+    ])
+    .describe('File type'),
+  size: z.number().describe('File size in bytes'),
+  created: z.string().describe('Creation time (ISO 8601)'),
+  modified: z.string().describe('Last modification time (ISO 8601)'),
+  accessed: z.string().describe('Last access time (ISO 8601)'),
+  permissions: z.string().optional().describe('File permissions (octal)'),
+  owner: z
+    .object({
+      uid: z.number().optional().describe('User ID'),
+      gid: z.number().optional().describe('Group ID'),
+    })
+    .optional()
+    .describe('Owner information'),
+  is_readable: z.boolean().describe('Whether the file is readable'),
+  is_writable: z.boolean().describe('Whether the file is writable'),
+  is_executable: z.boolean().describe('Whether the file is executable'),
 });
 
 type GetFileMetadataResultType = z.infer<typeof GetFileMetadataResult>;
@@ -52,7 +66,10 @@ type GetFileMetadataResultType = z.infer<typeof GetFileMetadataResult>;
  * get_file_metadata ツールの実装
  * 指定されたファイルのメタデータを取得する
  */
-export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsType, GetFileMetadataResultType> = {
+export const getFileMetadataTool: MdcToolImplementation<
+  GetFileMetadataParamsType,
+  GetFileMetadataResultType
+> = {
   name: 'get_file_metadata',
   description: '指定されたファイルのメタデータ（サイズ、更新日時、パーミッション情報）を取得します',
   inputSchema: GetFileMetadataParams,
@@ -63,7 +80,7 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
     try {
       // FileSystemServiceのインスタンスを取得
       const fsService = FileSystemService.getInstance();
-      
+
       // ファイルパスの正規化
       const filePath = path.resolve(params.file_path);
       logger.debug('Resolved file path', { filePath });
@@ -78,7 +95,7 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
 
       // ファイルの統計情報を取得
       const stats = await fsService.stat(filePath);
-      
+
       // ファイル名を取得
       const fileName = path.basename(filePath);
 
@@ -105,7 +122,7 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
         };
       }
 
-      logger.info('File metadata retrieved successfully', { 
+      logger.info('File metadata retrieved successfully', {
         filePath,
         type: fileType,
         size: stats.size,
@@ -116,7 +133,7 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
       await logManager.logFileOperation(
         'GET_FILE_METADATA',
         filePath,
-        `Retrieved metadata for ${fileType} (${stats.size} bytes)`
+        `Retrieved metadata for ${fileType} (${stats.size} bytes)`,
       );
 
       return {
@@ -133,7 +150,6 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
         is_writable: isWritable,
         is_executable: isExecutable,
       };
-
     } catch (error) {
       // 既にスローされたエラーはそのまま再スロー
       if (error instanceof Error && error.message.includes('ファイル')) {
@@ -141,8 +157,12 @@ export const getFileMetadataTool: MdcToolImplementation<GetFileMetadataParamsTyp
       }
 
       // その他のエラー
-      logger.error(`Unexpected error in get_file_metadata: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(`ファイルメタデータの取得中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `Unexpected error in get_file_metadata: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new Error(
+        `ファイルメタデータの取得中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   },
 };
