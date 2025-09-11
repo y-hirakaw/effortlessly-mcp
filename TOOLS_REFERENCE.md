@@ -353,11 +353,11 @@ await smartEditFile({
   create_backup: true
 });
 
-// プロジェクト知識保存
-await projectMemoryWrite({
-  memory_name: "auth_architecture",
-  content: "JWT認証システムの設計仕様...",
-  tags: ["architecture", "security", "jwt"]
+// 高速検索機能
+await searchWithLearning({
+  query: "authentication logic",
+  learn_patterns: true,
+  max_results: 50
 });
 ```
 

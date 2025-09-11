@@ -24,7 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├─────────────────────────────────────┤
 │        Security Middleware          │
 ├─────────────────────────────────────┤
-│         Tool Handlers (16個)        │
+│         Tool Handlers (11個)        │
 ├─────────────────────────────────────┤
 │   Core Services (FS, Memory, AI)   │
 ├─────────────────────────────────────┤
@@ -37,7 +37,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **ProjectManager**: プロジェクト設定、ホワイトリスト管理
 - **FileSystemService**: パス検証付きセキュアファイルアクセス
 - **SearchLearningEngine**: AI搭載学習型高速検索システム（ROI 350%）
-- **ProjectMemoryService**: AI駆動プロジェクト知識管理システム
 - **AuditLogger**: 完全操作ログ記録・改ざん防止
 
 ### Workspace Structure
@@ -77,13 +76,12 @@ npm run format         # Format code with Prettier
 **🎯 主力機能（高品質・本番対応）:**
 - ✅ **AI搭載SearchLearningEngine** - 43%高速化、ROI 350%実現
 - ✅ **スマート編集システム** - バックアップ・プレビュー・エラーハンドリング完備
-- ✅ **プロジェクトメモリ** - AI駆動知識管理・自動検索最適化
 - ✅ **セキュリティ強化** - パス検証・ファイルサイズ制限・オフライン動作
 - ✅ **ワークスペース管理** - 設定自動生成・分離環境・YAML設定
 
 **🔧 ツール統合完了:**
 - ✅ **83%コンテキスト削減** - 6個→1個の検索ツール統合
-- ✅ **16個の最適化ツール** - 冗長性排除・機能集約完了
+- ✅ **11個の最適化ツール** - 冗長性排除・機能集約完了
 - ✅ **テストカバレッジ90%+** - 高品質保証・安定性確保
 
 **🚫 LSP機能廃止完了 (v2.0戦略転換):**
@@ -91,7 +89,7 @@ npm run format         # Format code with Prettier
 - ❌ TypeScript/Swift LSP統合 → 保守負担70%削減達成
 - ❌ 重厚な依存関係 → 軽量・高速・確実な動作に最適化
 
-## 利用可能ツール（16個）- 実用性特化・高性能
+## 利用可能ツール（11個）- 実用性特化・高性能
 
 ### 🚀 AI検索システム（1個） - 新機能
 - **`search_with_learning`**: AI搭載学習型高速検索
@@ -110,17 +108,13 @@ npm run format         # Format code with Prettier
 - **`smart_insert_text`**: 柔軟位置指定テキスト挿入
 - **`override_text`**: ファイル完全上書き（バックアップ機能付き）
 
-### 🏢 ワークスペース管理（3個）
-- **`workspace_activate`**: ワークスペース有効化
-- **`workspace_get_info`**: 現在のワークスペース情報取得  
-- **`workspace_list_all`**: 全ワークスペース一覧
+### 🏢 ワークスペース管理（1個）
+- **`workspace_setup`**: ワークスペース初期化・設定
 
-### 🧠 プロジェクトメモリ（5個） - AI駆動
-- **`project_memory_write`**: プロジェクト知識永続化
-- **`project_memory_read`**: 保存知識取得
-- **`project_memory_list`**: メモリ一覧
-- **`project_memory_smart_read`**: AI駆動最適メモリ自動検索・取得
-- **`project_memory_update_workflow`**: メモリ更新手順生成
+### 📏 最適化ツール（1個）
+- **`smart_range_optimizer`**: AI駆動の最適読み込み範囲提案
+
+
 
 ### Security Features
 - Automatic sensitive pattern detection (API keys, passwords, credentials)

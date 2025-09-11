@@ -4,9 +4,9 @@
  */
 
 import { z } from 'zod';
-import { BaseTool } from '../base.js';
-import { IToolMetadata, IToolResult } from '../../types/common.js';
-import { SearchLearningEngine } from '../../services/SearchLearningEngine.js';
+import { BaseTool } from './base.js';
+import { IToolMetadata, IToolResult } from '../types/common.js';
+import { SearchLearningEngine } from '../services/SearchLearningEngine.js';
 // SearchFilesTool (廃止済み: search_with_learningで代替)
 import path from 'path';
 

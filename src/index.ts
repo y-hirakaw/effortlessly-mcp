@@ -152,70 +152,7 @@ function registerTools(): void {
         );
         break;
         
-      case 'project_memory_update_workflow':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            task: z.string().optional().describe('Type of update task'),
-            scope: z.enum(['full', 'incremental', 'targeted']).optional().default('full').describe('Update scope'),
-            focus_areas: z.array(z.string()).optional().describe('Specific focus areas'),
-            preview: z.boolean().optional().default(false).describe('Preview workflow only')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'project_memory_write':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            memory_name: z.string().describe('Memory file name'),
-            content: z.string().describe('Content to save'),
-            tags: z.array(z.string()).optional().describe('List of tags'),
-            overwrite: z.boolean().optional().default(false).describe('Whether to overwrite existing file')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'project_memory_read':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            memory_name: z.string().describe('Memory file name to read')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'project_memory_list':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            filter_tags: z.array(z.string()).optional().describe('Filter memories by tags'),
-            include_statistics: z.boolean().optional().default(false).describe('Include detailed statistics')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'project_memory_smart_read':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            query: z.string().min(1).describe('What information are you looking for?'),
-            max_results: z.number().min(1).max(10).default(3).describe('Maximum number of memory files to return'),
-            include_content: z.boolean().default(true).describe('Whether to include full content or just metadata')
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
+
 
       // 🆕 Search Learning Engine ツール群 (v2.0 AI強化機能)
       case 'search_with_learning':

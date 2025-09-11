@@ -5,10 +5,10 @@ Claude Code向けのMCP（Model Context Protocol）サーバーです。セキ�
 ## 主な機能
 
 - **セキュアファイル操作**: 読み取り、編集、検索、メタデータ取得
-- **AI搭載プロジェクト管理**: スマートメモリシステム、ワークスペース管理
-- **学習型検索システム**: パターン学習による高速検索
+- **AI搭載学習型検索**: 検索パターン自動学習による高速検索
+- **ワークスペース管理**: 設定自動化・分離環境・YAML設定
 
-## 利用可能なツール（16個）
+## 利用可能なツール（11個）
 
 ### 🔍 AI搭載検索システム
 - **search_with_learning**: 学習型高速検索
@@ -26,16 +26,12 @@ Claude Code向けのMCP（Model Context Protocol）サーバーです。セキ�
 - **smart_insert_text**: 柔軟な位置指定テキスト挿入
 - **override_text**: ファイル完全置換（バックアップ機能付き）
 
-### 🧠 プロジェクトメモリ
-- **project_memory_write/read**: プロジェクト知識の永続化・取得
-- **project_memory_list**: 保存済みメモリ一覧・統計
-- **project_memory_smart_read**: AI駆動の最適メモリ検索
-- **project_memory_update_workflow**: メモリ更新手順生成
 
-### 🏢 ワークスペース管理
+
+### 🏢 ワークスペース管理（1個）
 - **workspace_setup**: ワークスペース初期化・設定
 
-### 📏 最適化ツール
+### 📏 最適化ツール（1個）
 - **smart_range_optimizer**: AI駆動の最適読み込み範囲提案
 
 ## セットアップ
@@ -83,7 +79,6 @@ effortlessly-mcpは `.claude/workspace/effortlessly/` 配下にデータを管�
 ```
 .claude/workspace/effortlessly/
 ├── config/              # 設定ファイル
-├── memory/              # プロジェクト知識・メモリ
 ├── search_index/        # 検索インデックス（SQLite）
 ├── logs/                # 監査ログ
 ├── backups/             # バックアップファイル

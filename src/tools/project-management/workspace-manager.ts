@@ -132,7 +132,7 @@ index/
 ### knowledge/ - AI生成知識
 - **目的**: プロジェクト理解の自動生成インデックス
 - **内容**: アーキテクチャ、設計パターン、実装詳細
-- **更新**: project_memory_update_workflow により自動更新
+- **更新**: 自動更新システムにより管理
 
 ### lsp_symbols/ - コードシンボル
 - **目的**: LSP統合によるセマンティック検索
@@ -150,16 +150,16 @@ index/
 
 ### 自動更新機能
 \`\`\`bash
-# メタインデックス再生成
-project_memory_update_workflow task="meta_index" scope="full"
+# 検索インデックス再生成
+search_with_learning query="project structure" learn_patterns=true
 
-# カテゴリ別インデックス更新
-project_memory_update_workflow task="hierarchical_index" scope="<category>"
+# ファイル変更検知による自動更新
+# システムが自動的にファイル変更を検知し、インデックスを更新
 \`\`\`
 
 ### 手動管理
-- プロジェクトメモリ: project_memory_write/read/list
-- LSPシンボル: code_find_symbol等のLSPツール群
+- ファイル検索: search_with_learning による学習型高速検索
+- ファイル操作: smart_edit_file, smart_insert_text等のファイル編集ツール群
 - ディレクトリ管理: workspace_activate時の自動作成
 
 ## 📈 統計情報

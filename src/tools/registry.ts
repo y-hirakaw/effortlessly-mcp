@@ -9,13 +9,6 @@ import {
   WorkspaceSetupTool
 } from './project-management/index.js';
 // LSP関連ツール (v2.0 戦略転換により廃止済み)
-import {
-  ProjectMemoryWriteTool,
-  ProjectMemoryReadTool,
-  ProjectMemoryListTool,
-  ProjectMemorySmartReadTool
-} from './project-memory/index.js';
-import { ProjectMemoryUpdateWorkflowTool } from './project-memory-update-workflow.js';
 // LSP関連コード編集ツール (v2.0 戦略転換により廃止済み)
 import {
   SmartEditFileTool,
@@ -27,7 +20,7 @@ import {
 import { 
   searchWithLearning
   // optimizeSearchQuery, getSearchStatistics, updateSearchPatterns は廃止済み
-} from './project-memory/search-learning-engine.js';
+} from './search-learning-engine.js';
 
 /**
  * Tool registry for managing and accessing all available tools
@@ -65,14 +58,7 @@ export class ToolRegistry {
     
     // コード解析ツール (LSP機能は v2.0 戦略転換により廃止済み)
     
-    // プロジェクト知識管理ツール
-    this.registerTool(new ProjectMemoryWriteTool());
-    this.registerTool(new ProjectMemoryReadTool());
-    this.registerTool(new ProjectMemoryListTool());
-    this.registerTool(new ProjectMemorySmartReadTool());
-    
-    // プロジェクト更新ワークフローツール
-    this.registerTool(new ProjectMemoryUpdateWorkflowTool());
+    // プロジェクト知識管理ツール（廃止済み）
     
     // 精密コード編集ツール (LSP機能は v2.0 戦略転換により廃止済み)
     
