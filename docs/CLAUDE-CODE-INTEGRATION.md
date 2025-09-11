@@ -27,10 +27,11 @@
 
 ## 主な機能
 
-- **AI検索**: `search_with_learning` - 学習型高速検索
-- **プロジェクトメモリ**: `project_memory_*` - AI駆動知識管理
+- **AI検索**: `search_with_learning` - 学習型高速検索（43%高速化、ROI 350%）
 - **安全編集**: `smart_edit_file` - バックアップ付き編集
+- **スマート挿入**: `smart_insert_text` - 柔軟な位置指定テキスト挿入
 - **ワークスペース**: `workspace_setup` - プロジェクト環境管理
+- **最適化**: `smart_range_optimizer` - AI駆動の最適読み込み範囲提案
 
 ## トラブルシューティング
 

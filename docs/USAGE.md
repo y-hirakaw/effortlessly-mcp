@@ -217,81 +217,86 @@ const patterns = await mcp.callTool('code_search_pattern', {
 
 ## プロジェクトメモリ機能
 
-### 🗂️ 特化プロジェクトインデックスシステム（v1.0.2+）
+### 🔍 AI搭載学習型検索システム（v2.0+）
 
-effortlessly-mcpでは、プロジェクト情報を効率的に管理するための特化インデックスシステムを提供しています。すべての情報は `.claude/workspace/effortlessly/memory/` で固定ファイル名で管理され、常に最新情報にアクセスできます。
+effortlessly-mcpでは、AI搭載の学習型検索システムを提供しています。検索パターンを自動学習し、プロジェクトの変更に応じてキャッシュを最適化します。
 
-#### 利用可能な特化インデックス
+#### 高速検索機能の活用
 
 ```typescript
-// メインインデックス - プロジェクト全体の目次とクイックリファレンス
-const projectOverview = await mcp.callTool('project_memory_read', {
-  memory_name: 'project_structure_index'
+// 包括的コード検索 - ファイル名・内容・パターンを統合検索
+const searchResults = await mcp.callTool('search_with_learning', {
+  query: 'authentication logic',
+  learn_patterns: true,
+  max_results: 50,
+  recursive: true
 });
 
-// Managerクラス詳細 - 4つの中核クラスの詳細情報
-const managerInfo = await mcp.callTool('project_memory_read', {
-  memory_name: 'manager_classes_index'
+// 特定ファイルタイプの検索
+const componentSearch = await mcp.callTool('search_with_learning', {
+  query: 'React component',
+  file_pattern: '**/*.{tsx,jsx}',
+  learn_patterns: true
 });
 
-// システムアーキテクチャ - 5層構造の詳細解説
-const architecture = await mcp.callTool('project_memory_read', {
-  memory_name: 'architecture_overview'
-});
-
-// セキュリティ実装状況 - 実装済み/予定のセキュリティ機能マップ
-const securityMap = await mcp.callTool('project_memory_read', {
-  memory_name: 'security_implementation_map'
-});
-
-// LSP統合状況 - TypeScript/Swift等の言語サポート詳細
-const lspStatus = await mcp.callTool('project_memory_read', {
-  memory_name: 'lsp_integration_status'
+// 内容パターン検索（正規表現対応）
+const errorHandling = await mcp.callTool('search_with_learning', {
+  query: 'error handling',
+  content_pattern: 'try.*catch|throw.*Error',
+  learn_patterns: true
 });
 ```
 
-#### インデックスの活用パターン
+#### 検索システムの活用パターン
 
 ```typescript
 // 新機能実装前の影響調査
 async function investigateImpact(featureName: string) {
-  // 1. プロジェクト構造の確認
-  const structure = await mcp.callTool('project_memory_read', {
-    memory_name: 'project_structure_index'
+  // 1. 関連コードの検索
+  const relatedCode = await mcp.callTool('search_with_learning', {
+    query: featureName,
+    learn_patterns: true,
+    max_results: 100
   });
   
-  // 2. 関連Managerクラスの特定
-  const managers = await mcp.callTool('project_memory_read', {
-    memory_name: 'manager_classes_index'
+  // 2. 類似実装の探索
+  const similarImplementations = await mcp.callTool('search_with_learning', {
+    query: `${featureName} implementation pattern`,
+    content_pattern: 'class.*Manager|interface.*Service',
+    learn_patterns: true
   });
   
-  // 3. アーキテクチャ層での位置確認
-  const architecture = await mcp.callTool('project_memory_read', {
-    memory_name: 'architecture_overview'
+  // 3. テストファイルの確認
+  const testFiles = await mcp.callTool('search_with_learning', {
+    query: `${featureName} test`,
+    file_pattern: '**/*.{test,spec}.{ts,js}',
+    learn_patterns: true
   });
   
   return {
-    structure: structure.content,
-    relatedManagers: managers.content,
-    architecturalLayer: architecture.content
+    relatedCode: relatedCode.results,
+    similarImplementations: similarImplementations.results,
+    testFiles: testFiles.results
   };
 }
 
 // セキュリティ要件の確認
 async function checkSecurityRequirements() {
-  const securityMap = await mcp.callTool('project_memory_read', {
-    memory_name: 'security_implementation_map'
+  const securityFiles = await mcp.callTool('search_with_learning', {
+    query: 'security implementation',
+    content_pattern: 'security|auth|validation|sanitize',
+    learn_patterns: true
   });
   
-  console.log('Phase 2 セキュリティ実装予定:', securityMap.content);
+  console.log('セキュリティ関連ファイル:', securityFiles.results);
 }
 ```
 
-#### プロジェクトインデックス更新のベストプラクティス
+#### 検索パターン最適化のベストプラクティス
 
 ```typescript
-// 構造化された情報更新
-const updateResult = await mcp.callTool('project_memory_write', {
+// 検索結果の活用による開発効率化
+const optimizedSearch = await mcp.callTool('search_with_learning', {
   memory_name: 'project_structure_index',
   content: `# Project Structure Index - Updated ${new Date().toISOString()}
 
@@ -309,36 +314,37 @@ const updateResult = await mcp.callTool('project_memory_write', {
 
 **重要**: 固定ファイル名使用により、常に最新情報にアクセス可能。古い情報参照問題が根本解決されています。
 
-### ナレッジベースの作成と管理
+### 効率的なプロジェクト情報管理
 
 ```typescript
-// プロジェクト固有の知識を保存
-const writeResult = await mcp.callTool('project_memory_write', {
-  memory_name: 'architecture-decisions',
-  content: `# アーキテクチャ決定記録
-  
-## データベース設計
-- PostgreSQLを使用
-- ORMにはPrismaを採用
-- 読み取り専用レプリカを設置
-
-## 認証システム
-- JWT + Refresh Tokenパターン
-- OAuth 2.0 サポート（Google, GitHub）
-`,
-  tags: ['architecture', 'database', 'auth'],
-  overwrite: false
+// アーキテクチャ関連ファイルの包括検索
+const architectureFiles = await mcp.callTool('search_with_learning', {
+  query: 'architecture decisions database auth',
+  content_pattern: 'PostgreSQL|Prisma|JWT|OAuth',
+  file_pattern: '**/*.{md,ts,js,json}',
+  learn_patterns: true,
+  max_results: 100
 });
 
-// 保存済みの知識を読み取り
-const knowledge = await mcp.callTool('project_memory_read', {
-  memory_name: 'architecture-decisions'
+// 検索結果から構造化情報を抽出
+const projectKnowledge = architectureFiles.results.map(file => ({
+  path: file.path,
+  type: file.name.includes('.md') ? 'documentation' : 'code',
+  relevance: file.name.toLowerCase().includes('architecture') ? 'high' : 'medium'
+}));
+
+// 関連するドキュメントファイルの詳細検索  
+const docFiles = await mcp.callTool('search_with_learning', {
+  query: 'architecture decisions',
+  file_pattern: '**/*.md',
+  learn_patterns: true
 });
 
-// メモリ一覧の取得
-const memoryList = await mcp.callTool('project_memory_list', {
-  tag_filter: 'architecture',
-  include_statistics: true
+// 検索パフォーマンス統計の確認
+console.log('検索結果統計:', {
+  architectureFiles: architectureFiles.metadata,
+  docFiles: docFiles.metadata,
+  totalResults: architectureFiles.results.length + docFiles.results.length
 });
 ```
 
@@ -484,11 +490,18 @@ for (const pattern of securityPatterns) {
   });
   
   if (issues.length > 0) {
-    // セキュリティ問題をメモリに記録
-    await mcp.callTool('project_memory_write', {
-      memory_name: `security-issues-${pattern.replace(/[^a-z0-9]/gi, '-')}`,
-      content: JSON.stringify(issues, null, 2),
-      tags: ['security', 'audit', 'issues']
+    // セキュリティ問題の詳細検索（学習型）
+    const relatedSecurityFiles = await mcp.callTool('search_with_learning', {
+      query: `security issues ${pattern}`,
+      content_pattern: 'vulnerability|security|auth|sanitize',
+      learn_patterns: true,
+      max_results: 20
+    });
+    
+    console.log('セキュリティ問題検出:', {
+      pattern,
+      issueCount: issues.length,
+      relatedFiles: relatedSecurityFiles.results.length
     });
   }
 }
