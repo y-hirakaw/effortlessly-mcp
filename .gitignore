@@ -152,3 +152,4 @@ tests/test-projects/
 
 .vscode/
 .DS_Store
+.ai_code_tracking/
