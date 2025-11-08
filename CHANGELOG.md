@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.2.0] - 2025-11-08
+
+### Removed
+- ❌ **冗長ツール削除**: Claude Code標準ツールと重複する3ツールを削除（11個→6個、45%削減）
+  - `read_file` → Claude Code標準 `Read` ツールで代替可能
+  - `list_directory` → Claude Code標準 `Bash(ls)` / `Glob` ツールで代替可能
+  - `get_file_metadata` → Claude Code標準 `Bash(ls -l)` / `Read` ツールで代替可能
+
+### Changed
+- 📝 **ドキュメント強化**: Claude Code標準ツールとの差別化を明確化
+  - CLAUDE.md: 各ツールに標準ツールとの差別化ポイントを追加
+  - README.md: 「Claude Code標準ツールとの差別化」セクション追加
+  - ファイル読取戦略を「大ファイル」「小ファイル」「検索」で明確化
+
+### Benefits
+- 🎯 **焦点の明確化**: AI学習・スマート編集・ワークスペース管理・AI最適化に特化
+- 🚀 **保守性向上**: ツール数削減により保守コスト軽減
+- 💡 **価値の明確化**: Claude Code標準ツールに対する独自の価値提案を強調
+
 ## [2.1.1] - 2025-11-08
 
 ### Changed

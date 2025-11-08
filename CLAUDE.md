@@ -97,33 +97,36 @@ npm run format         # Format code with Prettier
 - ❌ TypeScript/Swift LSP統合 → 保守負担70%削減達成
 - ❌ 重厚な依存関係 → 軽量・高速・確実な動作に最適化
 
-## 利用可能ツール（11個）- 実用性特化・高性能
+## 利用可能ツール（6個）- 実用性特化・高性能
 <!-- rule-id: CLAUDE#available-tools -->
 
-### 📁 基本ファイル操作（4個）
-<!-- rule-id: CLAUDE#basic-file-operations -->
-- **`read_file`**: ファイル読取（UTF-8対応・部分読取）
-- **`list_directory`**: ディレクトリ一覧（再帰・パターン対応）
-- **`get_file_metadata`**: ファイル・ディレクトリ詳細情報取得
-- **`search_files`**: ファイル検索（AI学習機能内蔵）
+### 🔍 AI検索（1個）
+<!-- rule-id: CLAUDE#ai-search -->
+- **`search_files`**: AI学習型ファイル検索
   - ファイル名パターン（glob）・内容（regex）で検索
-  - 検索パターン自動学習・最適化 
+  - 検索パターン自動学習・最適化
   - ファイル変更検知・自動キャッシュ無効化
   - 43%高速化・ROI 350%の性能向上
+  - **Claude Code標準ツール(Grep/Glob)との差別化**: 学習機能・キャッシュ最適化
 
 ### 🛠️ スマート編集（3個）
 <!-- rule-id: CLAUDE#smart-editing -->
 - **`smart_edit_file`**: 安全編集（バックアップ・プレビュー・エラーハンドリング）
+  - **Claude Code標準ツール(Edit)との差別化**: 自動バックアップ・プレビューモード・エラーハンドリング
 - **`smart_insert_text`**: 柔軟位置指定テキスト挿入
+  - **Claude Code標準ツール(Edit)との差別化**: 行番号/before_text/after_text/start/end指定・自動インデント
 - **`override_text`**: ファイル完全上書き（バックアップ機能付き）
+  - **Claude Code標準ツール(Write)との差別化**: confirm_override誤操作防止・自動バックアップ
 
 ### 🏢 ワークスペース管理（1個）
 <!-- rule-id: CLAUDE#workspace-management -->
 - **`workspace_setup`**: ワークスペース初期化・設定
+  - **Claude Code標準ツールにない機能**: プロジェクト設定・ホワイトリスト・インデックス・ログ管理
 
-### 📏 最適化ツール（1個）
-<!-- rule-id: CLAUDE#optimization-tools -->
+### 📏 AI最適化（1個）
+<!-- rule-id: CLAUDE#ai-optimization -->
 - **`smart_range_optimizer`**: AI駆動の最適読み込み範囲提案
+  - **Claude Code標準ツール(Read)との差別化**: intent/semantic_queriesでAI最適化範囲提案
 
 
 
@@ -177,19 +180,22 @@ npm run format         # Format code with Prettier
 
 利用可能な場合は**必ず優先的に使用**:
 
-**ファイル探索**: `mcp__effortlessly-mcp__search_files`, `mcp__effortlessly-mcp__list_directory`
+**ファイル探索**: `mcp__effortlessly-mcp__search_files`（標準: `Grep`, `Glob`）
 
-**ファイル読取**: `mcp__effortlessly-mcp__read_file`, `mcp__effortlessly-mcp__smart_range_optimizer`
+**ファイル読取**: `mcp__effortlessly-mcp__smart_range_optimizer`（標準: `Read`）
 
-**ファイル編集**: `mcp__effortlessly-mcp__smart_edit_file`, `mcp__effortlessly-mcp__smart_insert_text`, `mcp__effortlessly-mcp__override_text`
+**ファイル編集**: `mcp__effortlessly-mcp__smart_edit_file`, `mcp__effortlessly-mcp__smart_insert_text`, `mcp__effortlessly-mcp__override_text`（標準: `Edit`, `Write`）
 
-**エラー時のみ標準ツール使用**: `Read`, `Edit`, `Glob`, `Grep`
+**プロジェクト管理**: `mcp__effortlessly-mcp__workspace_setup`（標準ツールにない機能）
 
-### 📏 ファイルサイズ判断基準
-<!-- rule-id: CLAUDE#file-size-criteria -->
+**優先順位**: effortlessly-mcp > Claude Code標準ツール
 
-**Large (>50KB)**: `smart_range_optimizer` 使用
-**Small (<50KB)**: `read_file` 使用
+### 📏 ファイル読取の使い分け
+<!-- rule-id: CLAUDE#file-read-strategy -->
+
+**大ファイル (>50KB)**: `smart_range_optimizer`でAI最適化範囲を取得 → `Read`で読取
+**小ファイル (<50KB)**: `Read`で直接読取
+**検索**: `search_files`（学習機能・キャッシュ最適化あり）
 
 # タスクを実施する上での重要事項
 <!-- rule-id: CLAUDE#task-execution-important-points -->
@@ -201,9 +207,3 @@ npm run format         # Format code with Prettier
 <!-- rule-id: CLAUDE#chat-communication -->
 
 * 依頼者に忖度せず率直な意見を述べること
-
-# Web検索について
-<!-- rule-id: CLAUDE#web-search -->
-
-* Web Searchツールではなく、必ず以下コマンドを使ってcodexに調査を依頼すること。{}をWebで調査させたい内容に置き換えてください。
-  * `codex exec --model gpt-5 --sandbox workspace-write --config "sandbox_workspace_write.network_access=true" "{}についてWeb検索した後調査結果を報告してください。Web検索する回数は最大5回までにすること" --skip-git-repo-check`

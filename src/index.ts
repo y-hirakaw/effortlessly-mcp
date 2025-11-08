@@ -42,46 +42,6 @@ function registerTools(): void {
     // Register tool based on its name with appropriate schema
     switch (name) {
 
-      case 'read_file':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            file_path: z.string().describe('Path to the file to read'),
-            encoding: z.string().optional().default('utf-8').describe('File encoding (default: utf-8)'),
-            offset: z.number().optional().describe('Starting line number (1-based)'),
-            limit: z.number().optional().describe('Number of lines to read'),
-            include_line_numbers: z.boolean().optional().default(false).describe('Whether to include line numbers'),
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'list_directory':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            directory_path: z.string().describe('Path to the directory to list'),
-            recursive: z.boolean().optional().default(false).describe('Whether to list recursively'),
-            pattern: z.string().optional().describe('File name filter pattern (regex)'),
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-      case 'get_file_metadata':
-        server.tool(
-          name,
-          tool.metadata.description,
-          {
-            file_path: z.string().describe('Path to the file/directory to get metadata'),
-          },
-          createToolHandler(name, tool)
-        );
-        break;
-        
-
       case 'workspace_setup':
         server.tool(
           name,
