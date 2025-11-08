@@ -18,7 +18,7 @@ import {
 } from './file-operations/index.js';
 // JavaLSP基本診断ツール (v2.0 戦略転換により廃止済み)
 import { 
-  searchWithLearning
+  searchFiles
   // optimizeSearchQuery, getSearchStatistics, updateSearchPatterns は廃止済み
 } from './search-learning-engine.js';
 
@@ -73,9 +73,9 @@ export class ToolRegistry {
     // Java LSP基本診断ツール (LSP機能は v2.0 戦略転換により廃止済み)
     
     // 🆕 AI強化検索機能（v2.0新機能・最高ROI：350%）
-    this.registerTool(searchWithLearning);
+    this.registerTool(searchFiles);
     // 廃止済み: optimizeSearchQuery, getSearchStatistics, updateSearchPatterns
-    // → search_with_learningに統合・自動化
+    // → search_filesに統合・自動化
   }
 
   /**

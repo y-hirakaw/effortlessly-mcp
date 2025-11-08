@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [2.1.1] - 2025-11-08
+
+### Changed
+- 🔄 **ツール名改善**: `search_with_learning` → `search_files` に改名
+  - AIが使いやすい標準的な名前に変更
+  - Description を用途中心の説明に簡素化
+  - 内部機能パラメータ（`learn_patterns`）を削除し常時有効化
+  - パラメータ数を8個→7個に削減、認知負荷を低減
+
+### Fixed
+- 📝 **ドキュメント修正**: CLAUDE.md、README.mdの誤った記述を修正
+  - 非推奨表記の削除
+  - AI検索セクションを基本ファイル操作に統合
+  - ツール参照名を正確に更新
+
+
 
 ## [2.0.0] - 2025-09-03
 

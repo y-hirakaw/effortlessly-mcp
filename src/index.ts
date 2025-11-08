@@ -155,19 +155,18 @@ function registerTools(): void {
 
 
       // 🆕 Search Learning Engine ツール群 (v2.0 AI強化機能)
-      case 'search_with_learning':
+      case 'search_files':
         server.tool(
           name,
           tool.metadata.description,
           {
-            query: z.string().describe('Search query'),
+            query: z.string().describe('Search query (file name or keyword)'),
             directory: z.string().optional().describe('Search target directory (default: current directory)'),
-            file_pattern: z.string().optional().describe('File name pattern (glob format)'),
+            file_pattern: z.string().optional().describe('File name pattern (glob format, e.g., *.ts, **/*.md)'),
             content_pattern: z.string().optional().describe('File content search pattern (regex)'),
             case_sensitive: z.boolean().optional().default(false).describe('Case sensitive search'),
             recursive: z.boolean().optional().default(true).describe('Recursive search'),
-            max_results: z.number().optional().default(100).describe('Maximum number of results'),
-            learn_patterns: z.boolean().optional().default(true).describe('Learn search patterns')
+            max_results: z.number().optional().default(100).describe('Maximum number of results')
           },
           createToolHandler(name, tool)
         );

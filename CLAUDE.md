@@ -1,9 +1,11 @@
 # CLAUDE.md
+<!-- rule-id: CLAUDE#claude-md -->
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 必ず日本語でチャットを返してください。
 
 ## Project Overview
+<!-- rule-id: CLAUDE#project-overview -->
 
 **effortlessly-mcp** - セキュアなファイル操作とプロジェクト管理に特化した高性能MCP（Model Context Protocol）サーバー
 
@@ -15,6 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Runtime**: Node.js 20+
 
 ## Architecture & Structure
+<!-- rule-id: CLAUDE#architecture-structure -->
 
 実用性重視の軽量アーキテクチャ（v2.0戦略転換後）:
 
@@ -33,6 +36,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 
 ### Core Components
+<!-- rule-id: CLAUDE#core-components -->
 - **SecurityManager**: アクセス制御、機密データフィルタリング、監査ログ
 - **ProjectManager**: プロジェクト設定、ホワイトリスト管理
 - **FileSystemService**: パス検証付きセキュアファイルアクセス
@@ -40,6 +44,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **AuditLogger**: 完全操作ログ記録・改ざん防止
 
 ### Workspace Structure
+<!-- rule-id: CLAUDE#workspace-structure -->
 All MCP server-generated files are organized under `.claude/workspace/effortlessly/`:
 - `config/`: YAML configuration files (workspace, security, whitelist)
 - `index/`: SQLite databases for symbols and files
@@ -48,6 +53,7 @@ All MCP server-generated files are organized under `.claude/workspace/effortless
 - `backups/`: Configuration backups
 
 ## Development Commands
+<!-- rule-id: CLAUDE#development-commands -->
 
 ```bash
 # Setup and Development
@@ -63,6 +69,7 @@ npm run format         # Format code with Prettier
 ```
 
 ## Security Design Principles
+<!-- rule-id: CLAUDE#security-design-principles -->
 
 1. **Security by Default**: All operations include security validation
 2. **Path Validation**: Symlink detection and path traversal attack prevention  
@@ -70,6 +77,7 @@ npm run format         # Format code with Prettier
 4. **No External Communication**: Fully offline operation
 
 ## Implementation Status
+<!-- rule-id: CLAUDE#implementation-status -->
 
 **✅ v2.0.0リリース完了 - 実用性重視の高性能MCPサーバー**
 
@@ -90,28 +98,31 @@ npm run format         # Format code with Prettier
 - ❌ 重厚な依存関係 → 軽量・高速・確実な動作に最適化
 
 ## 利用可能ツール（11個）- 実用性特化・高性能
+<!-- rule-id: CLAUDE#available-tools -->
 
-### 🚀 AI検索システム（1個） - 新機能
-- **`search_with_learning`**: AI搭載学習型高速検索
+### 📁 基本ファイル操作（4個）
+<!-- rule-id: CLAUDE#basic-file-operations -->
+- **`read_file`**: ファイル読取（UTF-8対応・部分読取）
+- **`list_directory`**: ディレクトリ一覧（再帰・パターン対応）
+- **`get_file_metadata`**: ファイル・ディレクトリ詳細情報取得
+- **`search_files`**: ファイル検索（AI学習機能内蔵）
+  - ファイル名パターン（glob）・内容（regex）で検索
   - 検索パターン自動学習・最適化 
   - ファイル変更検知・自動キャッシュ無効化
   - 43%高速化・ROI 350%の性能向上
 
-### 📁 基本ファイル操作（4個）
-- **`read_file`**: ファイル読取（UTF-8対応・部分読取）
-- **`list_directory`**: ディレクトリ一覧（再帰・パターン対応）
-- **`get_file_metadata`**: ファイル・ディレクトリ詳細情報取得
-- **`search_files`**: ファイル検索 *(非推奨 - search_with_learningを推奨)*
-
 ### 🛠️ スマート編集（3個）
+<!-- rule-id: CLAUDE#smart-editing -->
 - **`smart_edit_file`**: 安全編集（バックアップ・プレビュー・エラーハンドリング）
 - **`smart_insert_text`**: 柔軟位置指定テキスト挿入
 - **`override_text`**: ファイル完全上書き（バックアップ機能付き）
 
 ### 🏢 ワークスペース管理（1個）
+<!-- rule-id: CLAUDE#workspace-management -->
 - **`workspace_setup`**: ワークスペース初期化・設定
 
 ### 📏 最適化ツール（1個）
+<!-- rule-id: CLAUDE#optimization-tools -->
 - **`smart_range_optimizer`**: AI駆動の最適読み込み範囲提案
 
 
@@ -124,6 +135,7 @@ npm run format         # Format code with Prettier
 - Complete operation auditing
 
 ## 実証済み性能（v2.0達成値）
+<!-- rule-id: CLAUDE#proven-performance -->
 - **AI検索**: 43%高速化（732ms→416ms実測値）
 - **ファイル読取**: <100ms （目標達成）
 - **キャッシュヒット**: 変更検知による自動無効化
@@ -131,6 +143,7 @@ npm run format         # Format code with Prettier
 - **コンテキスト効率**: 83%削減（6ツール→1ツール統合）
 
 ## Development Guidelines
+<!-- rule-id: CLAUDE#development-guidelines -->
 
 1. **TypeScript Strict Mode**: All code must pass strict type checking
 2. **Test Coverage**: Target 90%+ coverage
@@ -139,6 +152,7 @@ npm run format         # Format code with Prettier
 5. **Audit Everything**: All operations must be logged
 
 ## v2.0戦略転換完了 - 実用性重視の成果
+<!-- rule-id: CLAUDE#v2-0-strategy-completion -->
 
 **✅ 達成済み成果:**
 1. **パフォーマンス最適化**: SearchLearningEngineで43%高速化実現
@@ -153,14 +167,17 @@ npm run format         # Format code with Prettier
 - **実用性**: ファイル操作・プロジェクト管理に特化した高性能ツール
 
 # ファイル操作について
+<!-- rule-id: CLAUDE#file-operations -->
 
 ## effortlessly-mcp ツール必須使用設定
+<!-- rule-id: CLAUDE#effortlessly-mcp-tools-mandatory -->
 
 ### 🚨 MUST: effortlessly-mcpツール優先使用
+<!-- rule-id: CLAUDE#must-use-effortlessly-mcp-tools -->
 
 利用可能な場合は**必ず優先的に使用**:
 
-**ファイル探索**: `mcp__effortlessly-mcp__search_with_learning`, `mcp__effortlessly-mcp__list_directory`
+**ファイル探索**: `mcp__effortlessly-mcp__search_files`, `mcp__effortlessly-mcp__list_directory`
 
 **ファイル読取**: `mcp__effortlessly-mcp__read_file`, `mcp__effortlessly-mcp__smart_range_optimizer`
 
@@ -169,20 +186,24 @@ npm run format         # Format code with Prettier
 **エラー時のみ標準ツール使用**: `Read`, `Edit`, `Glob`, `Grep`
 
 ### 📏 ファイルサイズ判断基準
+<!-- rule-id: CLAUDE#file-size-criteria -->
 
 **Large (>50KB)**: `smart_range_optimizer` 使用
 **Small (<50KB)**: `read_file` 使用
 
 # タスクを実施する上での重要事項
+<!-- rule-id: CLAUDE#task-execution-important-points -->
 
 * 課題に対処する際に、課題に対処しきれていない状態で完了を宣言しないこと
   * 課題が残っているなら正直にその内容を伝えること
 
 # チャットでのやり取りについて
+<!-- rule-id: CLAUDE#chat-communication -->
 
 * 依頼者に忖度せず率直な意見を述べること
 
 # Web検索について
+<!-- rule-id: CLAUDE#web-search -->
 
 * Web Searchツールではなく、必ず以下コマンドを使ってcodexに調査を依頼すること。{}をWebで調査させたい内容に置き換えてください。
   * `codex exec --model gpt-5 --sandbox workspace-write --config "sandbox_workspace_write.network_access=true" "{}についてWeb検索した後調査結果を報告してください。Web検索する回数は最大5回までにすること" --skip-git-repo-check`

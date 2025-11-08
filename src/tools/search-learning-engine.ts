@@ -27,40 +27,38 @@ async function getSearchLearningEngine(): Promise<SearchLearningEngine> {
 }
 
 /**
- * 検索実行と学習記録ツール
+ * ファイル検索ツール（AI学習機能内蔵）
  */
-const SearchWithLearningSchema = z.object({
-  query: z.string().describe('Search query'),
+const SearchFilesSchema = z.object({
+  query: z.string().describe('Search query (file name or keyword)'),
   directory: z.string().optional().describe('Search target directory (default: current directory)'),
-  file_pattern: z.string().optional().describe('File name pattern (glob format)'),
+  file_pattern: z.string().optional().describe('File name pattern (glob format, e.g., *.ts, **/*.md)'),
   content_pattern: z.string().optional().describe('File content search pattern (regex)'),
   case_sensitive: z.boolean().optional().default(false).describe('Case sensitive search'),
   recursive: z.boolean().optional().default(true).describe('Recursive search'),
-  max_results: z.number().optional().default(100).describe('Maximum number of results'),
-  learn_patterns: z.boolean().optional().default(true).describe('Learn search patterns')
+  max_results: z.number().optional().default(100).describe('Maximum number of results')
 });
 
-type SearchWithLearningParams = z.infer<typeof SearchWithLearningSchema>;
+type SearchFilesParams = z.infer<typeof SearchFilesSchema>;
 
-export class SearchWithLearningTool extends BaseTool {
+export class SearchFilesTool extends BaseTool {
   readonly metadata: IToolMetadata = {
-    name: 'search_with_learning',
-    description: 'AI-powered learning search engine. Detects file changes for automatic cache invalidation, learns project-specific search patterns to optimize similar searches, and gets smarter with usage.',
+    name: 'search_files',
+    description: 'Search files in specified directory by file name pattern (glob) or content (regex). Automatically learns and optimizes search patterns for faster subsequent searches.',
     parameters: {
-      query: { type: 'string', description: 'Search query', required: true },
+      query: { type: 'string', description: 'Search query (file name or keyword)', required: true },
       directory: { type: 'string', description: 'Search target directory (default: current directory)', required: false },
-      file_pattern: { type: 'string', description: 'File name pattern (glob format)', required: false },
+      file_pattern: { type: 'string', description: 'File name pattern (glob format, e.g., *.ts, **/*.md)', required: false },
       content_pattern: { type: 'string', description: 'File content search pattern (regex)', required: false },
       case_sensitive: { type: 'boolean', description: 'Case sensitive search', required: false },
       recursive: { type: 'boolean', description: 'Recursive search', required: false },
-      max_results: { type: 'number', description: 'Maximum number of results', required: false },
-      learn_patterns: { type: 'boolean', description: 'Learn search patterns', required: false }
+      max_results: { type: 'number', description: 'Maximum number of results', required: false }
     },
   };
 
-  protected readonly schema = SearchWithLearningSchema;
+  protected readonly schema = SearchFilesSchema;
 
-  protected async executeInternal(validatedParams: SearchWithLearningParams): Promise<IToolResult> {
+  protected async executeInternal(validatedParams: SearchFilesParams): Promise<IToolResult> {
     const searchEngine = await getSearchLearningEngine();
     const startTime = Date.now();
     
@@ -68,18 +66,16 @@ export class SearchWithLearningTool extends BaseTool {
     const directory = validatedParams.directory || process.cwd();
     const patternType = validatedParams.content_pattern ? 'content_pattern' : 'file_pattern';
     
-    // 自動クエリ最適化の実行
+    // 自動クエリ最適化の実行（常時有効）
     let optimizedQuery = validatedParams.query;
     let optimizationSuggestions: any[] = [];
-    if (validatedParams.learn_patterns) {
-      const optimizations = searchEngine.optimizeQuery(validatedParams.query, directory);
-      if (optimizations && optimizations.length > 0) {
-        const bestOptimization = optimizations[0];
-        if (bestOptimization.confidence > 0.7) {
-          optimizedQuery = bestOptimization.optimized_query;
-        }
-        optimizationSuggestions = optimizations;
+    const optimizations = searchEngine.optimizeQuery(validatedParams.query, directory);
+    if (optimizations && optimizations.length > 0) {
+      const bestOptimization = optimizations[0];
+      if (bestOptimization.confidence > 0.7) {
+        optimizedQuery = bestOptimization.optimized_query;
       }
+      optimizationSuggestions = optimizations;
     }
     
     // 期限切れキャッシュを清掃
@@ -104,8 +100,8 @@ export class SearchWithLearningTool extends BaseTool {
       const optimizedParams = { ...validatedParams, query: optimizedQuery };
       searchResults = await this.performActualSearch(optimizedParams);
       
-      // 結果をキャッシュに保存
-      if (searchResults && validatedParams.learn_patterns) {
+      // 結果をキャッシュに保存（常時有効）
+      if (searchResults) {
         await searchEngine.cacheSearchResult(
           optimizedQuery,
           patternType,
@@ -118,8 +114,8 @@ export class SearchWithLearningTool extends BaseTool {
     const executionTime = Date.now() - startTime;
     const resultCount = Array.isArray(searchResults) ? searchResults.length : 0;
     
-    // 検索実行結果を学習データとして記録（実際に検索した場合のみ）
-    if (!fromCache && validatedParams.learn_patterns) {
+    // 検索実行結果を学習データとして記録（実際に検索した場合のみ・常時有効）
+    if (!fromCache) {
       await searchEngine.recordSearch({
         query: optimizedQuery,
         pattern_type: patternType,
@@ -142,7 +138,7 @@ export class SearchWithLearningTool extends BaseTool {
           metadata: {
             executionTime: `${executionTime}ms`,
             resultCount,
-            learnedPatterns: validatedParams.learn_patterns,
+            learnedPatterns: true,
             optimizationApplied: optimizedQuery !== validatedParams.query,
             originalQuery: validatedParams.query,
             optimizedQuery: optimizedQuery !== validatedParams.query ? optimizedQuery : undefined,
@@ -156,7 +152,7 @@ export class SearchWithLearningTool extends BaseTool {
     };
   }
 
-  private async performActualSearch(params: SearchWithLearningParams): Promise<any[]> {
+  private async performActualSearch(params: SearchFilesParams): Promise<any[]> {
     try {
       // 直接的なファイル検索を実行（search_filesツール廃止により簡素化）
       
@@ -207,11 +203,11 @@ export class SearchWithLearningTool extends BaseTool {
   }
 }
 
-// optimize_search_query機能は search_with_learning に統合されました
+// optimize_search_query機能は search_files に統合されました
 
 
 
 
 
 // ツールインスタンスのエクスポート
-export const searchWithLearning = new SearchWithLearningTool();
+export const searchFiles = new SearchFilesTool();
