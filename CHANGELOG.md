@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.2.0] - 2025-11-08
+## [2.1.1] - 2025-11-08
 
 ### Removed
 - ❌ **冗長ツール削除**: Claude Code標準ツールと重複する3ツールを削除（11個→6個、45%削減）
@@ -16,30 +16,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `get_file_metadata` → Claude Code標準 `Bash(ls -l)` / `Read` ツールで代替可能
 
 ### Changed
-- 📝 **ドキュメント強化**: Claude Code標準ツールとの差別化を明確化
-  - CLAUDE.md: 各ツールに標準ツールとの差別化ポイントを追加
-  - README.md: 「Claude Code標準ツールとの差別化」セクション追加
-  - ファイル読取戦略を「大ファイル」「小ファイル」「検索」で明確化
-
-### Benefits
-- 🎯 **焦点の明確化**: AI学習・スマート編集・ワークスペース管理・AI最適化に特化
-- 🚀 **保守性向上**: ツール数削減により保守コスト軽減
-- 💡 **価値の明確化**: Claude Code標準ツールに対する独自の価値提案を強調
-
-## [2.1.1] - 2025-11-08
-
-### Changed
 - 🔄 **ツール名改善**: `search_with_learning` → `search_files` に改名
   - AIが使いやすい標準的な名前に変更
   - Description を用途中心の説明に簡素化
   - 内部機能パラメータ（`learn_patterns`）を削除し常時有効化
   - パラメータ数を8個→7個に削減、認知負荷を低減
+- 📝 **ドキュメント強化**: Claude Code標準ツールとの差別化を明確化
+  - CLAUDE.md: 各ツールに標準ツールとの差別化ポイントを追加
+  - README.md: 「Claude Code標準ツールとの差別化」セクション追加
+  - ファイル読取戦略を「大ファイル」「小ファイル」「検索」で明確化
 
 ### Fixed
 - 📝 **ドキュメント修正**: CLAUDE.md、README.mdの誤った記述を修正
   - 非推奨表記の削除
   - AI検索セクションを基本ファイル操作に統合
   - ツール参照名を正確に更新
+
+### Benefits
+- 🎯 **焦点の明確化**: AI学習・スマート編集・ワークスペース管理・AI最適化に特化
+- 🚀 **保守性向上**: ツール数削減により保守コスト軽減
+- 💡 **価値の明確化**: Claude Code標準ツールに対する独自の価値提案を強調
 
 
 
